@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>ManScouts</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f2ea;
+    --card:#ffffff;
+    --ink:#1a1813;
+    --muted:#7a7367;
+    --line:#ebe5d8;
+    --accent:#e5552b;      /* flame */
+    --accent-d:#c5421d;
+    --green:#1f8a5b;
+    --green-d:#176b46;
+    --gold:#d9a441;
+    --tint:#efeadd;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);overscroll-behavior:none;-webkit-font-smoothing:antialiased;
+  }
+  #root{min-height:100vh;}
+  .wrap{max-width:540px;margin:0 auto;padding:0 18px 120px;}
+  .display{font-weight:800;letter-spacing:-.02em;line-height:1.05;}
+  .label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--muted);}
+  .muted{color:var(--muted);}
+
+  /* header */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(245,242,234,.86);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;}
+  .topbar .row{max-width:540px;margin:0 auto;display:flex;align-items:center;gap:9px;}
+  .mark{width:30px;height:30px;border-radius:9px;background:var(--ink);display:flex;align-items:center;justify-content:center;}
+  .topbar h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em;}
+  .topbar h1 span{color:var(--accent);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;
+    box-shadow:0 1px 2px rgba(26,24,19,.04),0 8px 24px rgba(26,24,19,.05);}
+
+  .btn{font-weight:700;font-size:15px;border:none;border-radius:999px;padding:15px 18px;width:100%;cursor:pointer;
+    background:var(--accent);color:#fff;letter-spacing:-.01em;transition:transform .08s,filter .15s;
+    box-shadow:0 6px 16px rgba(229,85,43,.3);}
+  .btn:active{transform:scale(.975);}
+  .btn.green{background:var(--green);box-shadow:0 6px 16px rgba(31,138,91,.28);}
+  .btn.dark{background:var(--ink);box-shadow:0 6px 16px rgba(26,24,19,.22);}
+  .btn.ghost{background:var(--tint);color:var(--ink);box-shadow:none;}
+  .btn:disabled{opacity:.45;box-shadow:none;}
+
+  input,textarea{width:100%;font-size:16px;font-family:inherit;color:var(--ink);background:var(--card);
+    border:1.5px solid var(--line);border-radius:14px;padding:13px 14px;outline:none;transition:border-color .15s;}
+  input:focus,textarea:focus{border-color:var(--ink);}
+  textarea{resize:none;}
+
+  .seg{display:flex;gap:7px;flex-wrap:wrap;}
+  .chip{border:none;background:var(--tint);color:var(--ink);border-radius:999px;padding:8px 14px;
+    font-size:12.5px;font-weight:700;cursor:pointer;letter-spacing:-.01em;}
+  .chip.on{background:var(--ink);color:#fff;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .cell{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 10px 14px;text-align:center;
+    cursor:pointer;position:relative;box-shadow:0 1px 2px rgba(26,24,19,.04),0 6px 18px rgba(26,24,19,.05);
+    transition:transform .1s;}
+  .cell:active{transform:scale(.97);}
+  .cell .nm{font-weight:800;font-size:13.5px;margin-top:9px;line-height:1.15;letter-spacing:-.01em;}
+  .cell .df{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:800;margin-top:5px;}
+  .locked .emblemwrap{filter:grayscale(.9);opacity:.5;}
+  .corner{position:absolute;top:9px;right:9px;width:23px;height:23px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;}
+
+  /* nav */
+  .nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.9);backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);display:flex;justify-content:space-around;
+    padding:8px 4px calc(env(safe-area-inset-bottom) + 8px);}
+  .nav button{background:none;border:none;color:var(--muted);font-weight:700;font-size:10px;letter-spacing:.02em;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 12px;cursor:pointer;}
+  .nav button.on{color:var(--ink);}
+  .nav .navico{width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+
+  .scrim{position:fixed;inset:0;z-index:50;background:rgba(26,20,12,.5);display:flex;align-items:flex-end;
+    justify-content:center;backdrop-filter:blur(3px);}
+  .sheet{width:100%;max-width:540px;max-height:94vh;overflow:auto;background:var(--bg);
+    border-radius:26px 26px 0 0;padding:14px 18px calc(env(safe-area-inset-bottom) + 26px);
+    animation:up .3s cubic-bezier(.2,.9,.3,1.05);}
+  @keyframes up{from{transform:translateY(50px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .grip{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px;}
+
+  .proof{width:100%;border-radius:16px;display:block;background:#000;aspect-ratio:4/3;object-fit:cover;}
+  .scene{width:100%;border-radius:16px;display:block;aspect-ratio:4/3;}
+
+  /* post */
+  .post{padding:14px;margin-bottom:16px;}
+  .ph{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:800;font-size:15px;background-size:cover;background-position:center;}
+  .cheer{display:inline-flex;align-items:center;gap:6px;background:var(--tint);border:none;border-radius:999px;
+    padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);transition:transform .1s;}
+  .cheer.on{background:#ffe6dc;color:var(--accent-d);}
+  .cheer:active{transform:scale(.92);}
+
+  /* sash */
+  .sash{background:linear-gradient(160deg,#eaf3ee,#e7efe6);border:1px solid #d9e7df;border-radius:20px;
+    padding:18px 14px;min-height:120px;}
+  .sashgrid{display:flex;flex-wrap:wrap;gap:14px 10px;justify-content:center;}
+
+  /* unlock */
+  .unlock{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 38%, rgba(255,255,255,.16), rgba(20,14,8,.94));overflow:hidden;padding:24px;}
+  .ucard{background:var(--card);border-radius:26px;padding:30px 26px;text-align:center;max-width:340px;width:100%;
+    animation:pop .55s cubic-bezier(.2,1.3,.4,1) both;box-shadow:0 30px 60px rgba(0,0,0,.4);}
+  @keyframes pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .stamp{animation:stamp .7s cubic-bezier(.18,1.4,.4,1) both;}
+  @keyframes stamp{0%{transform:scale(0) rotate(-18deg);opacity:0;}55%{transform:scale(1.15) rotate(5deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+  .pill{display:inline-block;background:var(--accent);color:#fff;font-weight:800;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;padding:7px 16px;border-radius:999px;}
+
+  .pf{position:absolute;pointer-events:none;}
+  .ember{width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#ffd27a,#e5552b);animation:rise 1.6s ease-out forwards;}
+  @keyframes rise{0%{transform:translateY(0) scale(1);opacity:0;}15%{opacity:1;}100%{transform:translateY(-240px) scale(.3);opacity:0;}}
+  .ray{width:4px;height:130px;background:linear-gradient(var(--gold),transparent);transform-origin:bottom center;animation:rayspin 1.4s ease-out forwards;}
+  @keyframes rayspin{0%{transform:scaleY(0);opacity:0;}40%{opacity:.85;}100%{transform:scaleY(1);opacity:0;}}
+  .rippl{border:3px solid #aee0ff;border-radius:50%;animation:ripple 1.6s ease-out forwards;}
+  @keyframes ripple{from{width:20px;height:20px;opacity:.7;}to{width:360px;height:360px;opacity:0;}}
+  .twk{font-size:18px;color:#ffe9a8;animation:twk 1.6s ease-in-out forwards;}
+  @keyframes twk{0%{transform:scale(0);opacity:0;}40%{transform:scale(1.2);opacity:1;}100%{transform:scale(.6);opacity:0;}}
+  .leaf{width:12px;height:12px;background:#5ba36a;border-radius:0 70% 0 70%;animation:drift 2s ease-in forwards;}
+  @keyframes drift{0%{transform:translateY(-40px) rotate(0);opacity:0;}20%{opacity:1;}100%{transform:translateY(280px) rotate(320deg);opacity:0;}}
+  .spark{width:3px;height:22px;background:linear-gradient(#fff,#f0a23a);border-radius:2px;transform-origin:center;animation:burst .9s ease-out forwards;}
+  @keyframes burst{0%{transform:scale(.2);opacity:0;}30%{opacity:1;}100%{transform:scale(1) translateY(-46px);opacity:0;}}
+  .conf{width:7px;height:15px;border-radius:2px;animation:fall 1.9s ease-in forwards;}
+  @keyframes fall{0%{transform:translateY(-60px) rotate(0);opacity:0;}15%{opacity:1;}100%{transform:translateY(320px) rotate(380deg);opacity:0;}}
+  .stitchdraw{stroke-dasharray:4 4;stroke-dashoffset:200;animation:stitch 1s .25s ease-out forwards;}
+  @keyframes stitch{to{stroke-dashoffset:0;}}
+  .fadeup{opacity:0;animation:fadeup .45s forwards;}
+  @keyframes fadeup{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .hide{display:none;}
+  @media (prefers-reduced-motion: reduce){.stamp,.ember,.ray,.rippl,.twk,.leaf,.spark,.conf,.ucard{animation-duration:.01s!important;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+const mem={};
+const hasStore = typeof window!=="undefined" && window.storage && typeof window.storage.get==="function";
+async function sGet(k){ if(!hasStore) return mem[k]??null; try{const r=await window.storage.get(k,false);return r?r.value:null;}catch(e){return null;} }
+async function sSet(k,v){ if(!hasStore){mem[k]=v;return;} try{await window.storage.set(k,v,false);}catch(e){mem[k]=v;} }
+
+function fitCanvas(w,h,max){let s=Math.min(1,max/Math.max(w,h));const c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);return c;}
+function fileToProof(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);
+  if(file.type.startsWith("video")){const v=document.createElement("video");v.muted=true;v.playsInline=true;v.src=url;
+    v.onloadeddata=()=>{try{v.currentTime=Math.min(1,(v.duration||2)/2);}catch(e){}};
+    v.onseeked=()=>{const c=fitCanvas(v.videoWidth||640,v.videoHeight||480,900);c.getContext("2d").drawImage(v,0,0,c.width,c.height);URL.revokeObjectURL(url);res({dataUrl:c.toDataURL("image/jpeg",.6),type:"video"});};
+    v.onerror=()=>{URL.revokeObjectURL(url);rej();};
+  }else{const img=new Image();img.onload=()=>{const c=fitCanvas(img.width,img.height,900);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);res({dataUrl:c.toDataURL("image/jpeg",.6),type:"photo"});};img.onerror=()=>{URL.revokeObjectURL(url);rej();};img.src=url;}
+});}
+
+const DIFFS={Tenderfoot:{c:"#1f8a5b"},Trailhand:{c:"#d9a441"},Pathfinder:{c:"#e5552b"},Frontiersman:{c:"#6d4ea8"}};
+const CATS={Wilderness:{c:"#2f7d57"},Provision:{c:"#cf8a32"},Craft:{c:"#9c6b3f"},Grit:{c:"#4a5a66"},Courage:{c:"#e0613a"},Service:{c:"#2f8f8a"},Adventure:{c:"#b25533"}};
+const CH=[
+ {id:"summit",nm:"Summit Seeker",cat:"Wilderness",df:"Pathfinder",ico:"mountain",an:"rays",pts:50,blurb:"Climb to the top of a real peak under your own power and look back at how far you came.",how:["Pick a hill or mountain with a true summit","Hike to the top on foot","Snap proof at the marker or the view"]},
+ {id:"sky",nm:"Under Open Sky",cat:"Wilderness",df:"Trailhand",ico:"tent",an:"twinkle",pts:35,blurb:"Sleep a full night outdoors with the sky as your roof.",how:["Find a safe, legal spot","Sleep the night outside","Capture your camp at dusk or dawn"]},
+ {id:"fire",nm:"Firebringer",cat:"Craft",df:"Trailhand",ico:"flame",an:"embers",pts:35,blurb:"Build a fire from scratch with no lighter fluid.",how:["Gather tinder, kindling, fuel","Light it with flint, friction, or one match","Film or photograph the first flames"]},
+ {id:"cold",nm:"Cold Water Oath",cat:"Grit",df:"Trailhand",ico:"water",an:"ripple",pts:35,blurb:"Submerge in cold natural water and hold your breath in it.",how:["Find safe open water — never alone","Get fully in","Capture the moment you go under"],care:"Know your limits and never enter cold water alone."},
+ {id:"north",nm:"True North",cat:"Wilderness",df:"Pathfinder",ico:"compass",an:"rays",pts:50,blurb:"Complete a route using only a paper map and compass.",how:["Plan a route on paper","Navigate it without GPS","Photograph map, compass, and destination"]},
+ {id:"forage",nm:"Wild Harvest",cat:"Provision",df:"Pathfinder",ico:"leaf",an:"leaves",pts:50,blurb:"Identify and gather a wild edible.",how:["Positively identify a wild edible","Harvest responsibly","Photograph your find"],care:"Only eat wild plants confirmed by an expert. When unsure, don't."},
+ {id:"catch",nm:"Hook & Coal",cat:"Provision",df:"Trailhand",ico:"fish",an:"embers",pts:35,blurb:"Catch a fish and cook it over a fire.",how:["Catch your own fish","Cook it on flame or coals","Photograph the catch and the meal"]},
+ {id:"chop",nm:"The Splitter",cat:"Craft",df:"Trailhand",ico:"axe",an:"sparks",pts:35,blurb:"Split and stack a load of firewood by hand.",how:["Split rounds with an axe or maul","Stack them clean and square","Photograph the finished stack"]},
+ {id:"dawn",nm:"Dawn Patrol",cat:"Grit",df:"Tenderfoot",ico:"sunrise",an:"rays",pts:20,blurb:"Wake before the sun and watch it rise.",how:["Be up before first light","Watch the sun break the horizon","Capture the sunrise"]},
+ {id:"march",nm:"The Long March",cat:"Grit",df:"Pathfinder",ico:"boot",an:"rays",pts:50,blurb:"Cover ten miles on foot in a single day.",how:["Plan a 10-mile route","Walk or ruck it in one go","Show your tracker or the trail's end"]},
+ {id:"silent",nm:"Silent Sabbath",cat:"Grit",df:"Tenderfoot",ico:"moon",an:"twinkle",pts:20,blurb:"Spend 24 hours with no phone or screens.",how:["Power down for a full day","Do something real with the time","Photograph the powered-off device or your day"]},
+ {id:"whittle",nm:"The Whittler",cat:"Craft",df:"Tenderfoot",ico:"knife",an:"sparks",pts:20,blurb:"Carve a useful object from a piece of wood.",how:["Choose a safe blade and wood","Whittle something with a purpose","Photograph the finished piece"]},
+ {id:"knots",nm:"Knot Master",cat:"Craft",df:"Tenderfoot",ico:"knot",an:"sparks",pts:20,blurb:"Tie five essential knots from memory.",how:["Learn bowline, clove hitch, taut-line, figure-8, square","Tie all five without looking them up","Film yourself doing it"]},
+ {id:"fix",nm:"The Mender",cat:"Craft",df:"Trailhand",ico:"wrench",an:"sparks",pts:35,blurb:"Repair something broken instead of replacing it.",how:["Find something broken","Fix it with your own hands","Photograph it working again"]},
+ {id:"scratch",nm:"From Scratch",cat:"Provision",df:"Trailhand",ico:"pot",an:"embers",pts:35,blurb:"Cook a full meal from raw ingredients over flame.",how:["Start from raw ingredients","Cook over fire or coals","Photograph the finished plate"]},
+ {id:"bread",nm:"Break Bread",cat:"Courage",df:"Trailhand",ico:"bowl",an:"conf",pts:35,blurb:"Share a real meal and conversation with a stranger.",how:["Sit down with someone new","Share food and an honest talk","Capture the table (with their okay)"]},
+ {id:"mend",nm:"Mend the Rift",cat:"Courage",df:"Pathfinder",ico:"hands",an:"conf",pts:50,blurb:"Repair a relationship — apologize and mean it.",how:["Reach out to someone you fell out with","Own your part, no conditions","Note when and where it happened"]},
+ {id:"speak",nm:"Stand & Speak",cat:"Courage",df:"Pathfinder",ico:"horn",an:"conf",pts:50,blurb:"Speak or perform in front of a crowd.",how:["Get in front of a real audience","Say or perform your piece","Have someone film it"]},
+ {id:"steward",nm:"Trail Steward",cat:"Service",df:"Tenderfoot",ico:"bag",an:"leaves",pts:20,blurb:"Pack out more trash than you brought in.",how:["Carry a bag on your next outing","Leave it cleaner than you found it","Photograph the haul"]},
+ {id:"mentor",nm:"Pass It On",cat:"Service",df:"Trailhand",ico:"teach",an:"conf",pts:35,blurb:"Teach someone a skill you've earned.",how:["Pick a skill worth sharing","Spend real time teaching it","Capture the lesson"]},
+ {id:"plant",nm:"Rootmaker",cat:"Service",df:"Tenderfoot",ico:"seed",an:"leaves",pts:20,blurb:"Plant a tree or garden and document it.",how:["Plant something that will grow for years","Water it in","Photograph the planting"]},
+ {id:"blood",nm:"Lifeblood",cat:"Service",df:"Pathfinder",ico:"drop",an:"ripple",pts:50,blurb:"Donate blood.",how:["Book a donation","Give","Photograph your bandage or wristband"]},
+ {id:"solo",nm:"The Lone Trail",cat:"Adventure",df:"Frontiersman",ico:"pack",an:"rays",pts:80,blurb:"Take a real trip entirely on your own.",how:["Plan a solo overnight journey","Go alone and self-reliant","Document the road and the return"]},
+ {id:"stars",nm:"Skyreader",cat:"Adventure",df:"Tenderfoot",ico:"stars",an:"twinkle",pts:20,blurb:"Find and name three constellations.",how:["Get away from city light","Identify three constellations","Photograph the night sky"]},
+ {id:"river",nm:"River Run",cat:"Adventure",df:"Trailhand",ico:"wave",an:"ripple",pts:35,blurb:"Paddle a stretch of moving water.",how:["Get a canoe, kayak, or raft","Run a safe stretch of river","Capture you on the water"],care:"Always wear a life vest on the water."}
+];
+const byId=id=>CH.find(c=>c.id===id);
+
+function Ico({name}){
+  const P={fill:"none",stroke:"#fff",strokeWidth:6,strokeLinecap:"round",strokeLinejoin:"round"};
+  const F={fill:"#fff"};
+  const g={
+    mountain:<g {...P}><path d="M14 74 L40 30 L56 54 L70 36 L88 74 Z"/><path d="M34 38 l6 6 6-6"/></g>,
+    tent:<g {...P}><path d="M16 76 L50 26 L84 76 Z"/><path d="M50 26 L50 76"/><path d="M40 76 L50 56 L60 76"/></g>,
+    flame:<g {...P}><path d="M50 20 C66 40 70 52 60 66 C56 72 44 72 40 66 C34 58 38 52 44 48 C42 58 52 60 54 52 C56 44 46 40 50 20 Z"/></g>,
+    water:<g {...P}><path d="M50 22 C66 46 72 58 64 70 C57 80 43 80 36 70 C28 58 34 46 50 22 Z"/></g>,
+    compass:<g {...P}><circle cx="50" cy="50" r="30"/><path d="M50 30 L58 54 L50 50 L42 54 Z" fill="#fff"/><path d="M50 70 L42 50 L50 50 L58 50 Z"/></g>,
+    leaf:<g {...P}><path d="M28 72 C28 40 56 28 76 28 C76 56 56 76 28 72 Z"/><path d="M30 70 L66 36"/></g>,
+    fish:<g {...P}><path d="M22 50 C36 32 64 32 74 50 C64 68 36 68 22 50 Z"/><path d="M74 50 L88 38 L88 62 Z"/><circle cx="38" cy="46" r="2.5" fill="#fff"/></g>,
+    axe:<g {...P}><path d="M34 78 L62 26"/><path d="M58 22 C72 24 78 36 74 48 C66 44 60 44 54 48 Z"/></g>,
+    sunrise:<g {...P}><path d="M18 70 H82"/><path d="M34 70 a16 16 0 0 1 32 0"/><path d="M50 38 V28 M30 46 L24 40 M70 46 L76 40 M22 60 H14 M78 60 H86"/></g>,
+    boot:<g {...P}><path d="M36 22 V54 L66 66 C76 70 78 78 70 78 H30 V22 Z"/><path d="M30 70 H70"/></g>,
+    moon:<g {...P}><path d="M62 22 A30 30 0 1 0 62 78 A24 24 0 0 1 62 22 Z"/></g>,
+    knife:<g {...P}><path d="M22 70 C40 52 60 38 78 26 C74 44 60 60 40 72 Z"/><path d="M22 70 L34 80"/></g>,
+    knot:<g {...P}><path d="M30 40 C50 20 70 60 50 70 C30 80 50 40 70 60"/><path d="M28 64 C44 50 56 50 72 36"/></g>,
+    wrench:<g {...P}><path d="M64 24 a14 14 0 1 0 12 22 L52 70 a8 8 0 0 1-12-12 L64 34 a14 14 0 0 1 0-10 Z"/></g>,
+    pot:<g {...P}><path d="M24 46 H76 V62 a14 14 0 0 1-14 14 H38 a14 14 0 0 1-14-14 Z"/><path d="M40 46 V36 M60 46 V36"/><path d="M18 52 H24 M76 52 H82"/></g>,
+    bowl:<g {...P}><path d="M22 50 H78 a28 22 0 0 1-56 0 Z"/><path d="M40 40 q4-10 0-16 M52 40 q4-10 0-16"/></g>,
+    hands:<g {...P}><path d="M50 70 C30 56 24 44 32 34 C40 26 50 32 50 40 C50 32 60 26 68 34 C76 44 70 56 50 70 Z"/></g>,
+    horn:<g {...P}><path d="M26 42 L26 58 L46 58 L72 74 L72 26 L46 42 Z"/><path d="M78 40 q8 10 0 20"/></g>,
+    bag:<g {...P}><path d="M30 40 H70 L74 78 H26 Z"/><path d="M40 40 a10 10 0 0 1 20 0"/></g>,
+    teach:<g {...P}><circle cx="50" cy="34" r="10"/><path d="M28 74 a22 18 0 0 1 44 0"/><path d="M24 50 L18 54 M76 50 L82 54"/></g>,
+    seed:<g {...P}><path d="M50 76 V44"/><path d="M50 52 C36 52 30 40 32 30 C46 30 50 42 50 52 Z"/><path d="M50 48 C64 48 70 38 68 30 C56 30 50 40 50 48 Z"/></g>,
+    drop:<g {...P}><path d="M50 22 C66 46 72 58 64 70 C57 80 43 80 36 70 C28 58 34 46 50 22 Z"/></g>,
+    pack:<g {...P}><path d="M34 30 H66 V78 H34 Z"/><path d="M42 30 a8 8 0 0 1 16 0"/><path d="M34 56 H66 M44 56 V70"/></g>,
+    stars:<g {...F}><path d="M30 30 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 Z"/><path d="M64 50 l2.5 5 5.5 .8 -4 4 1 5.5 -5 -2.5 -5 2.5 1 -5.5 -4 -4 5.5 -.8 Z"/></g>,
+    wave:<g {...P}><path d="M16 46 q9-10 18 0 t18 0 t18 0"/><path d="M16 62 q9-10 18 0 t18 0 t18 0"/></g>,
+    board:<g {...P}><rect x="22" y="24" width="56" height="52" rx="8"/><path d="M34 40 H66 M34 52 H58"/></g>
+  };
+  return <svg viewBox="0 0 100 100" width="100%" height="100%">{g[name]||g.stars}</svg>;
+}
+
+function Badge({ch,size=82,drawn=false,rot=0}){
+  const col=CATS[ch.cat].c;
+  return (
+    <div className="emblemwrap" style={{width:size,height:size,position:"relative",margin:"0 auto",
+      filter:"drop-shadow(0 4px 8px rgba(26,24,19,.18))",transform:rot?`rotate(${rot}deg)`:"none"}}>
+      <svg viewBox="0 0 100 100" style={{position:"absolute",inset:0,width:"100%",height:"100%"}}>
+        <circle cx="50" cy="50" r="47" fill={col}/>
+        <circle cx="50" cy="50" r="47" fill="url(#hl)"/>
+        <circle cx="50" cy="50" r="43.5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.6"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="1.6"
+          strokeDasharray="4 4" className={drawn?"stitchdraw":""}/>
+        <defs><radialGradient id="hl" cx="36%" cy="28%" r="75%">
+          <stop offset="0%" stopColor="rgba(255,255,255,.4)"/><stop offset="62%" stopColor="rgba(255,255,255,0)"/>
+        </radialGradient></defs>
+      </svg>
+      <div style={{position:"absolute",inset:"24%"}}><Ico name={ch.ico}/></div>
+    </div>
+  );
+}
+
+/* gradient illustration used as proof on demo posts */
+function Scene({an}){
+  const t = an==="rays"?"sun":an==="twinkle"?"night":an==="ripple"?"water":an==="embers"?"fire":an==="leaves"?"green":"warm";
+  const id="g"+t+Math.random().toString(36).slice(2,6);
+  const map={
+    sun:["#ffd089","#ff9a52","#ef6b3a"],night:["#1b2350","#3a2f6b","#0e1330"],
+    water:["#7fd3e8","#3aa0c9","#1d6fa0"],fire:["#3a1c14","#8a2f17","#e5552b"],
+    green:["#bfe6a8","#6fb86a","#2f8f5b"],warm:["#ffd9c2","#ff9e7d","#e0613a"]
+  };
+  const c=map[t];
+  return (
+    <svg className="scene" viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={c[0]}/><stop offset="55%" stopColor={c[1]}/><stop offset="100%" stopColor={c[2]}/>
+      </linearGradient></defs>
+      <rect width="200" height="150" fill={`url(#${id})`}/>
+      {t==="sun" && <><circle cx="140" cy="50" r="22" fill="rgba(255,255,255,.85)"/>
+        <path d="M0 150 L60 95 L100 120 L150 80 L200 110 L200 150 Z" fill="rgba(20,14,8,.32)"/>
+        <path d="M0 150 L50 118 L110 138 L160 112 L200 132 L200 150 Z" fill="rgba(20,14,8,.5)"/></>}
+      {t==="night" && <><circle cx="150" cy="44" r="16" fill="rgba(255,255,255,.9)"/><circle cx="156" cy="40" r="16" fill={c[1]}/>
+        {[...Array(22)].map((_,i)=><circle key={i} cx={(i*53)%200} cy={(i*37)%90+8} r={i%3?1:1.6} fill="#fff" opacity=".85"/>)}
+        <path d="M0 150 L70 120 L140 138 L200 118 L200 150 Z" fill="rgba(0,0,0,.4)"/></>}
+      {t==="water" && <><path d="M0 70 q25-12 50 0 t50 0 t50 0 t50 0 V150 H0 Z" fill="rgba(255,255,255,.18)"/>
+        <path d="M0 95 q25-12 50 0 t50 0 t50 0 t50 0 V150 H0 Z" fill="rgba(255,255,255,.16)"/></>}
+      {t==="fire" && <><circle cx="100" cy="120" r="60" fill="rgba(255,180,90,.35)"/><circle cx="100" cy="125" r="34" fill="rgba(255,210,120,.4)"/></>}
+      {t==="green" && <><path d="M0 150 L60 100 L120 135 L200 95 L200 150 Z" fill="rgba(20,40,20,.28)"/>
+        <circle cx="150" cy="48" r="16" fill="rgba(255,255,255,.55)"/></>}
+      {t==="warm" && <><circle cx="55" cy="55" r="34" fill="rgba(255,255,255,.22)"/><circle cx="150" cy="100" r="44" fill="rgba(255,255,255,.16)"/></>}
+    </svg>
+  );
+}
+
+const AVCOL=["#e5552b","#1f8a5b","#6d4ea8","#cf8a32","#2f8f8a","#4a5a66"];
+function Avatar({name,handle,img,size=40}){
+  if(img) return <div className="av" style={{width:size,height:size,backgroundImage:`url(${img})`}}/>;
+  const init=(name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  let h=0; for(const ch of (handle||name||"x")) h=(h*31+ch.charCodeAt(0))%997;
+  return <div className="av" style={{width:size,height:size,background:AVCOL[h%AVCOL.length],fontSize:size*.38}}>{init}</div>;
+}
+
+const SEED=[
+ {id:"s1",cid:"summit",name:"Mateo Ruiz",handle:"@mateosends",ago:"2h",hrs:2,place:"Mt. Sanitas, CO",cap:"first peak of the season. legs are jelly, worth it 🫡",witness:"@joon",cheers:48},
+ {id:"s2",cid:"cold",name:"Theo Park",handle:"@theoplunge",ago:"5h",hrs:5,place:"Barton Springs, TX",cap:"58°F. screamed. did it anyway.",witness:"@dmoss",cheers:127},
+ {id:"s3",cid:"bread",name:"Andre Cole",handle:"@andrec",ago:"8h",hrs:8,place:"corner diner",cap:"sat with a guy named Sal for 2 hrs. heard his whole life story. underrated.",witness:"@kwon",cheers:73},
+ {id:"s4",cid:"fire",name:"Jonah Bell",handle:"@jonahmakes",ago:"1d",hrs:26,place:"backyard",cap:"flint & steel only. took 40 mins but we ate 🔥",witness:"@rafi",cheers:91},
+ {id:"s5",cid:"stars",name:"Dev Anand",handle:"@devlooksup",ago:"1d",hrs:30,place:"Joshua Tree",cap:"orion, cassiopeia, the big dipper. no light pollution = unreal",witness:"@mira",cheers:64},
+ {id:"s6",cid:"plant",name:"Cam Whit",handle:"@camgrows",ago:"2d",hrs:50,place:"community garden",cap:"planted an oak. it'll outlive me and that's the point.",witness:"@lopez",cheers:39}
+];
+
+function Particles({an}){
+  const it=[];const r=(a,b)=>a+Math.random()*(b-a);
+  if(an==="embers")for(let i=0;i<24;i++)it.push(<span key={i} className="pf ember" style={{left:r(15,85)+"%",bottom:"34%",animationDelay:r(0,.8)+"s"}}/>);
+  else if(an==="rays")for(let i=0;i<14;i++)it.push(<span key={i} className="pf ray" style={{left:"50%",top:"30%",transform:`rotate(${i*(360/14)}deg)`,animationDelay:r(0,.3)+"s"}}/>);
+  else if(an==="ripple")for(let i=0;i<5;i++)it.push(<span key={i} className="pf rippl" style={{left:"50%",top:"40%",transform:"translate(-50%,-50%)",animationDelay:i*.28+"s"}}/>);
+  else if(an==="twinkle")for(let i=0;i<22;i++)it.push(<span key={i} className="pf twk" style={{left:r(6,94)+"%",top:r(12,72)+"%",animationDelay:r(0,1.1)+"s"}}>✦</span>);
+  else if(an==="leaves")for(let i=0;i<22;i++)it.push(<span key={i} className="pf leaf" style={{left:r(8,92)+"%",top:r(2,28)+"%",animationDelay:r(0,.9)+"s",background:i%2?"#5ba36a":"#cf8a32"}}/>);
+  else if(an==="sparks")for(let i=0;i<18;i++)it.push(<span key={i} className="pf spark" style={{left:"50%",top:"40%",transform:`rotate(${i*20}deg)`,animationDelay:r(0,.2)+"s"}}/>);
+  else{const cs=["#e5552b","#1f8a5b","#d9a441","#6d4ea8"];for(let i=0;i<28;i++)it.push(<span key={i} className="pf conf" style={{left:r(4,96)+"%",top:r(0,18)+"%",background:cs[i%4],animationDelay:r(0,.7)+"s"}}/>);}
+  return <>{it}</>;
+}
+
+function App(){
+  const [ready,setReady]=useState(false);
+  const [profile,setProfile]=useState(null);
+  const [posts,setPosts]=useState([]);
+  const [proofs,setProofs]=useState({});
+  const [cheers,setCheers]=useState({});
+  const [tab,setTab]=useState("board");
+  const [fCat,setFCat]=useState("All");
+  const [fDiff,setFDiff]=useState("All");
+  const [detail,setDetail]=useState(null);
+  const [earn,setEarn]=useState(null);
+  const [unlock,setUnlock]=useState(null);
+  const [editing,setEditing]=useState(false);
+
+  useEffect(()=>{(async()=>{
+    const p=await sGet("ms:profile"); if(p) setProfile(JSON.parse(p));
+    const idx=await sGet("ms:posts"); const arr=idx?JSON.parse(idx):[]; setPosts(arr);
+    const pr={}; for(const po of arr){const d=await sGet("ms:proof:"+po.id); if(d) pr[po.id]=d;} setProofs(pr);
+    const ch=await sGet("ms:cheers"); if(ch) setCheers(JSON.parse(ch));
+    setReady(true);
+  })();},[]);
+
+  const earnedIds=new Set(posts.map(p=>p.cid));
+  const totalPts=posts.reduce((s,p)=>s+(byId(p.cid)?.pts||0),0);
+
+  async function saveProfile(pf){setProfile(pf);await sSet("ms:profile",JSON.stringify(pf));}
+  async function toggleCheer(id){const n={...cheers,[id]:!cheers[id]};setCheers(n);await sSet("ms:cheers",JSON.stringify(n));}
+  async function commitBadge(cid,proof,place,wn,wh,note){
+    const id="p"+Date.now();
+    const post={id,cid,date:new Date().toISOString(),place,witnessName:wn,witnessHandle:wh,note,ptype:proof.type};
+    const next=[post,...posts]; setPosts(next); setProofs(p=>({...p,[id]:proof.dataUrl}));
+    await sSet("ms:proof:"+id,proof.dataUrl); await sSet("ms:posts",JSON.stringify(next));
+    setEarn(null); setUnlock(byId(cid));
+  }
+
+  if(!ready) return <div style={{padding:80,textAlign:"center"}} className="display muted">Loading…</div>;
+  if(!profile) return <Onboard onDone={saveProfile}/>;
+
+  const list=CH.filter(c=>(fCat==="All"||c.cat===fCat)&&(fDiff==="All"||c.df===fDiff));
+
+  return (
+   <div>
+    <div className="topbar"><div className="row">
+      <div className="mark"><svg width="18" height="18" viewBox="0 0 100 100"><g fill="none" stroke="#fff" strokeWidth="8" strokeLinejoin="round" strokeLinecap="round"><path d="M16 78 L42 30 L58 56 L72 38 L88 78 Z"/></g></svg></div>
+      <h1>Man<span>Scouts</span></h1>
+    </div></div>
+
+    <div className="wrap">
+      {tab==="board" && <Board profile={profile} posts={posts} proofs={proofs} cheers={cheers}
+          onCheer={toggleCheer} onPick={setDetail} go={()=>setTab("trail")}/>}
+      {tab==="trail" && <Trail list={list} earnedIds={earnedIds} fCat={fCat} setFCat={setFCat} fDiff={fDiff} setFDiff={setFDiff} onPick={setDetail}/>}
+      {tab==="sash" && <Sash profile={profile} posts={posts} proofs={proofs} totalPts={totalPts} onEdit={()=>setEditing(true)} onPick={setDetail}/>}
+      {tab==="witness" && <Witness/>}
+    </div>
+
+    <div className="nav">
+      <Tab id="board" tab={tab} set={setTab} ico="board" label="Board"/>
+      <Tab id="trail" tab={tab} set={setTab} ico="mountain" label="Trail"/>
+      <Tab id="sash" tab={tab} set={setTab} ico="pack" label="Sash"/>
+      <Tab id="witness" tab={tab} set={setTab} ico="hands" label="Witness"/>
+    </div>
+
+    {detail && <Detail ch={detail} earned={earnedIds.has(detail.id)} post={posts.find(p=>p.cid===detail.id)}
+        proof={(()=>{const po=posts.find(p=>p.cid===detail.id);return po?proofs[po.id]:null;})()}
+        onClose={()=>setDetail(null)} onStart={()=>{setEarn(detail);setDetail(null);}}/>}
+    {earn && <EarnFlow ch={earn} onCancel={()=>setEarn(null)} onCommit={commitBadge}/>}
+    {unlock && <Unlock ch={unlock} onClose={()=>{setUnlock(null);setTab("board");}}/>}
+    {editing && <Onboard initial={profile} onDone={p=>{saveProfile(p);setEditing(false);}} onCancel={()=>setEditing(false)}/>}
+   </div>
+  );
+}
+function Tab({id,tab,set,ico,label}){
+  return <button className={tab===id?"on":""} onClick={()=>set(id)}>
+    <span className="navico"><svg width="24" height="24" viewBox="0 0 100 100"><g style={{stroke:tab===id?"#1a1813":"#7a7367"}}><Ico name={ico}/></g></svg></span>{label}</button>;
+}
+
+function Onboard({onDone,initial,onCancel}){
+  const [name,setName]=useState(initial?.name||"");
+  const [handle,setHandle]=useState(initial?.handle||"");
+  const [bio,setBio]=useState(initial?.bio||"");
+  const [avatar,setAvatar]=useState(initial?.avatar||"");
+  const fileRef=useRef();
+  async function pick(e){const f=e.target.files[0];if(!f)return;const p=await fileToProof(f);setAvatar(p.dataUrl);}
+  const valid=name.trim()&&handle.trim();
+  return (
+    <div className="scrim" style={{alignItems:"center"}}>
+      <div className="sheet" style={{borderRadius:24,maxHeight:"92vh"}}>
+        <div className="grip"/>
+        <h2 className="display" style={{fontSize:24,textAlign:"center",margin:"4px 0"}}>{initial?"Edit profile":"Set up your profile"}</h2>
+        <p className="muted" style={{textAlign:"center",fontSize:14,margin:"0 0 18px"}}>This is how you show up on the board.</p>
+        <div style={{textAlign:"center",marginBottom:16}}>
+          <div onClick={()=>fileRef.current.click()} style={{width:92,height:92,margin:"0 auto",borderRadius:"50%",
+            border:"2px dashed var(--line)",background:avatar?`center/cover url(${avatar})`:"var(--tint)",
+            display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+            {!avatar && <span className="label">Photo</span>}</div>
+          <input ref={fileRef} type="file" accept="image/*" onChange={pick} className="hide"/>
+        </div>
+        <div className="label" style={{marginBottom:6}}>Name</div>
+        <input value={name} onChange={e=>setName(e.target.value)} placeholder="Jack Larkin"/>
+        <div className="label" style={{margin:"14px 0 6px"}}>Handle</div>
+        <input value={handle} onChange={e=>setHandle(e.target.value.replace(/\s/g,""))} placeholder="@trailjack"/>
+        <div className="label" style={{margin:"14px 0 6px"}}>Bio</div>
+        <textarea rows="2" value={bio} onChange={e=>setBio(e.target.value)} placeholder="What are you out here for?"/>
+        <div style={{height:18}}/>
+        <button className="btn" disabled={!valid} onClick={()=>onDone({name:name.trim(),handle:handle.startsWith("@")?handle:"@"+handle,bio,avatar})}>{initial?"Save":"Start"}</button>
+        {onCancel && <><div style={{height:10}}/><button className="btn ghost" onClick={onCancel}>Cancel</button></>}
+      </div>
+    </div>
+  );
+}
+
+function fmtAgo(iso){const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<60)return"now";if(s<3600)return Math.floor(s/60)+"m";if(s<86400)return Math.floor(s/3600)+"h";return Math.floor(s/86400)+"d";}
+function fmtFull(iso){const d=new Date(iso);return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+" · "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}
+
+function CheerBtn({id,base,cheers,onCheer}){
+  const on=!!cheers[id];const n=base+(on?1:0);
+  return <button className={"cheer"+(on?" on":"")} onClick={()=>onCheer(id)}>
+    <svg width="15" height="15" viewBox="0 0 100 100"><path d="M50 22 C66 42 70 54 60 68 C56 74 44 74 40 68 C34 60 38 54 44 50 C42 60 52 62 54 54 C56 46 46 42 50 22 Z" fill={on?"#e5552b":"none"} stroke={on?"#e5552b":"#7a7367"} strokeWidth="6" strokeLinejoin="round"/></svg>
+    {n}</button>;
+}
+
+function PostCard({post,onCheer,cheers,onPick}){
+  const ch=byId(post.cid);if(!ch)return null;
+  return (
+    <div className="card post fadeup">
+      <div className="ph">
+        <Avatar name={post.name} handle={post.handle} img={post.img}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontWeight:800,fontSize:14.5,letterSpacing:"-.01em"}}>{post.name}</div>
+          <div className="muted" style={{fontSize:12.5}}>{post.handle} · {post.ago||fmtAgo(post.date)}</div>
+        </div>
+        <div onClick={()=>onPick(ch)} style={{cursor:"pointer"}}><Badge ch={ch} size={42}/></div>
+      </div>
+      <div style={{fontSize:14.5,marginBottom:10,lineHeight:1.4}}>
+        Earned <b>{ch.nm}</b> <span style={{color:DIFFS[ch.df].c,fontWeight:800,fontSize:12}}>· {ch.df}</span>
+      </div>
+      {post.img||post.proofImg ? <img className="proof" src={post.proofImg}/> : <Scene an={ch.an}/>}
+      <div style={{fontSize:14,margin:"11px 2px 8px",lineHeight:1.45}}>{post.cap||post.note}</div>
+      <div className="muted" style={{fontSize:12.5,margin:"0 2px 12px"}}>
+        {post.place && <>📍 {post.place} · </>}vouched by {post.witness||post.witnessHandle||post.witnessName}
+      </div>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <CheerBtn id={post.id} base={post.cheers||0} cheers={cheers} onCheer={onCheer}/>
+        <span className="muted" style={{fontSize:12.5}}>cheers</span>
+      </div>
+    </div>
+  );
+}
+
+function Board({profile,posts,proofs,cheers,onCheer,onPick,go}){
+  const mine=posts.map(p=>({...p,name:profile.name,handle:profile.handle,img:profile.avatar,
+    proofImg:proofs[p.id],ts:new Date(p.date).getTime(),cheers:0}));
+  const seed=SEED.map(s=>({...s,ts:Date.now()-s.hrs*3600*1000}));
+  const feed=[...mine,...seed].sort((a,b)=>b.ts-a.ts);
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",margin:"18px 2px 14px"}}>
+        <div><div className="display" style={{fontSize:26}}>Postboard</div>
+          <div className="muted" style={{fontSize:13.5,marginTop:2}}>What scouts are pulling off right now</div></div>
+      </div>
+      {posts.length===0 &&
+        <div className="card" style={{padding:16,marginBottom:16,display:"flex",gap:12,alignItems:"center"}}>
+          <div style={{flex:1,fontSize:14}}>You haven't posted yet. Earn your first badge and it lands here.</div>
+          <button className="btn" style={{width:"auto",padding:"11px 16px"}} onClick={go}>Find one</button>
+        </div>}
+      {feed.map(p=><PostCard key={p.id} post={p} cheers={cheers} onCheer={onCheer} onPick={onPick}/>)}
+    </div>
+  );
+}
+
+function Trail({list,earnedIds,fCat,setFCat,fDiff,setFDiff,onPick}){
+  return (
+    <div>
+      <div className="display" style={{fontSize:26,margin:"18px 2px 4px"}}>The Trail</div>
+      <p className="muted" style={{fontSize:13.5,margin:"0 2px 16px"}}>{earnedIds.size} of {CH.length} badges earned. Pick one, go do it for real, prove it.</p>
+      <div className="label" style={{margin:"0 2px 7px"}}>Difficulty</div>
+      <div className="seg" style={{marginBottom:12}}>{["All",...Object.keys(DIFFS)].map(d=><button key={d} className={"chip"+(fDiff===d?" on":"")} onClick={()=>setFDiff(d)}>{d}</button>)}</div>
+      <div className="label" style={{margin:"0 2px 7px"}}>Trade</div>
+      <div className="seg" style={{marginBottom:18}}>{["All",...Object.keys(CATS)].map(c=><button key={c} className={"chip"+(fCat===c?" on":"")} onClick={()=>setFCat(c)}>{c}</button>)}</div>
+      <div className="grid">
+        {list.map(c=>{const e=earnedIds.has(c.id);return(
+          <div key={c.id} className={"cell"+(e?"":" locked")} onClick={()=>onPick(c)}>
+            <span className="corner" style={{background:e?"var(--green)":"var(--tint)"}}>
+              {e?<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5"><path d="M5 12l4 4 10-11"/></svg>
+                :<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7a7367" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>}
+            </span>
+            <Badge ch={c} size={76}/>
+            <div className="nm">{c.nm}</div>
+            <div className="df" style={{color:DIFFS[c.df].c}}>{c.df}</div>
+          </div>);})}
+      </div>
+      {list.length===0 && <p className="muted" style={{textAlign:"center",marginTop:30}}>No badges match that filter.</p>}
+    </div>
+  );
+}
+
+function Detail({ch,earned,post,proof,onClose,onStart}){
+  return (
+    <div className="scrim" onClick={onClose}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="grip"/>
+        <div style={{padding:"6px 0"}}><Badge ch={ch} size={112}/></div>
+        <h2 className="display" style={{fontSize:24,textAlign:"center",margin:"12px 0 8px"}}>{ch.nm}</h2>
+        <div className="seg" style={{justifyContent:"center",marginBottom:14}}>
+          <span className="chip" style={{background:DIFFS[ch.df].c,color:"#fff"}}>{ch.df}</span>
+          <span className="chip">{ch.cat}</span><span className="chip">{ch.pts} pts</span>
+        </div>
+        <p style={{textAlign:"center",fontSize:15,lineHeight:1.5,margin:"0 6px 18px"}}>{ch.blurb}</p>
+        <div className="card" style={{padding:16,marginBottom:14}}>
+          <div className="label" style={{marginBottom:10}}>How to earn it</div>
+          {ch.how.map((s,i)=><div key={i} style={{display:"flex",gap:11,marginBottom:9}}>
+            <span style={{minWidth:22,height:22,borderRadius:"50%",background:"var(--ink)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800}}>{i+1}</span>
+            <span style={{fontSize:14,lineHeight:1.4}}>{s}</span></div>)}
+          {ch.care && <div style={{marginTop:8,fontSize:12.5,color:"var(--accent-d)",fontWeight:600}}>⚠ {ch.care}</div>}
+        </div>
+        {earned ? (
+          <div className="card" style={{padding:14}}>
+            <div className="label" style={{marginBottom:10,color:"var(--green)"}}>You earned this</div>
+            {proof && <img className="proof" src={proof}/>}
+            <div className="muted" style={{marginTop:10,fontSize:13,lineHeight:1.6}}>
+              <div><b style={{color:"var(--ink)"}}>{fmtFull(post.date)}</b></div>
+              {post.place && <div>📍 {post.place}</div>}
+              <div>Witnessed by <b style={{color:"var(--ink)"}}>{post.witnessName}</b> {post.witnessHandle}</div>
+              {post.note && <div style={{marginTop:6,fontStyle:"italic"}}>"{post.note}"</div>}
+            </div>
+          </div>
+        ) : <button className="btn" onClick={onStart}>Start this challenge</button>}
+        <div style={{height:10}}/><button className="btn ghost" onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+function EarnFlow({ch,onCancel,onCommit}){
+  const [step,setStep]=useState(0);
+  const [proof,setProof]=useState(null);const [busy,setBusy]=useState(false);
+  const [place,setPlace]=useState("");const [note,setNote]=useState("");
+  const [wn,setWn]=useState("");const [wh,setWh]=useState("");const [witnessed,setWitnessed]=useState(false);
+  const fileRef=useRef();
+  async function pick(e){const f=e.target.files[0];if(!f)return;setBusy(true);try{setProof(await fileToProof(f));}catch(err){alert("Couldn't read that file — try another.");}setBusy(false);}
+  return (
+    <div className="scrim" onClick={onCancel}>
+      <div className="sheet" onClick={e=>e.stopPropagation()}>
+        <div className="grip"/>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+          <Badge ch={ch} size={50}/><div><div className="label">Earning</div>
+          <div className="display" style={{fontSize:19}}>{ch.nm}</div></div>
+        </div>
+        <div className="seg" style={{marginBottom:18}}>{["Proof","Place","Witness"].map((s,i)=>
+          <span key={s} className={"chip"+(step===i?" on":"")} style={{flex:1,textAlign:"center"}}>{i+1} {s}</span>)}</div>
+
+        {step===0 && <div>
+          <p className="muted" style={{fontSize:14,margin:"0 0 12px"}}>Every badge needs proof. Add a photo or video of you doing it.</p>
+          {proof ? <div className="card" style={{padding:8}}><img className="proof" src={proof.dataUrl}/>
+              <div className="muted" style={{textAlign:"center",fontSize:12.5,marginTop:6}}>{proof.type==="video"?"Video frame captured":"Photo added"}</div></div>
+            : <div onClick={()=>fileRef.current.click()} className="card" style={{padding:38,textAlign:"center",cursor:"pointer",borderStyle:"dashed"}}>
+              <div style={{width:46,height:46,margin:"0 auto 10px",opacity:.5}}><svg viewBox="0 0 100 100"><g style={{stroke:"#7a7367"}}><Ico name="board"/></g></svg></div>
+              <div className="display" style={{fontSize:15,color:"var(--muted)"}}>{busy?"Reading…":"Tap to add proof"}</div></div>}
+          <input ref={fileRef} type="file" accept="image/*,video/*" onChange={pick} className="hide"/>
+          <div style={{height:14}}/>
+          {proof && <><button className="btn ghost" onClick={()=>fileRef.current.click()}>Replace</button><div style={{height:10}}/></>}
+          <button className="btn" disabled={!proof} onClick={()=>setStep(1)}>Next</button>
+        </div>}
+
+        {step===1 && <div>
+          <div className="label" style={{marginBottom:6}}>Where?</div>
+          <input value={place} onChange={e=>setPlace(e.target.value)} placeholder="Mount Tamalpais, CA"/>
+          <div className="label" style={{margin:"14px 0 6px"}}>Caption (optional)</div>
+          <textarea rows="3" value={note} onChange={e=>setNote(e.target.value)} placeholder="How'd it go?"/>
+          <div style={{height:16}}/>
+          <button className="btn" disabled={!place.trim()} onClick={()=>setStep(2)}>Next</button>
+          <div style={{height:10}}/><button className="btn ghost" onClick={()=>setStep(0)}>Back</button>
+        </div>}
+
+        {step===2 && <div>
+          <p className="muted" style={{fontSize:14,margin:"0 0 12px"}}>No badge is self-awarded. A fellow scout has to vouch for it.</p>
+          <div className="label" style={{marginBottom:6}}>Witness name</div>
+          <input value={wn} onChange={e=>setWn(e.target.value)} placeholder="Who saw you do it?"/>
+          <div className="label" style={{margin:"12px 0 6px"}}>Their handle</div>
+          <input value={wh} onChange={e=>setWh(e.target.value)} placeholder="@theirhandle"/>
+          <div onClick={()=>wn.trim()&&setWitnessed(!witnessed)} style={{marginTop:16,display:"flex",alignItems:"center",gap:12,
+            padding:14,borderRadius:14,border:"1.5px solid var(--line)",background:witnessed?"var(--green)":"var(--card)",
+            color:witnessed?"#fff":"var(--ink)",cursor:wn.trim()?"pointer":"default",opacity:wn.trim()?1:.5}}>
+            <span style={{width:24,height:24,borderRadius:7,border:"2px solid currentColor",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>{witnessed?"✓":""}</span>
+            <span style={{fontSize:13.5,fontWeight:600}}>{wn.trim()||"Witness"} saw this and vouches for it.</span>
+          </div>
+          <div style={{height:18}}/>
+          <button className="btn green" disabled={!(wn.trim()&&witnessed)}
+            onClick={()=>onCommit(ch.id,proof,place.trim(),wn.trim(),wh.startsWith("@")||!wh?wh:"@"+wh,note.trim())}>Post & award badge</button>
+          <div style={{height:10}}/><button className="btn ghost" onClick={()=>setStep(1)}>Back</button>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+function Unlock({ch,onClose}){
+  return (
+    <div className="unlock">
+      <Particles an={ch.an}/>
+      <div className="ucard">
+        <div className="stamp"><Badge ch={ch} size={140} drawn={true}/></div>
+        <div style={{marginTop:18}} className="fadeup"><span className="pill">Badge unlocked</span></div>
+        <div className="display" style={{fontSize:24,marginTop:14}}>{ch.nm}</div>
+        <div className="muted" style={{fontSize:13,fontWeight:700,letterSpacing:".06em",marginTop:4}}>+{ch.pts} PTS · {ch.df.toUpperCase()}</div>
+        <div style={{height:22}}/>
+        <button className="btn" onClick={onClose}>Post to the board</button>
+      </div>
+    </div>
+  );
+}
+
+function Sash({profile,posts,proofs,totalPts,onEdit,onPick}){
+  const earned=posts.map(p=>({...p,ch:byId(p.cid)})).filter(p=>p.ch);
+  return (
+    <div>
+      <div className="card" style={{padding:16,marginTop:18,display:"flex",gap:14,alignItems:"center"}}>
+        <Avatar name={profile.name} handle={profile.handle} img={profile.avatar} size={64}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="display" style={{fontSize:20}}>{profile.name}</div>
+          <div className="muted" style={{fontSize:13}}>{profile.handle}</div>
+          {profile.bio && <div className="muted" style={{fontSize:13,marginTop:3}}>{profile.bio}</div>}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:12,margin:"12px 0"}}>
+        <div className="card" style={{flex:1,padding:"14px 8px",textAlign:"center"}}>
+          <div className="display" style={{color:"var(--accent)",fontSize:26}}>{earned.length}</div><div className="label" style={{marginTop:3}}>Badges</div></div>
+        <div className="card" style={{flex:1,padding:"14px 8px",textAlign:"center"}}>
+          <div className="display" style={{color:"var(--accent)",fontSize:26}}>{totalPts}</div><div className="label" style={{marginTop:3}}>Points</div></div>
+        <div className="card" style={{flex:1,padding:"14px 8px",textAlign:"center",cursor:"pointer"}} onClick={onEdit}>
+          <div style={{width:24,height:24,margin:"0 auto"}}><svg viewBox="0 0 24 24" fill="none" stroke="#7a7367" strokeWidth="2"><path d="M4 20h4l10-10-4-4L4 16z"/></svg></div>
+          <div className="label" style={{marginTop:7}}>Edit</div></div>
+      </div>
+      <div className="label" style={{margin:"6px 2px 8px"}}>The Sash</div>
+      <div className="sash">
+        {earned.length===0 ? <div className="muted" style={{textAlign:"center",fontSize:13,padding:"22px 8px"}}>Empty for now. Earn a badge and it gets stitched on here.</div>
+          : <div className="sashgrid">{earned.map((p,i)=><div key={p.id} onClick={()=>onPick(p.ch)} style={{cursor:"pointer"}}><Badge ch={p.ch} size={62} rot={(i%3-1)*5}/></div>)}</div>}
+      </div>
+      <div className="label" style={{margin:"22px 2px 10px"}}>Field log</div>
+      {earned.length===0 && <p className="muted" style={{textAlign:"center",fontSize:13,padding:12}}>Earned challenges show here with proof, place and witness.</p>}
+      {earned.map(p=>(
+        <div key={p.id} className="card post">
+          <div className="ph">
+            <Badge ch={p.ch} size={44}/>
+            <div style={{flex:1}}><div style={{fontWeight:800,fontSize:15}}>{p.ch.nm}</div>
+              <div className="muted" style={{fontSize:12.5}}>{fmtFull(p.date)}</div></div>
+            <span className="chip" style={{background:DIFFS[p.ch.df].c,color:"#fff",fontSize:10}}>{p.ch.df}</span>
+          </div>
+          {proofs[p.id] && <img className="proof" src={proofs[p.id]}/>}
+          <div className="muted" style={{marginTop:9,fontSize:13,lineHeight:1.6}}>
+            {p.place && <div>📍 {p.place}</div>}
+            <div>Witnessed by <b style={{color:"var(--ink)"}}>{p.witnessName}</b> {p.witnessHandle}</div>
+            {p.note && <div style={{marginTop:5,fontStyle:"italic"}}>"{p.note}"</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Witness(){
+  const [code,setCode]=useState("");const [done,setDone]=useState(false);
+  return (
+    <div>
+      <div className="display" style={{fontSize:26,margin:"18px 2px 4px"}}>Witness</div>
+      <p className="muted" style={{fontSize:13.5,margin:"0 2px 16px"}}>Co-sign a scout's challenge so their badge counts.</p>
+      <div className="card" style={{padding:18,textAlign:"center"}}>
+        <div style={{width:54,height:54,margin:"0 auto 10px"}}><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="var(--green)"/><Ico name="hands"/></svg></div>
+        <div style={{fontSize:14,lineHeight:1.5}} className="muted">When a scout finishes a challenge they send you a witness code. Enter it to confirm you saw it happen.</div>
+      </div>
+      <div className="card" style={{padding:16,marginTop:14}}>
+        <div className="label" style={{marginBottom:6}}>Witness code</div>
+        <input value={code} onChange={e=>{setCode(e.target.value.toUpperCase());setDone(false);}} placeholder="OAK-1492"/>
+        <div style={{height:14}}/>
+        {done ? <div className="card" style={{padding:14,textAlign:"center",background:"var(--green)",border:"none",color:"#fff",fontWeight:800}}>Vouched. Badge confirmed.</div>
+          : <button className="btn green" disabled={code.trim().length<3} onClick={()=>setDone(true)}>Confirm I witnessed it</button>}
+      </div>
+      <p className="muted" style={{textAlign:"center",fontSize:12.5,margin:"16px 10px",lineHeight:1.5}}>
+        On one phone the witness step runs locally during the earn flow. In the shipped app, codes pass between two installs so the witness signs from their own device.
+      </p>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
