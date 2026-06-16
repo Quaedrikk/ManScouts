@@ -125,7 +125,8 @@ export default function AppShell() {
     witnessToken: string,
     note: string,
     lat?: number,
-    lng?: number
+    lng?: number,
+    adminSkip?: boolean
   ) {
     if (!profile) return;
     try {
@@ -133,7 +134,7 @@ export default function AppShell() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          challengeId, proofUrl, proofType, place, lat, lng, note, witnessToken,
+          challengeId, proofUrl, proofType, place, lat, lng, note, witnessToken, adminSkip,
         }),
       });
       if (res.ok) {

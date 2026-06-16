@@ -1,7 +1,7 @@
 import type { Session } from "next-auth";
 
 // Accounts allowed to create badges / Rights of Passage and manage categories.
-export const ADMIN_EMAILS = ["quaedrikk@gmail.com"];
+export const ADMIN_EMAILS = ["quaedrikk@gmail.com", "cabatejohnpaul@gmail.com"];
 
 export function isAdminEmail(email?: string | null): boolean {
   return !!email && ADMIN_EMAILS.includes(email.toLowerCase());

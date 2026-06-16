@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
 import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost } from "@/lib/kv";
-import type { Post } from "@/lib/types";
+import type { Post, WitnessEntry } from "@/lib/types";
 
 export async function GET() {
   try {
@@ -35,18 +35,26 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as Pick<
       Post,
       "challengeId" | "proofUrl" | "proofType" | "place" | "lat" | "lng" | "note"
-    > & { witnessToken?: string };
+    > & { witnessToken?: string; adminSkip?: boolean };
 
-    // A badge can't be self-awarded: require a confirmed witness session that
-    // belongs to this earner. Witness identity is taken from the server record.
-    if (!body.witnessToken) {
-      return NextResponse.json({ error: "A witness is required" }, { status: 400 });
+    // Admins can bypass witness verification (testing only).
+    const adminSkip = body.adminSkip && isAdmin(session);
+
+    let ws: WitnessEntry[];
+    if (adminSkip) {
+      ws = [{ id: profile.id, name: "Admin skip (test)", handle: "" }];
+    } else {
+      // A badge can't be self-awarded: require a confirmed witness session that
+      // belongs to this earner. Witness identity is taken from the server record.
+      if (!body.witnessToken) {
+        return NextResponse.json({ error: "A witness is required" }, { status: 400 });
+      }
+      const witness = await getWitnessSession(body.witnessToken);
+      if (!witness || witness.witnesses.length === 0 || witness.earnerId !== profile.id) {
+        return NextResponse.json({ error: "Witness not verified" }, { status: 400 });
+      }
+      ws = witness.witnesses;
     }
-    const witness = await getWitnessSession(body.witnessToken);
-    if (!witness || witness.witnesses.length === 0 || witness.earnerId !== profile.id) {
-      return NextResponse.json({ error: "Witness not verified" }, { status: 400 });
-    }
-    const ws = witness.witnesses;
 
     const post: Post = {
       id: `p${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

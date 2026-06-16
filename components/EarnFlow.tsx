@@ -4,6 +4,7 @@ import { upload } from "@vercel/blob/client";
 import QRCode from "qrcode";
 import Badge from "./Badge";
 import Ico from "./Ico";
+import { useCatalog } from "@/lib/catalog";
 import type { Challenge, WitnessEntry } from "@/lib/types";
 
 interface Props {
@@ -17,11 +18,13 @@ interface Props {
     witnessToken: string,
     note: string,
     lat?: number,
-    lng?: number
+    lng?: number,
+    adminSkip?: boolean
   ) => void;
 }
 
 export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
+  const { isAdmin } = useCatalog();
   const media = ch.proofMedia ?? "either";
   const accept = media === "photo" ? "image/*" : media === "video" ? "video/*" : "image/*,video/*";
   const mediaLabel = media === "photo" ? "a photo" : media === "video" ? "a video" : "a photo or video";
@@ -115,8 +118,8 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     );
   }
 
-  function commit() {
-    onCommit(ch.id, proofUrl, proofType, place.trim(), token, note.trim(), lat, lng);
+  function commit(adminSkip = false) {
+    onCommit(ch.id, proofUrl, proofType, place.trim(), token, note.trim(), lat, lng, adminSkip);
   }
 
   return (
@@ -243,9 +246,15 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
             )}
 
             <div style={{ height: 18 }} />
-            <button className="btn green" disabled={witnesses.length === 0} onClick={commit}>
+            <button className="btn green" disabled={witnesses.length === 0} onClick={() => commit(false)}>
               {witnesses.length === 0 ? "Waiting for a witness…" : `Post & award badge (${witnesses.length})`}
             </button>
+            {isAdmin && (
+              <>
+                <div style={{ height: 10 }} />
+                <button className="btn dark" onClick={() => commit(true)}>ADMIN SKIP WITNESS</button>
+              </>
+            )}
             <div style={{ height: 10 }} />
             <button className="btn ghost" onClick={() => setStep(1)}>Back</button>
           </div>
