@@ -14,14 +14,19 @@ export interface Challenge {
   imageUrl?: string; // custom uploaded art (used instead of the line icon)
   color?: string;    // explicit emblem color (falls back to category color)
   shape?: BadgeShape;
-  effect?: BadgeEffect;
+  effect?: BadgeEffect;     // legacy single effect (still honored)
+  effects?: BadgeEffect[];  // combinable effects
+  effectColor?: string;     // main color for the effects (falls back to emblem color)
   custom?: boolean;  // true for admin-created badges
 }
 
-export type BadgeShape = "circle" | "shield" | "hex" | "rosette" | "square" | "star";
+export type BadgeShape =
+  | "circle" | "shield" | "hex" | "rosette" | "square" | "star"
+  | "fish" | "heart" | "diamond" | "octagon" | "flower" | "leaf";
 export type BadgeEffect =
   | "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold"
-  | "orbit" | "sparkle" | "fire" | "lightning" | "water" | "frost" | "petals";
+  | "orbit" | "sparkle" | "fire" | "lightning" | "water" | "frost" | "petals"
+  | "smoke" | "rainbow" | "glitch" | "emberring";
 
 export interface Category {
   name: string;

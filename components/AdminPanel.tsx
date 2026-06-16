@@ -9,17 +9,23 @@ import { useCatalog } from "@/lib/catalog";
 import type { Challenge, BadgeShape, BadgeEffect } from "@/lib/types";
 
 const REVOKE_PHRASE = "I revoke this right of passage";
-const SHAPES: BadgeShape[] = ["circle", "shield", "hex", "rosette", "square", "star"];
+const SHAPES: BadgeShape[] = [
+  "circle", "shield", "hex", "rosette", "square", "star",
+  "fish", "heart", "diamond", "octagon", "flower", "leaf",
+];
 const EFFECTS: { key: BadgeEffect; label: string }[] = [
-  { key: "none", label: "None" },
   { key: "aura", label: "Aura" },
   { key: "shimmer", label: "Shimmer" },
   { key: "pulse", label: "Pulse" },
   { key: "spin", label: "Spin" },
   { key: "gold", label: "Gold" },
+  { key: "rainbow", label: "🌈 Rainbow" },
+  { key: "glitch", label: "Glitch" },
   { key: "orbit", label: "★ Orbit" },
   { key: "sparkle", label: "Sparkle" },
   { key: "fire", label: "🔥 Fire" },
+  { key: "emberring", label: "Ember ring" },
+  { key: "smoke", label: "💨 Smoke" },
   { key: "lightning", label: "⚡ Lightning" },
   { key: "water", label: "💧 Water" },
   { key: "frost", label: "❄ Frost" },
@@ -56,7 +62,10 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [ico, setIco] = useState("stars");
   const [imageUrl, setImageUrl] = useState("");
   const [shape, setShape] = useState<BadgeShape>("circle");
-  const [effect, setEffect] = useState<BadgeEffect>("none");
+  const [effects, setEffects] = useState<BadgeEffect[]>([]);
+  const [effectColor, setEffectColor] = useState("");
+  const toggleEffect = (k: BadgeEffect) =>
+    setEffects((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   const [how, setHow] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +77,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   // Live preview challenge object
   const preview: Challenge = {
     id: "preview", nm: nm || "New Passage", cat, df: starsToDf(stars), stars, ico, an: "rays", pts,
-    blurb, how: [], color: cats[cat]?.c, shape, effect,
+    blurb, how: [], color: cats[cat]?.c, shape, effects, effectColor: effectColor || undefined,
     imageUrl: artMode === "image" ? imageUrl : undefined, custom: true,
   };
 
@@ -91,7 +100,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effect,
+          nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effects, effectColor: effectColor || undefined,
           ico: artMode === "icon" ? ico : "stars",
           imageUrl: artMode === "image" ? imageUrl : undefined,
           color: catColor(cat),
@@ -161,11 +170,17 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
-            <div className="label" style={{ margin: "0 0 6px" }}>Special effect</div>
-            <div className="seg" style={{ marginBottom: 16 }}>
+            <div className="label" style={{ margin: "0 0 6px" }}>Special effects (combine any)</div>
+            <div className="seg" style={{ marginBottom: 12 }}>
               {EFFECTS.map((e) => (
-                <button key={e.key} className={"chip" + (effect === e.key ? " on" : "")} onClick={() => setEffect(e.key)}>{e.label}</button>
+                <button key={e.key} className={"chip" + (effects.includes(e.key) ? " on" : "")} onClick={() => toggleEffect(e.key)}>{e.label}</button>
               ))}
+            </div>
+
+            <div className="label" style={{ margin: "0 0 6px" }}>Effect color</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
+              <input type="color" value={effectColor || "#e5552b"} onChange={(e) => setEffectColor(e.target.value)} style={{ width: 50, height: 40, padding: 4 }} />
+              <button className="chip" onClick={() => setEffectColor("")}>{effectColor ? "Reset to badge color" : "Using badge color"}</button>
             </div>
 
             <div className="label" style={{ marginBottom: 6 }}>Name</div>
