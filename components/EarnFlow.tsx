@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { upload } from "@vercel/blob/client";
 import Badge from "./Badge";
 import Ico from "./Ico";
 import type { Challenge } from "@/lib/types";
@@ -35,13 +36,11 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     if (!f) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", f);
-      fd.append("prefix", "proofs");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setProofUrl(data.url);
+      const blob = await upload(`proofs/${f.name}`, f, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setProofUrl(blob.url);
       setProofType(f.type.startsWith("video") ? "video" : "photo");
     } catch {
       alert("Upload failed — try again.");

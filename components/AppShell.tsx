@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import Ico from "./Ico";
 import Board from "./Board";
 import Trail from "./Trail";
@@ -20,8 +21,9 @@ const TABS = [
 ];
 
 export default function AppShell() {
-  const [ready, setReady] = useState(false);
+  const { data: session, status } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [cheers, setCheers] = useState<Record<string, boolean>>({});
   const [cheerCounts, setCheerCounts] = useState<Record<string, number>>({});
@@ -41,20 +43,51 @@ export default function AppShell() {
     } catch { /* network error, ignore */ }
   }, []);
 
+  // Public feed loads for everyone.
   useEffect(() => {
-    const raw = localStorage.getItem("ms:profile");
-    if (raw) setProfile(JSON.parse(raw));
     const ch = localStorage.getItem("ms:cheers");
     if (ch) setCheers(JSON.parse(ch));
-    loadFeed().finally(() => setReady(true));
+    loadFeed();
   }, [loadFeed]);
+
+  // Once signed in, fetch this account's server-side profile.
+  useEffect(() => {
+    if (status !== "authenticated") {
+      if (status === "unauthenticated") setProfileLoaded(true);
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setProfile(data.profile ?? null);
+        }
+      } catch { /* ignore */ }
+      finally {
+        if (active) setProfileLoaded(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [status]);
 
   const earnedIds = new Set(posts.filter((p) => p.userId === profile?.id).map((p) => p.challengeId));
   const totalPts = posts.filter((p) => p.userId === profile?.id).reduce((s, p) => s + (byId(p.challengeId)?.pts ?? 0), 0);
 
   async function saveProfile(pf: UserProfile) {
-    setProfile(pf);
-    localStorage.setItem("ms:profile", JSON.stringify(pf));
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pf),
+      });
+      if (!res.ok) { alert("Couldn't save profile — try again."); return; }
+      const data = await res.json();
+      setProfile(data.profile);
+    } catch {
+      alert("Couldn't save profile — try again.");
+    }
   }
 
   async function toggleCheer(postId: string) {
@@ -63,11 +96,7 @@ export default function AppShell() {
     setCheers(next);
     localStorage.setItem("ms:cheers", JSON.stringify(next));
     try {
-      const res = await fetch(`/api/cheers/${postId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: profile.id }),
-      });
+      const res = await fetch(`/api/cheers/${postId}`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setCheerCounts((prev) => ({ ...prev, [postId]: data.count }));
@@ -85,54 +114,87 @@ export default function AppShell() {
     note: string
   ) {
     if (!profile) return;
-    const post: Omit<Post, "cheerCount"> = {
-      id: `p${Date.now()}`,
-      userId: profile.id,
-      userName: profile.name,
-      userHandle: profile.handle,
-      userAvatarUrl: profile.avatarUrl,
-      challengeId,
-      proofUrl,
-      proofType,
-      place,
-      note,
-      witnessName,
-      witnessHandle,
-      createdAt: new Date().toISOString(),
-    };
     try {
-      await fetch("/api/posts", {
+      const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(post),
+        body: JSON.stringify({
+          challengeId, proofUrl, proofType, place, note, witnessName, witnessHandle,
+        }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        // Use the server's post (canonical id + server-derived identity).
+        if (data.post) setPosts((prev) => [data.post as Post, ...prev]);
+      }
     } catch { /* will still show unlock */ }
-    setPosts((prev) => [{ ...post, cheerCount: 0 }, ...prev]);
     setEarn(null);
     setUnlock(byId(challengeId) ?? null);
   }
 
-  if (!ready) {
+  if (status === "loading" || !profileLoaded) {
     return <div style={{ padding: 80, textAlign: "center" }} className="display muted">Loading…</div>;
   }
+
+  if (status !== "authenticated") {
+    return (
+      <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+        <div className="mark" style={{ width: 64, height: 64, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+          <svg width="34" height="34" viewBox="0 0 100 100">
+            <g fill="none" stroke="#fff" strokeWidth="8" strokeLinejoin="round" strokeLinecap="round">
+              <path d="M16 78 L42 30 L58 56 L72 38 L88 78 Z" />
+            </g>
+          </svg>
+        </div>
+        <h1 className="display" style={{ fontSize: 30, margin: "0 0 6px" }}>
+          Man<span style={{ color: "var(--accent)" }}>Scouts</span>
+        </h1>
+        <p className="muted" style={{ fontSize: 15, maxWidth: 280, margin: "0 0 26px" }}>
+          Earn badges. Do real things. Prove it.
+        </p>
+        <button className="btn" style={{ maxWidth: 320 }} onClick={() => signIn("google")}>
+          Continue with Google
+        </button>
+      </div>
+    );
+  }
+
   if (!profile) {
-    return <Onboard onDone={saveProfile} />;
+    return (
+      <Onboard
+        onDone={saveProfile}
+        defaults={{
+          id: session?.user?.id,
+          name: session?.user?.name ?? "",
+          avatarUrl: session?.user?.image ?? "",
+        }}
+      />
+    );
   }
 
   return (
     <div>
       <div className="topbar">
-        <div className="row">
-          <div className="mark">
-            <svg width="18" height="18" viewBox="0 0 100 100">
-              <g fill="none" stroke="#fff" strokeWidth="8" strokeLinejoin="round" strokeLinecap="round">
-                <path d="M16 78 L42 30 L58 56 L72 38 L88 78 Z" />
-              </g>
-            </svg>
+        <div className="row" style={{ justifyContent: "space-between", width: "100%" }}>
+          <div className="row">
+            <div className="mark">
+              <svg width="18" height="18" viewBox="0 0 100 100">
+                <g fill="none" stroke="#fff" strokeWidth="8" strokeLinejoin="round" strokeLinecap="round">
+                  <path d="M16 78 L42 30 L58 56 L72 38 L88 78 Z" />
+                </g>
+              </svg>
+            </div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-.03em" }}>
+              Man<span style={{ color: "var(--accent)" }}>Scouts</span>
+            </h1>
           </div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-.03em" }}>
-            Man<span style={{ color: "var(--accent)" }}>Scouts</span>
-          </h1>
+          <button
+            onClick={() => signOut()}
+            className="label"
+            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontWeight: 700 }}
+          >
+            Sign out
+          </button>
         </div>
       </div>
 

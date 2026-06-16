@@ -1,22 +1,20 @@
 "use client";
 import { useState, useRef } from "react";
+import { upload } from "@vercel/blob/client";
 import type { UserProfile } from "@/lib/types";
 
 interface Props {
   onDone: (profile: UserProfile) => void;
   initial?: UserProfile | null;
+  defaults?: Partial<UserProfile>;
   onCancel?: () => void;
 }
 
-function uid() {
-  return "u" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-export default function Onboard({ onDone, initial, onCancel }: Props) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [handle, setHandle] = useState(initial?.handle ?? "");
-  const [bio, setBio] = useState(initial?.bio ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(initial?.avatarUrl ?? "");
+export default function Onboard({ onDone, initial, defaults, onCancel }: Props) {
+  const [name, setName] = useState(initial?.name ?? defaults?.name ?? "");
+  const [handle, setHandle] = useState(initial?.handle ?? defaults?.handle ?? "");
+  const [bio, setBio] = useState(initial?.bio ?? defaults?.bio ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(initial?.avatarUrl ?? defaults?.avatarUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -25,12 +23,11 @@ export default function Onboard({ onDone, initial, onCancel }: Props) {
     if (!f) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", f);
-      fd.append("prefix", "avatars");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      setAvatarUrl(data.url);
+      const blob = await upload(`avatars/${f.name}`, f, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setAvatarUrl(blob.url);
     } catch {
       alert("Upload failed — try again.");
     }
@@ -42,7 +39,7 @@ export default function Onboard({ onDone, initial, onCancel }: Props) {
   function submit() {
     if (!valid) return;
     onDone({
-      id: initial?.id ?? uid(),
+      id: initial?.id ?? defaults?.id ?? "",
       name: name.trim(),
       handle: handle.startsWith("@") ? handle : "@" + handle,
       bio,

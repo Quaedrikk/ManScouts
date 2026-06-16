@@ -1,9 +1,18 @@
 import { kv } from "@vercel/kv";
-import type { Post } from "./types";
+import type { Post, UserProfile } from "./types";
 
 const FEED_KEY = "ms:feed";
 const POST_KEY = (id: string) => `ms:post:${id}`;
 const CHEERS_KEY = (id: string) => `ms:cheers:${id}`;
+const USER_KEY = (id: string) => `ms:user:${id}`;
+
+export async function getUserProfile(id: string): Promise<UserProfile | null> {
+  return kv.get<UserProfile>(USER_KEY(id));
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  await kv.set(USER_KEY(profile.id), profile);
+}
 
 export async function getFeed(limit = 50): Promise<Post[]> {
   const ids = await kv.lrange<string>(FEED_KEY, 0, limit - 1);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFeed, createPost, getCheerCount } from "@/lib/kv";
+import { auth } from "@/auth";
+import { getFeed, createPost, getCheerCount, getUserProfile } from "@/lib/kv";
 import type { Post } from "@/lib/types";
 
 export async function GET() {
@@ -19,11 +20,39 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    const body = await req.json() as Omit<Post, "cheerCount">;
-    const post: Post = { ...body, cheerCount: 0 };
+    const profile = await getUserProfile(session.user.id);
+    if (!profile) {
+      return NextResponse.json({ error: "Set up your profile first" }, { status: 400 });
+    }
+    // Identity fields come from the session/profile, not the request body, so a
+    // user can't post as someone else.
+    const body = (await req.json()) as Pick<
+      Post,
+      "challengeId" | "proofUrl" | "proofType" | "place" | "note" | "witnessName" | "witnessHandle"
+    >;
+    const post: Post = {
+      id: `p${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      userId: profile.id,
+      userName: profile.name,
+      userHandle: profile.handle,
+      userAvatarUrl: profile.avatarUrl,
+      challengeId: body.challengeId,
+      proofUrl: body.proofUrl,
+      proofType: body.proofType,
+      place: body.place,
+      note: body.note,
+      witnessName: body.witnessName,
+      witnessHandle: body.witnessHandle,
+      cheerCount: 0,
+      createdAt: new Date().toISOString(),
+    };
     await createPost(post);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, post });
   } catch (err) {
     console.error("POST /api/posts", err);
     return NextResponse.json({ error: "Failed to save post" }, { status: 500 });

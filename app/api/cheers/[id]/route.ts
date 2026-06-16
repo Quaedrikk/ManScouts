@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { toggleCheer } from "@/lib/kv";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { id } = await params;
-    const { userId } = await req.json() as { userId: string };
-    if (!userId) return NextResponse.json({ error: "No userId" }, { status: 400 });
-    const result = await toggleCheer(id, userId);
+    // userId comes from the session so cheers can't be inflated by spoofing.
+    const result = await toggleCheer(id, session.user.id);
     return NextResponse.json(result);
   } catch (err) {
     console.error("POST /api/cheers", err);
