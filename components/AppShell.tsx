@@ -93,6 +93,14 @@ export default function AppShell() {
     }
   }
 
+  async function deletePost(postId: string) {
+    if (!confirm("Delete this post? This can't be undone.")) return;
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    try {
+      await fetch(`/api/posts?id=${encodeURIComponent(postId)}`, { method: "DELETE" });
+    } catch { /* ignore; already removed locally */ }
+  }
+
   async function toggleCheer(postId: string) {
     if (!profile) return;
     const next = { ...cheers, [postId]: !cheers[postId] };
@@ -222,6 +230,7 @@ export default function AppShell() {
             cheerCounts={cheerCounts}
             onCheer={toggleCheer}
             onPick={setDetail}
+            onDelete={deletePost}
             goTrail={() => setTab("trail")}
           />
         )}
@@ -236,6 +245,7 @@ export default function AppShell() {
             totalPts={totalPts}
             onEdit={() => setEditing(true)}
             onPick={setDetail}
+            onDelete={deletePost}
           />
         )}
       </div>

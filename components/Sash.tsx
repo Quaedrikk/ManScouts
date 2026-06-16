@@ -21,9 +21,10 @@ interface Props {
   totalPts: number;
   onEdit: () => void;
   onPick: (ch: Challenge) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function Sash({ profile, posts, totalPts, onEdit, onPick }: Props) {
+export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelete }: Props) {
   const { byId } = useCatalog();
   const earned = posts.map((p) => ({ ...p, ch: byId(p.challengeId) })).filter((p) => p.ch) as (Post & { ch: Challenge })[];
 
@@ -61,6 +62,16 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick }: Props
               <div className="muted" style={{ fontSize: 12.5 }}>{fmtFull(p.createdAt)}</div>
             </div>
             <Stars n={chStars(p.ch)} size={12} />
+            <button
+              onClick={() => onDelete(p.id)}
+              title="Delete post"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b0a99a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7" />
+                <path d="M10 11v5M14 11v5" />
+              </svg>
+            </button>
           </div>
           {p.proofUrl && <img className="proof" src={p.proofUrl} alt="proof" />}
           <div className="muted" style={{ marginTop: 9, fontSize: 13, lineHeight: 1.6 }}>

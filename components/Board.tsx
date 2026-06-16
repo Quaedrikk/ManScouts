@@ -39,9 +39,10 @@ interface PostCardProps {
   ago: string;
   onCheer: () => void;
   onPick: (ch: Challenge) => void;
+  onDelete?: () => void;
 }
 
-function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, onCheer, onPick }: PostCardProps) {
+function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, onCheer, onPick, onDelete }: PostCardProps) {
   const { byId } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
@@ -56,6 +57,18 @@ function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witn
         <div onClick={() => onPick(ch)} style={{ cursor: "pointer" }}>
           <Badge ch={ch} size={42} />
         </div>
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            title="Delete post"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginLeft: 2, alignSelf: "flex-start" }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b0a99a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7" />
+              <path d="M10 11v5M14 11v5" />
+            </svg>
+          </button>
+        )}
       </div>
       <div style={{ fontSize: 14.5, marginBottom: 10, lineHeight: 1.4, display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
         <span>Earned <b>{ch.nm}</b></span>
@@ -93,10 +106,12 @@ interface Props {
   cheerCounts: Record<string, number>;
   onCheer: (id: string) => void;
   onPick: (ch: Challenge) => void;
+  onDelete: (id: string) => void;
   goTrail: () => void;
 }
 
-export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, goTrail }: Props) {
+export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, goTrail }: Props) {
+  const { isAdmin } = useCatalog();
   const myPosts = posts.filter((p) => p.userId === profile.id).map((p) => ({
     id: p.id,
     cid: p.challengeId,
@@ -111,6 +126,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheered: !!cheers[p.id],
     ago: fmtAgo(p.createdAt),
     ts: new Date(p.createdAt).getTime(),
+    del: (() => onDelete(p.id)) as (() => void) | undefined,
   }));
 
   const otherPosts = posts.filter((p) => p.userId !== profile.id).map((p) => ({
@@ -127,6 +143,8 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheered: !!cheers[p.id],
     ago: fmtAgo(p.createdAt),
     ts: new Date(p.createdAt).getTime(),
+    // Admins can delete anyone's post.
+    del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,
   }));
 
   const seedCards = SEED.map((s) => ({
@@ -136,6 +154,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheerCount: s.cheers,
     cheered: false,
     ts: Date.now() - (parseInt(s.ago) * (s.ago.endsWith("d") ? 86400000 : s.ago.endsWith("h") ? 3600000 : 60000)),
+    del: undefined as (() => void) | undefined,
   }));
 
   const feed = [...myPosts, ...otherPosts, ...seedCards].sort((a, b) => b.ts - a.ts);
@@ -162,6 +181,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
           {...p}
           onCheer={() => onCheer(p.id)}
           onPick={onPick}
+          onDelete={p.del}
         />
       ))}
     </div>

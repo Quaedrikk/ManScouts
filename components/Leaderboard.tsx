@@ -47,6 +47,7 @@ function Countdown({ to }: { to: Date }) {
   );
 }
 
+interface Item { nm: string; pts: number }
 interface Rank {
   userId: string;
   name: string;
@@ -54,64 +55,96 @@ interface Rank {
   avatarUrl: string;
   pts: number;
   badges: number;
+  items: Item[];
 }
 
 const MEDAL = ["#d9a441", "#b8b8c0", "#c9803f"]; // gold / silver / bronze
+const RING = (i: number) => (i < 3 ? MEDAL[i] : "rgba(255,255,255,.85)");
 
-function MountainScene() {
+// A climber's spot on the slope: more points => higher toward the summit.
+function climberPos(pts: number, max: number, i: number) {
+  const f = Math.min(1, pts / max);
+  const base = { x: 17, y: 83 };
+  const peak = { x: 73, y: 21 };
+  const x = base.x + (peak.x - base.x) * f;
+  const y = base.y + (peak.y - base.y) * f;
+  const off = (i % 2 === 0 ? -1 : 1) * Math.min(9, i * 1.6); // de-overlap similar scores
+  return { left: `${x + off}%`, top: `${y}%` };
+}
+
+function MountainScene({ ranks, meId }: { ranks: Rank[]; meId: string }) {
+  const max = ranks[0]?.pts || 1;
   return (
-    <div className="lbmtn">
-      <svg viewBox="0 0 400 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+    <div className="lbmtn" style={{ height: 240 }}>
+      <svg viewBox="0 0 400 240" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }}>
         <defs>
           <linearGradient id="lbsky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#bfe0f0" />
             <stop offset="55%" stopColor="#e9d7b8" />
             <stop offset="100%" stopColor="#f3e6c8" />
           </linearGradient>
-          <linearGradient id="lbfar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7fa6b8" />
-            <stop offset="100%" stopColor="#5f8497" />
-          </linearGradient>
           <linearGradient id="lbnear" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#3c6b54" />
             <stop offset="100%" stopColor="#28503e" />
           </linearGradient>
+          <linearGradient id="lbfar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7fa6b8" />
+            <stop offset="100%" stopColor="#5f8497" />
+          </linearGradient>
         </defs>
 
-        <rect width="400" height="200" fill="url(#lbsky)" />
+        <rect width="400" height="240" fill="url(#lbsky)" />
 
         {/* sun */}
-        <circle className="lbsun" cx="312" cy="58" r="26" fill="#ffd98a" />
-        <circle className="lbsun" cx="312" cy="58" r="38" fill="#ffd98a" opacity="0.25" />
+        <circle className="lbsun" cx="324" cy="50" r="24" fill="#ffd98a" />
+        <circle className="lbsun" cx="324" cy="50" r="36" fill="#ffd98a" opacity="0.25" />
 
         {/* drifting clouds */}
         <g className="lbcloud" style={{ animationDuration: "26s" }} opacity="0.85">
-          <ellipse cx="60" cy="46" rx="26" ry="10" fill="#fff" />
-          <ellipse cx="82" cy="50" rx="18" ry="8" fill="#fff" />
+          <ellipse cx="60" cy="44" rx="26" ry="10" fill="#fff" />
+          <ellipse cx="82" cy="48" rx="18" ry="8" fill="#fff" />
         </g>
         <g className="lbcloud" style={{ animationDuration: "38s", animationDelay: "-10s" }} opacity="0.7">
-          <ellipse cx="180" cy="34" rx="22" ry="8" fill="#fff" />
-          <ellipse cx="198" cy="38" rx="14" ry="6" fill="#fff" />
+          <ellipse cx="180" cy="30" rx="22" ry="8" fill="#fff" />
+          <ellipse cx="198" cy="34" rx="14" ry="6" fill="#fff" />
         </g>
 
         {/* far ridge */}
-        <path d="M0 150 L70 96 L120 140 L190 80 L250 150 L400 110 L400 200 L0 200 Z" fill="url(#lbfar)" opacity="0.85" />
+        <path d="M0 170 L70 110 L130 160 L210 96 L280 170 L400 130 L400 240 L0 240 Z" fill="url(#lbfar)" opacity="0.85" />
 
-        {/* near mountain */}
-        <path className="lbridge" d="M-10 200 L120 70 L210 130 L300 60 L420 200 Z" fill="url(#lbnear)" stroke="rgba(255,255,255,.5)" strokeWidth="1.5" />
+        {/* near mountain — slope rises left→right to the summit at ~ (296,50) */}
+        <path className="lbridge" d="M-20 240 L70 150 L150 188 L296 50 L430 240 Z" fill="url(#lbnear)" stroke="rgba(255,255,255,.5)" strokeWidth="1.5" />
 
-        {/* snow caps */}
-        <path d="M120 70 L138 96 L128 92 L112 104 L102 96 Z" fill="#f4f8fb" />
-        <path d="M300 60 L320 92 L308 86 L292 100 L282 90 Z" fill="#f4f8fb" />
+        {/* snow cap on summit */}
+        <path d="M296 50 L318 90 L304 84 L288 98 L276 86 Z" fill="#f4f8fb" />
 
         {/* summit flag */}
-        <line x1="300" y1="60" x2="300" y2="40" stroke="#5a3618" strokeWidth="2.5" strokeLinecap="round" />
-        <path className="lbflag" d="M300 41 L320 46 L300 52 Z" fill="#e5552b" />
-        {/* sparkle */}
-        <g className="lbshine" style={{ transformOrigin: "300px 40px" }}>
-          <path d="M300 32 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z" fill="#fff" />
+        <line x1="296" y1="50" x2="296" y2="28" stroke="#5a3618" strokeWidth="2.5" strokeLinecap="round" />
+        <path className="lbflag" d="M296 29 L316 34 L296 40 Z" fill="#e5552b" />
+        <g className="lbshine" style={{ transformOrigin: "296px 28px" }}>
+          <path d="M296 20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z" fill="#fff" />
         </g>
       </svg>
+
+      {/* climbers placed by points */}
+      {ranks.slice(0, 12).map((r, i) => {
+        const p = climberPos(r.pts, max, i);
+        const size = i < 3 ? 34 : 26;
+        return (
+          <div
+            key={r.userId}
+            title={`${r.name} · ${r.pts} pts`}
+            style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%,-50%)", zIndex: 2, textAlign: "center" }}
+          >
+            <div style={{ borderRadius: "50%", padding: 2, background: RING(i), boxShadow: r.userId === meId ? "0 0 0 2px var(--accent)" : "0 2px 6px rgba(0,0,0,.3)" }}>
+              <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={size} />
+            </div>
+            <div style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,.7)", marginTop: 1 }}>
+              {r.pts}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -119,6 +152,7 @@ function MountainScene() {
 export default function Leaderboard({ posts, profile }: Props) {
   const { byId } = useCatalog();
   const season = currentSeason();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // Only count badges earned this season (ranks reset each season).
   const seasonPosts = posts.filter((p) => new Date(p.createdAt) >= season.start);
@@ -128,14 +162,16 @@ export default function Leaderboard({ posts, profile }: Props) {
     const ch = byId(p.challengeId);
     if (!ch) continue;
     const cur = totals.get(p.userId) ?? {
-      userId: p.userId, name: p.userName, handle: p.userHandle, avatarUrl: p.userAvatarUrl, pts: 0, badges: 0,
+      userId: p.userId, name: p.userName, handle: p.userHandle, avatarUrl: p.userAvatarUrl, pts: 0, badges: 0, items: [],
     };
     cur.pts += ch.pts;
     cur.badges += 1;
+    cur.items.push({ nm: ch.nm, pts: ch.pts });
     cur.name = p.userName; cur.avatarUrl = p.userAvatarUrl; cur.handle = p.userHandle;
     totals.set(p.userId, cur);
   }
   const ranks = [...totals.values()].sort((a, b) => b.pts - a.pts || b.badges - a.badges);
+  for (const r of ranks) r.items.sort((a, b) => b.pts - a.pts);
 
   return (
     <div>
@@ -144,7 +180,7 @@ export default function Leaderboard({ posts, profile }: Props) {
         Who&apos;s climbing highest this season. Ranked by points earned.
       </p>
 
-      <MountainScene />
+      <MountainScene ranks={ranks} meId={profile.id} />
 
       <div
         style={{
@@ -165,30 +201,49 @@ export default function Leaderboard({ posts, profile }: Props) {
           No one&apos;s on the board yet. Earn a badge and start the climb.
         </p>
       ) : (
-        ranks.map((r, i) => (
-          <div
-            key={r.userId}
-            className={"lbrow" + (r.userId === profile.id ? " me" : "")}
-            style={{ animationDelay: `${i * 0.04}s` }}
-          >
-            {i < 3 ? (
-              <span className="lbmedal" style={{ background: MEDAL[i] }}>{i + 1}</span>
-            ) : (
-              <span className="lbrank muted">{i + 1}</span>
-            )}
-            <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={40} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {r.name}{r.userId === profile.id && <span style={{ color: "var(--accent)" }}> · you</span>}
+        ranks.map((r, i) => {
+          const open = openId === r.userId;
+          return (
+            <div key={r.userId} style={{ marginBottom: 10 }}>
+              <div
+                className={"lbrow" + (r.userId === profile.id ? " me" : "")}
+                style={{ marginBottom: 0, cursor: "pointer", animationDelay: `${i * 0.04}s` }}
+                onClick={() => setOpenId(open ? null : r.userId)}
+              >
+                {i < 3 ? (
+                  <span className="lbmedal" style={{ background: MEDAL[i] }}>{i + 1}</span>
+                ) : (
+                  <span className="lbrank muted">{i + 1}</span>
+                )}
+                <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={40} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {r.name}{r.userId === profile.id && <span style={{ color: "var(--accent)" }}> · you</span>}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12.5 }}>
+                    {r.badges} badge{r.badges === 1 ? "" : "s"} · tap to see them
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div className="display" style={{ fontSize: 19, color: "var(--accent)" }}>{r.pts}</div>
+                  <div className="label">pts</div>
+                </div>
+                <span style={{ marginLeft: 6, color: "var(--muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
               </div>
-              <div className="muted" style={{ fontSize: 12.5 }}>{r.badges} badge{r.badges === 1 ? "" : "s"}</div>
+
+              {open && (
+                <div className="card" style={{ padding: "10px 14px", marginTop: 4, borderRadius: 14 }}>
+                  {r.items.map((it, k) => (
+                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: k < r.items.length - 1 ? "1px solid var(--line)" : "none", fontSize: 13.5 }}>
+                      <span>{it.nm}</span>
+                      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{it.pts} pts</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={{ textAlign: "right", flexShrink: 0 }}>
-              <div className="display" style={{ fontSize: 19, color: "var(--accent)" }}>{r.pts}</div>
-              <div className="label">pts</div>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );

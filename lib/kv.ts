@@ -86,6 +86,12 @@ export async function getPost(id: string): Promise<Post | null> {
   return kv.get<Post>(POST_KEY(id));
 }
 
+export async function deletePost(id: string): Promise<void> {
+  await kv.lrem(FEED_KEY, 0, id);
+  await kv.del(POST_KEY(id));
+  await kv.del(CHEERS_KEY(id));
+}
+
 export async function getCheerCount(postId: string): Promise<number> {
   return (await kv.scard(CHEERS_KEY(postId))) ?? 0;
 }

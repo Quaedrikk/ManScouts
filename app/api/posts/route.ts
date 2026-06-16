@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession } from "@/lib/kv";
+import { isAdmin } from "@/lib/admin";
+import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost } from "@/lib/kv";
 import type { Post } from "@/lib/types";
 
 export async function GET() {
@@ -69,5 +70,27 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/posts", err);
     return NextResponse.json({ error: "Failed to save post" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "No id" }, { status: 400 });
+    const post = await getPost(id);
+    if (!post) return NextResponse.json({ ok: true }); // already gone
+    // Owner can delete their own; admins can delete anyone's.
+    if (post.userId !== session.user.id && !isAdmin(session)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    await deletePost(id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/posts", err);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }
