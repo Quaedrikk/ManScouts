@@ -17,6 +17,13 @@ const EFFECTS: { key: BadgeEffect; label: string }[] = [
   { key: "pulse", label: "Pulse" },
   { key: "spin", label: "Spin" },
   { key: "gold", label: "Gold" },
+  { key: "orbit", label: "★ Orbit" },
+  { key: "sparkle", label: "Sparkle" },
+  { key: "fire", label: "🔥 Fire" },
+  { key: "lightning", label: "⚡ Lightning" },
+  { key: "water", label: "💧 Water" },
+  { key: "frost", label: "❄ Frost" },
+  { key: "petals", label: "🍃 Petals" },
 ];
 
 function starsToDf(s: number): Challenge["df"] {
@@ -146,6 +153,21 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <>
             <div style={{ padding: "4px 0 14px" }}><Badge ch={preview} size={92} /></div>
 
+            <div className="label" style={{ margin: "0 0 6px" }}>Shape</div>
+            <div className="seg" style={{ marginBottom: 12 }}>
+              {SHAPES.map((s) => (
+                <button key={s} className={"chip" + (shape === s ? " on" : "")} onClick={() => setShape(s)}
+                  style={{ textTransform: "capitalize" }}>{s}</button>
+              ))}
+            </div>
+
+            <div className="label" style={{ margin: "0 0 6px" }}>Special effect</div>
+            <div className="seg" style={{ marginBottom: 16 }}>
+              {EFFECTS.map((e) => (
+                <button key={e.key} className={"chip" + (effect === e.key ? " on" : "")} onClick={() => setEffect(e.key)}>{e.label}</button>
+              ))}
+            </div>
+
             <div className="label" style={{ marginBottom: 6 }}>Name</div>
             <input value={nm} onChange={(e) => setNm(e.target.value)} placeholder="The Iron Mile" />
 
@@ -203,21 +225,6 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                 <input type="file" accept="image/*" onChange={pickImage} className="hide" />
               </label>
             )}
-
-            <div className="label" style={{ margin: "16px 0 6px" }}>Shape</div>
-            <div className="seg">
-              {SHAPES.map((s) => (
-                <button key={s} className={"chip" + (shape === s ? " on" : "")} onClick={() => setShape(s)}
-                  style={{ textTransform: "capitalize" }}>{s}</button>
-              ))}
-            </div>
-
-            <div className="label" style={{ margin: "14px 0 6px" }}>Special effect</div>
-            <div className="seg">
-              {EFFECTS.map((e) => (
-                <button key={e.key} className={"chip" + (effect === e.key ? " on" : "")} onClick={() => setEffect(e.key)}>{e.label}</button>
-              ))}
-            </div>
 
             <div className="label" style={{ margin: "16px 0 6px" }}>How to earn it (one step per line)</div>
             <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} placeholder={"Do the thing\nProve it\nGet it witnessed"} />

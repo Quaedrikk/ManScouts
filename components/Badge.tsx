@@ -1,13 +1,83 @@
 "use client";
 import Ico from "./Ico";
 import { useCatalog } from "@/lib/catalog";
-import type { Challenge, BadgeShape } from "@/lib/types";
+import type { Challenge, BadgeShape, BadgeEffect } from "@/lib/types";
 
 interface Props {
   ch: Challenge;
   size?: number;
   drawn?: boolean;
   rot?: number;
+}
+
+// Effects driven purely by a CSS filter/transform on the emblem.
+const FILTER_FX: BadgeEffect[] = ["aura", "shimmer", "pulse", "spin", "gold"];
+
+// Decorative particle/elemental overlays drawn on top of the emblem.
+function BadgeFx({ effect }: { effect: BadgeEffect }) {
+  switch (effect) {
+    case "orbit":
+      return (
+        <div className="bfx bfx-orbit">
+          {[0, 120, 240].map((a) => (
+            <div key={a} style={{ position: "absolute", inset: 0, transform: `rotate(${a}deg)` }}>
+              <span className="ostar">✦</span>
+            </div>
+          ))}
+        </div>
+      );
+    case "sparkle":
+      return (
+        <div className="bfx">
+          {[[12, 14, 0], [80, 20, 0.5], [70, 78, 1], [22, 72, 1.5]].map(([l, t, d], i) => (
+            <span key={i} className="spk" style={{ left: `${l}%`, top: `${t}%`, animationDelay: `${d}s` }}>✦</span>
+          ))}
+        </div>
+      );
+    case "fire":
+      return (
+        <div className="bfx bfx-fire">
+          <div className="fireglow" />
+          {[20, 38, 50, 62, 80].map((l, i) => (
+            <span key={i} className="ember" style={{ left: `${l}%`, animationDelay: `${i * 0.28}s` }} />
+          ))}
+        </div>
+      );
+    case "lightning":
+      return (
+        <div className="bfx bfx-bolt">
+          <div className="boltflash" />
+          <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: 0 }}>
+            <path d="M54 14 L34 52 H48 L42 86 L70 44 H54 Z" fill="#fff6a0" stroke="#ffe14d" strokeWidth="2" />
+          </svg>
+        </div>
+      );
+    case "water":
+      return (
+        <div className="bfx-water">
+          <div className="wv wv1" />
+          <div className="wv wv2" />
+        </div>
+      );
+    case "frost":
+      return (
+        <div className="bfx bfx-frost">
+          {[[16, 18, 0], [78, 24, 0.6], [68, 74, 1.2], [24, 70, 1.8], [50, 10, 0.9]].map(([l, t, d], i) => (
+            <span key={i} className="flake" style={{ left: `${l}%`, top: `${t}%`, animationDelay: `${d}s` }}>❄</span>
+          ))}
+        </div>
+      );
+    case "petals":
+      return (
+        <div className="bfx">
+          {[12, 36, 60, 84].map((l, i) => (
+            <span key={i} className="petal" style={{ left: `${l}%`, animationDelay: `${i * 0.5}s` }} />
+          ))}
+        </div>
+      );
+    default:
+      return null;
+  }
 }
 
 // Regular polygon / star / rosette points around center (50,50).
@@ -41,7 +111,7 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
   const col = ch.color ?? catColor(ch.cat);
   const shape = ch.shape ?? "circle";
   const effect = ch.effect ?? "none";
-  const fxClass = effect !== "none" ? ` fx-${effect}` : "";
+  const fxClass = FILTER_FX.includes(effect) ? ` fx-${effect}` : "";
 
   return (
     <div
@@ -83,6 +153,7 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
           </div>
         )}
       </div>
+      <BadgeFx effect={effect} />
     </div>
   );
 }

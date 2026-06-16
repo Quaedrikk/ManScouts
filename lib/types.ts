@@ -19,7 +19,9 @@ export interface Challenge {
 }
 
 export type BadgeShape = "circle" | "shield" | "hex" | "rosette" | "square" | "star";
-export type BadgeEffect = "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold";
+export type BadgeEffect =
+  | "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold"
+  | "orbit" | "sparkle" | "fire" | "lightning" | "water" | "frost" | "petals";
 
 export interface Category {
   name: string;

@@ -112,8 +112,49 @@ textarea { resize: none; }
   0%, 100% { filter: drop-shadow(0 0 4px #e8b54b) brightness(1.02); }
   50% { filter: drop-shadow(0 0 16px #f3cd6b) drop-shadow(0 0 26px #e8b54b) brightness(1.1); }
 }
+/* Overlay (particle / elemental) effects */
+.bfx { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: visible; }
+
+/* orbiting stars */
+.bfx-orbit { position: absolute; inset: -8%; pointer-events: none; z-index: 3; animation: borbit 6s linear infinite; }
+@keyframes borbit { to { transform: rotate(360deg); } }
+.bfx-orbit .ostar { position: absolute; top: -3%; left: 50%; transform: translateX(-50%); color: #ffe9a8; font-size: 13px; text-shadow: 0 0 6px #ffcf5e; }
+
+/* sparkles */
+.bfx .spk { position: absolute; color: #fff; font-size: 12px; text-shadow: 0 0 6px #fff; animation: bspk 1.6s ease-in-out infinite; }
+@keyframes bspk { 0%, 100% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1.15); } }
+
+/* fire */
+.bfx-fire .fireglow { position: absolute; inset: 0; border-radius: 50%; animation: bfire 1.2s ease-in-out infinite; }
+@keyframes bfire { 0%, 100% { box-shadow: 0 0 8px 1px rgba(229,85,43,.6); } 50% { box-shadow: 0 0 18px 5px rgba(255,150,40,.85); } }
+.bfx-fire .ember { position: absolute; bottom: 4%; width: 6px; height: 6px; border-radius: 50%; background: radial-gradient(circle, #ffd27a, #e5552b); animation: bemberrise 1.5s ease-out infinite; }
+@keyframes bemberrise { 0% { transform: translateY(0) scale(1); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-70px) scale(.3); opacity: 0; } }
+
+/* lightning */
+.bfx-bolt svg { opacity: 0; animation: bboltflash 3.2s steps(1) infinite; filter: drop-shadow(0 0 6px #ffe14d); }
+.bfx-bolt .boltflash { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,200,.7), transparent 60%); opacity: 0; animation: bboltflash 3.2s steps(1) infinite; }
+@keyframes bboltflash { 0%, 90%, 100% { opacity: 0; } 91%, 95% { opacity: 1; } 93% { opacity: .25; } }
+
+/* water sloshing inside */
+.bfx-water { position: absolute; inset: 8%; border-radius: 50%; overflow: hidden; pointer-events: none; z-index: 3; }
+.bfx-water .wv { position: absolute; left: -60%; right: -60%; bottom: -75%; height: 150%; border-radius: 43%; }
+.bfx-water .wv1 { background: rgba(74,168,224,.55); animation: bwave 3.4s linear infinite; }
+.bfx-water .wv2 { background: rgba(120,200,240,.4); animation: bwave 4.8s linear infinite reverse; }
+@keyframes bwave { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+/* frost */
+.bfx-frost .flake { position: absolute; color: #d6f0ff; font-size: 11px; text-shadow: 0 0 6px #9fd9ff; animation: bspk 2.2s ease-in-out infinite; }
+
+/* drifting petals/leaves */
+.bfx .petal { position: absolute; top: -10%; width: 9px; height: 9px; background: #7bc47f; border-radius: 0 70% 0 70%; opacity: 0; animation: bpetal 3s linear infinite; }
+@keyframes bpetal { 0% { transform: translateY(0) rotate(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(90px) rotate(300deg); opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .fx-aura, .fx-pulse, .fx-spin, .fx-shimmer, .fx-gold { animation-duration: .01s !important; }
+  .fx-aura, .fx-pulse, .fx-spin, .fx-shimmer, .fx-gold,
+  .bfx-orbit, .bfx .spk, .bfx-fire .fireglow, .bfx-fire .ember,
+  .bfx-bolt svg, .bfx-bolt .boltflash, .bfx-water .wv, .bfx-frost .flake, .bfx .petal {
+    animation-duration: .01s !important;
+  }
 }
 .corner {
   position: absolute; top: 9px; right: 9px; width: 23px; height: 23px; border-radius: 50%;
