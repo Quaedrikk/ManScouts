@@ -9,7 +9,32 @@ export interface Challenge {
   blurb: string;
   how: string[];
   care?: string;
+  // Admin-created badges:
+  imageUrl?: string; // custom uploaded art (used instead of the line icon)
+  color?: string;    // explicit emblem color (falls back to category color)
+  custom?: boolean;  // true for admin-created badges
 }
+
+export interface Category {
+  name: string;
+  color: string;
+}
+
+export interface WitnessSession {
+  token: string;
+  earnerId: string;
+  earnerName: string;
+  challengeId: string;
+  challengeName: string;
+  status: "pending" | "confirmed";
+  witnessId?: string;
+  witnessName?: string;
+  witnessHandle?: string;
+  createdAt: string;
+}
+
+// Per-user free-placement layout for the sash: postId -> position.
+export type SashLayout = Record<string, { x: number; y: number; rot: number }>;
 
 export interface UserProfile {
   id: string;
@@ -29,6 +54,8 @@ export interface Post {
   proofUrl: string;
   proofType: "photo" | "video";
   place: string;
+  lat?: number;
+  lng?: number;
   note: string;
   witnessName: string;
   witnessHandle: string;

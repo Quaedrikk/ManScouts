@@ -1,6 +1,6 @@
 "use client";
 import Ico from "./Ico";
-import { CATS } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 import type { Challenge } from "@/lib/types";
 
 interface Props {
@@ -11,7 +11,8 @@ interface Props {
 }
 
 export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) {
-  const col = CATS[ch.cat]?.c ?? "#555";
+  const { catColor } = useCatalog();
+  const col = ch.color ?? catColor(ch.cat);
   return (
     <div
       className="emblemwrap"
@@ -38,9 +39,15 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
           className={drawn ? "stitchdraw" : ""}
         />
       </svg>
-      <div style={{ position: "absolute", inset: "24%" }}>
-        <Ico name={ch.ico} />
-      </div>
+      {ch.imageUrl ? (
+        <div style={{ position: "absolute", inset: "16%", borderRadius: "50%", overflow: "hidden" }}>
+          <img src={ch.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", inset: "24%" }}>
+          <Ico name={ch.ico} />
+        </div>
+      )}
     </div>
   );
 }

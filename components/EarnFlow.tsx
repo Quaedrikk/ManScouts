@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { upload } from "@vercel/blob/client";
+import QRCode from "qrcode";
 import Badge from "./Badge";
 import Ico from "./Ico";
 import type { Challenge } from "@/lib/types";
@@ -13,9 +14,10 @@ interface Props {
     proofUrl: string,
     proofType: "photo" | "video",
     place: string,
-    witnessName: string,
-    witnessHandle: string,
-    note: string
+    witnessToken: string,
+    note: string,
+    lat?: number,
+    lng?: number
   ) => void;
 }
 
@@ -25,11 +27,57 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
   const [proofType, setProofType] = useState<"photo" | "video">("photo");
   const [uploading, setUploading] = useState(false);
   const [place, setPlace] = useState("");
+  const [lat, setLat] = useState<number | undefined>(undefined);
+  const [lng, setLng] = useState<number | undefined>(undefined);
+  const [locating, setLocating] = useState(false);
   const [note, setNote] = useState("");
-  const [wn, setWn] = useState("");
-  const [wh, setWh] = useState("");
-  const [witnessed, setWitnessed] = useState(false);
+  // QR witness flow
+  const [token, setToken] = useState("");
+  const [qrUrl, setQrUrl] = useState("");
+  const [witnessName, setWitnessName] = useState("");
+  const [witnessHandle, setWitnessHandle] = useState("");
+  const [starting, setStarting] = useState(false);
+  const confirmed = !!witnessName;
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Create a witness session + QR when the user reaches the Witness step.
+  const startWitness = useCallback(async () => {
+    setStarting(true);
+    try {
+      const res = await fetch("/api/witness/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: ch.id, challengeName: ch.nm }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        setToken(data.token);
+        const link = `${window.location.origin}/witness/${data.token}`;
+        setQrUrl(await QRCode.toDataURL(link, { width: 320, margin: 1 }));
+      }
+    } catch { /* ignore */ }
+    setStarting(false);
+  }, [ch.id, ch.nm]);
+
+  useEffect(() => {
+    if (step === 2 && !token && !starting) startWitness();
+  }, [step, token, starting, startWitness]);
+
+  // Poll until a signed-in friend confirms.
+  useEffect(() => {
+    if (step !== 2 || !token || confirmed) return;
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/witness/status?token=${token}`);
+        const d = await res.json();
+        if (d.status === "confirmed") {
+          setWitnessName(d.witnessName ?? "A scout");
+          setWitnessHandle(d.witnessHandle ?? "");
+        }
+      } catch { /* ignore */ }
+    }, 2500);
+    return () => clearInterval(iv);
+  }, [step, token, confirmed]);
 
   async function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -48,13 +96,33 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     setUploading(false);
   }
 
-  function commit() {
-    onCommit(
-      ch.id, proofUrl, proofType, place.trim(),
-      wn.trim(),
-      wh.trim() ? (wh.startsWith("@") ? wh : "@" + wh) : "",
-      note.trim()
+  function useMyLocation() {
+    if (!("geolocation" in navigator)) {
+      alert("Location isn't available on this device.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLat(latitude);
+        setLng(longitude);
+        // Prefill the place text with coords if the user hasn't typed a name.
+        if (!place.trim()) {
+          setPlace(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        }
+        setLocating(false);
+      },
+      () => {
+        alert("Couldn't get your location — check location permissions and try again.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
+  }
+
+  function commit() {
+    onCommit(ch.id, proofUrl, proofType, place.trim(), token, note.trim(), lat, lng);
   }
 
   return (
@@ -120,6 +188,15 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
           <div>
             <div className="label" style={{ marginBottom: 6 }}>Where?</div>
             <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Mount Tamalpais, CA" />
+            <div style={{ height: 10 }} />
+            <button className="btn ghost" onClick={useMyLocation} disabled={locating}>
+              📍 {locating ? "Getting location…" : lat != null ? "Location pinned — update" : "Use my exact location"}
+            </button>
+            {lat != null && lng != null && (
+              <div className="muted" style={{ fontSize: 12.5, marginTop: 8, textAlign: "center" }}>
+                GPS logged: {lat.toFixed(5)}, {lng.toFixed(5)}
+              </div>
+            )}
             <div className="label" style={{ margin: "14px 0 6px" }}>Caption (optional)</div>
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="How'd it go?" />
             <div style={{ height: 16 }} />
@@ -130,34 +207,38 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
         )}
 
         {step === 2 && (
-          <div>
-            <p className="muted" style={{ fontSize: 14, margin: "0 0 12px" }}>
-              No badge is self-awarded. A fellow scout has to vouch for it.
+          <div style={{ textAlign: "center" }}>
+            <p className="muted" style={{ fontSize: 14, margin: "0 0 14px" }}>
+              No badge is self-awarded. Have a fellow scout scan this with their phone to vouch for it.
             </p>
-            <div className="label" style={{ marginBottom: 6 }}>Witness name</div>
-            <input value={wn} onChange={(e) => setWn(e.target.value)} placeholder="Who saw you do it?" />
-            <div className="label" style={{ margin: "12px 0 6px" }}>Their handle (optional)</div>
-            <input value={wh} onChange={(e) => setWh(e.target.value)} placeholder="@theirhandle" />
-            <div
-              onClick={() => wn.trim() && setWitnessed(!witnessed)}
-              style={{
-                marginTop: 16, display: "flex", alignItems: "center", gap: 12, padding: 14,
-                borderRadius: 14, border: "1.5px solid var(--line)",
-                background: witnessed ? "var(--green)" : "var(--card)",
-                color: witnessed ? "#fff" : "var(--ink)",
-                cursor: wn.trim() ? "pointer" : "default",
-                opacity: wn.trim() ? 1 : .5,
-              }}
-            >
-              <span style={{
-                width: 24, height: 24, borderRadius: 7, border: "2px solid currentColor",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
-              }}>{witnessed ? "✓" : ""}</span>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{wn.trim() || "Witness"} saw this and vouches for it.</span>
-            </div>
+
+            {confirmed ? (
+              <div className="card" style={{ padding: 24 }}>
+                <div style={{ fontSize: 44, color: "var(--green)" }}>✓</div>
+                <div className="display" style={{ fontSize: 20, marginTop: 6 }}>Witnessed!</div>
+                <div className="muted" style={{ fontSize: 14, marginTop: 6 }}>
+                  Vouched for by <b style={{ color: "var(--ink)" }}>{witnessName}</b> {witnessHandle}
+                </div>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 20 }}>
+                {qrUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrUrl} alt="Witness QR code" style={{ width: 220, height: 220, margin: "0 auto", display: "block", borderRadius: 12 }} />
+                ) : (
+                  <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center" }} className="muted">
+                    {starting ? "Generating code…" : "Preparing…"}
+                  </div>
+                )}
+                <div className="muted" style={{ fontSize: 13, marginTop: 12 }}>
+                  Waiting for a scout to scan and confirm…
+                </div>
+              </div>
+            )}
+
             <div style={{ height: 18 }} />
-            <button className="btn green" disabled={!(wn.trim() && witnessed)} onClick={commit}>
-              Post &amp; award badge
+            <button className="btn green" disabled={!confirmed} onClick={commit}>
+              {confirmed ? "Post & award badge" : "Waiting for witness…"}
             </button>
             <div style={{ height: 10 }} />
             <button className="btn ghost" onClick={() => setStep(1)}>Back</button>

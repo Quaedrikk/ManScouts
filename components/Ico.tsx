@@ -1,7 +1,7 @@
 "use client";
 
-const P = { fill: "none", stroke: "#fff", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-const F = { fill: "#fff" };
+const P = { fill: "none", stroke: "currentColor", strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+const F = { fill: "currentColor" };
 
 const icons: Record<string, React.ReactNode> = {
   mountain: <g {...P}><path d="M14 74 L40 30 L56 54 L70 36 L88 74 Z"/><path d="M34 38 l6 6 6-6"/></g>,
@@ -34,12 +34,12 @@ const icons: Record<string, React.ReactNode> = {
 
 export default function Ico({ name, stroke }: { name: string; stroke?: string }) {
   const content = icons[name] || icons.stars;
-  if (stroke) {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%">
-        <g style={{ stroke }}>{content}</g>
-      </svg>
-    );
-  }
-  return <svg viewBox="0 0 100 100" width="100%" height="100%">{content}</svg>;
+  // Icons use `currentColor`, so the color is driven by `color`. Default white
+  // keeps badge emblems (drawn on colored circles) looking right; callers like
+  // the nav bar pass a color to make the icons visible on light backgrounds.
+  return (
+    <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ color: stroke ?? "#fff" }}>
+      {content}
+    </svg>
+  );
 }

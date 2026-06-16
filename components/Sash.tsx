@@ -1,7 +1,9 @@
 "use client";
 import Badge from "./Badge";
 import Avatar from "./Avatar";
-import { byId, DIFFS } from "@/lib/challenges";
+import SashBoard from "./SashBoard";
+import { DIFFS } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 
 function fmtFull(iso: string) {
@@ -22,6 +24,7 @@ interface Props {
 }
 
 export default function Sash({ profile, posts, totalPts, onEdit, onPick }: Props) {
+  const { byId } = useCatalog();
   const earned = posts.map((p) => ({ ...p, ch: byId(p.challengeId) })).filter((p) => p.ch) as (Post & { ch: Challenge })[];
 
   return (
@@ -55,21 +58,10 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick }: Props
       </div>
 
       <div className="label" style={{ margin: "6px 2px 8px" }}>The Sash</div>
-      <div className="sash">
-        {earned.length === 0 ? (
-          <div className="muted" style={{ textAlign: "center", fontSize: 13, padding: "22px 8px" }}>
-            Empty for now. Earn a badge and it gets stitched on here.
-          </div>
-        ) : (
-          <div className="sashgrid">
-            {earned.map((p, i) => (
-              <div key={p.id} onClick={() => onPick(p.ch)} style={{ cursor: "pointer" }}>
-                <Badge ch={p.ch} size={62} rot={(i % 3 - 1) * 5} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <p className="muted" style={{ fontSize: 12, margin: "0 2px 8px" }}>
+        Drag your badges anywhere. Tap one to open it. Hover for the name.
+      </p>
+      <SashBoard earned={earned} onPick={onPick} />
 
       <div className="label" style={{ margin: "22px 2px 10px" }}>Field log</div>
       {earned.length === 0 && (
@@ -91,7 +83,15 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick }: Props
           </div>
           {p.proofUrl && <img className="proof" src={p.proofUrl} alt="proof" />}
           <div className="muted" style={{ marginTop: 9, fontSize: 13, lineHeight: 1.6 }}>
-            {p.place && <div>📍 {p.place}</div>}
+            {(p.place || p.lat != null) && (
+              <div>
+                📍 {p.lat != null && p.lng != null ? (
+                  <a href={`https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-d)" }}>
+                    {p.place || `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`}
+                  </a>
+                ) : p.place}
+              </div>
+            )}
             <div>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</div>
             {p.note && <div style={{ marginTop: 5, fontStyle: "italic" }}>"{p.note}"</div>}
           </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getFeed, createPost, getCheerCount, getUserProfile } from "@/lib/kv";
+import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession } from "@/lib/kv";
 import type { Post } from "@/lib/types";
 
 export async function GET() {
@@ -33,8 +33,19 @@ export async function POST(req: NextRequest) {
     // user can't post as someone else.
     const body = (await req.json()) as Pick<
       Post,
-      "challengeId" | "proofUrl" | "proofType" | "place" | "note" | "witnessName" | "witnessHandle"
-    >;
+      "challengeId" | "proofUrl" | "proofType" | "place" | "lat" | "lng" | "note"
+    > & { witnessToken?: string };
+
+    // A badge can't be self-awarded: require a confirmed witness session that
+    // belongs to this earner. Witness identity is taken from the server record.
+    if (!body.witnessToken) {
+      return NextResponse.json({ error: "A witness is required" }, { status: 400 });
+    }
+    const witness = await getWitnessSession(body.witnessToken);
+    if (!witness || witness.status !== "confirmed" || witness.earnerId !== profile.id) {
+      return NextResponse.json({ error: "Witness not verified" }, { status: 400 });
+    }
+
     const post: Post = {
       id: `p${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       userId: profile.id,
@@ -45,9 +56,11 @@ export async function POST(req: NextRequest) {
       proofUrl: body.proofUrl,
       proofType: body.proofType,
       place: body.place,
+      lat: body.lat,
+      lng: body.lng,
       note: body.note,
-      witnessName: body.witnessName,
-      witnessHandle: body.witnessHandle,
+      witnessName: witness.witnessName ?? "",
+      witnessHandle: witness.witnessHandle ?? "",
       cheerCount: 0,
       createdAt: new Date().toISOString(),
     };

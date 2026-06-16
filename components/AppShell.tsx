@@ -5,23 +5,23 @@ import Ico from "./Ico";
 import Board from "./Board";
 import Trail from "./Trail";
 import Sash from "./Sash";
-import WitnessPage from "./WitnessPage";
 import Detail from "./Detail";
 import EarnFlow from "./EarnFlow";
 import Unlock from "./Unlock";
 import Onboard from "./Onboard";
+import AdminPanel from "./AdminPanel";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
-import { byId } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 
 const TABS = [
   { id: "board", ico: "board", label: "Board" },
-  { id: "trail", ico: "mountain", label: "Trail" },
+  { id: "trail", ico: "mountain", label: "Passages" },
   { id: "sash", ico: "pack", label: "Sash" },
-  { id: "witness", ico: "hands", label: "Witness" },
 ];
 
 export default function AppShell() {
   const { data: session, status } = useSession();
+  const { byId, isAdmin } = useCatalog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -32,6 +32,7 @@ export default function AppShell() {
   const [earn, setEarn] = useState<Challenge | null>(null);
   const [unlock, setUnlock] = useState<Challenge | null>(null);
   const [editing, setEditing] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -109,9 +110,10 @@ export default function AppShell() {
     proofUrl: string,
     proofType: "photo" | "video",
     place: string,
-    witnessName: string,
-    witnessHandle: string,
-    note: string
+    witnessToken: string,
+    note: string,
+    lat?: number,
+    lng?: number
   ) {
     if (!profile) return;
     try {
@@ -119,7 +121,7 @@ export default function AppShell() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          challengeId, proofUrl, proofType, place, note, witnessName, witnessHandle,
+          challengeId, proofUrl, proofType, place, lat, lng, note, witnessToken,
         }),
       });
       if (res.ok) {
@@ -188,13 +190,24 @@ export default function AppShell() {
               Man<span style={{ color: "var(--accent)" }}>Scouts</span>
             </h1>
           </div>
-          <button
-            onClick={() => signOut()}
-            className="label"
-            style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontWeight: 700 }}
-          >
-            Sign out
-          </button>
+          <div className="row" style={{ gap: 14 }}>
+            {isAdmin && (
+              <button
+                onClick={() => setAdminOpen(true)}
+                className="label"
+                style={{ background: "none", border: "none", color: "var(--brown)", cursor: "pointer", fontWeight: 700 }}
+              >
+                + Create
+              </button>
+            )}
+            <button
+              onClick={() => signOut()}
+              className="label"
+              style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontWeight: 700 }}
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -222,7 +235,6 @@ export default function AppShell() {
             onPick={setDetail}
           />
         )}
-        {tab === "witness" && <WitnessPage />}
       </div>
 
       <nav style={{
@@ -237,14 +249,14 @@ export default function AppShell() {
             onClick={() => setTab(t.id)}
             style={{
               background: "none", border: "none",
-              color: tab === t.id ? "var(--ink)" : "var(--muted)",
+              color: tab === t.id ? "var(--brown)" : "var(--brown-soft)",
               fontWeight: 700, fontSize: 10, letterSpacing: ".02em",
               display: "flex", flexDirection: "column", alignItems: "center",
               gap: 3, padding: "5px 12px", cursor: "pointer",
             }}
           >
             <span style={{ width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Ico name={t.ico} stroke={tab === t.id ? "var(--ink)" : "var(--muted)"} />
+              <Ico name={t.ico} stroke={tab === t.id ? "var(--brown)" : "var(--brown-soft)"} />
             </span>
             {t.label}
           </button>
@@ -273,6 +285,7 @@ export default function AppShell() {
           onCancel={() => setEditing(false)}
         />
       )}
+      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
     </div>
   );
 }

@@ -54,7 +54,15 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
             {post.proofUrl && <img className="proof" src={post.proofUrl} alt="proof" />}
             <div className="muted" style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
               <div><b style={{ color: "var(--ink)" }}>{fmtFull(post.createdAt)}</b></div>
-              {post.place && <div>📍 {post.place}</div>}
+              {(post.place || post.lat != null) && (
+                <div>
+                  📍 {post.lat != null && post.lng != null ? (
+                    <a href={`https://maps.google.com/?q=${post.lat},${post.lng}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-d)" }}>
+                      {post.place || `${post.lat.toFixed(5)}, ${post.lng.toFixed(5)}`}
+                    </a>
+                  ) : post.place}
+                </div>
+              )}
               <div>Witnessed by <b style={{ color: "var(--ink)" }}>{post.witnessName}</b> {post.witnessHandle}</div>
               {post.note && <div style={{ marginTop: 6, fontStyle: "italic" }}>"{post.note}"</div>}
             </div>

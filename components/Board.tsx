@@ -2,7 +2,8 @@
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 import Scene from "./Scene";
-import { byId, DIFFS } from "@/lib/challenges";
+import { DIFFS } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 
 const SEED = [
@@ -40,6 +41,7 @@ interface PostCardProps {
 }
 
 function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, onCheer, onPick }: PostCardProps) {
+  const { byId } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
   return (

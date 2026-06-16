@@ -1,10 +1,62 @@
 import { kv } from "@vercel/kv";
-import type { Post, UserProfile } from "./types";
+import type { Post, UserProfile, Challenge, Category, WitnessSession, SashLayout } from "./types";
 
 const FEED_KEY = "ms:feed";
 const POST_KEY = (id: string) => `ms:post:${id}`;
 const CHEERS_KEY = (id: string) => `ms:cheers:${id}`;
 const USER_KEY = (id: string) => `ms:user:${id}`;
+const CUSTOM_CHALLENGES_KEY = "ms:custom:challenges";
+const CUSTOM_CATS_KEY = "ms:custom:categories";
+const SASH_KEY = (id: string) => `ms:sash:${id}`;
+const WITNESS_KEY = (token: string) => `ms:witness:${token}`;
+
+// ---- Admin-created badges / Rights of Passage ----
+export async function getCustomChallenges(): Promise<Challenge[]> {
+  return (await kv.get<Challenge[]>(CUSTOM_CHALLENGES_KEY)) ?? [];
+}
+
+export async function addCustomChallenge(ch: Challenge): Promise<void> {
+  const list = await getCustomChallenges();
+  await kv.set(CUSTOM_CHALLENGES_KEY, [...list.filter((c) => c.id !== ch.id), ch]);
+}
+
+export async function deleteCustomChallenge(id: string): Promise<void> {
+  const list = await getCustomChallenges();
+  await kv.set(CUSTOM_CHALLENGES_KEY, list.filter((c) => c.id !== id));
+}
+
+// ---- Custom categories ----
+export async function getCustomCategories(): Promise<Category[]> {
+  return (await kv.get<Category[]>(CUSTOM_CATS_KEY)) ?? [];
+}
+
+export async function saveCustomCategory(cat: Category): Promise<void> {
+  const list = await getCustomCategories();
+  await kv.set(CUSTOM_CATS_KEY, [...list.filter((c) => c.name !== cat.name), cat]);
+}
+
+// ---- Sash layout (per user) ----
+export async function getSashLayout(userId: string): Promise<SashLayout> {
+  return (await kv.get<SashLayout>(SASH_KEY(userId))) ?? {};
+}
+
+export async function saveSashLayout(userId: string, layout: SashLayout): Promise<void> {
+  await kv.set(SASH_KEY(userId), layout);
+}
+
+// ---- QR witness sessions ----
+export async function createWitnessSession(s: WitnessSession): Promise<void> {
+  // Expire after 30 minutes so stale QR codes can't be used later.
+  await kv.set(WITNESS_KEY(s.token), s, { ex: 1800 });
+}
+
+export async function getWitnessSession(token: string): Promise<WitnessSession | null> {
+  return kv.get<WitnessSession>(WITNESS_KEY(token));
+}
+
+export async function updateWitnessSession(s: WitnessSession): Promise<void> {
+  await kv.set(WITNESS_KEY(s.token), s, { ex: 1800 });
+}
 
 export async function getUserProfile(id: string): Promise<UserProfile | null> {
   return kv.get<UserProfile>(USER_KEY(id));

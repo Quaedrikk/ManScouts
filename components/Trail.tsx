@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import Badge from "./Badge";
-import { CHALLENGES, DIFFS, CATS } from "@/lib/challenges";
+import { DIFFS } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 import type { Challenge } from "@/lib/types";
 
 interface Props {
@@ -10,18 +11,19 @@ interface Props {
 }
 
 export default function Trail({ earnedIds, onPick }: Props) {
+  const { challenges, catList } = useCatalog();
   const [fCat, setFCat] = useState("All");
   const [fDiff, setFDiff] = useState("All");
 
-  const list = CHALLENGES.filter(
+  const list = challenges.filter(
     (c) => (fCat === "All" || c.cat === fCat) && (fDiff === "All" || c.df === fDiff)
   );
 
   return (
     <div>
-      <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>The Trail</div>
+      <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>Rights of Passage</div>
       <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 16px" }}>
-        {earnedIds.size} of {CHALLENGES.length} badges earned. Pick one, go do it for real, prove it.
+        {earnedIds.size} of {challenges.length} badges earned. Pick one, go do it for real, prove it.
       </p>
 
       <div className="label" style={{ margin: "0 2px 7px" }}>Difficulty</div>
@@ -31,9 +33,9 @@ export default function Trail({ earnedIds, onPick }: Props) {
         ))}
       </div>
 
-      <div className="label" style={{ margin: "0 2px 7px" }}>Trade</div>
+      <div className="label" style={{ margin: "0 2px 7px" }}>Category</div>
       <div className="seg" style={{ marginBottom: 18 }}>
-        {["All", ...Object.keys(CATS)].map((c) => (
+        {["All", ...catList].map((c) => (
           <button key={c} className={"chip" + (fCat === c ? " on" : "")} onClick={() => setFCat(c)}>{c}</button>
         ))}
       </div>
