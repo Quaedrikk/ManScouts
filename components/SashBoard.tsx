@@ -26,7 +26,10 @@ interface Props {
   profile: UserProfile;
   earned: (Post & { ch: Challenge })[];
   onPick: (ch: Challenge) => void;
-  onEditProfile: () => void;
+  onEditProfile?: () => void;
+  // When viewing someone else's sash: read-only, with their saved layout/theme.
+  readOnly?: boolean;
+  sash?: { layout: SashLayout; style: string };
 }
 
 // Default position (0..1 fractions); badges start below the profile header.
@@ -39,18 +42,24 @@ function defaultPos(i: number): { x: number; y: number; rot: number } {
   };
 }
 
-export default function SashBoard({ profile, earned, onPick, onEditProfile }: Props) {
+export default function SashBoard({ profile, earned, onPick, onEditProfile, readOnly, sash }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const [layout, setLayout] = useState<SashLayout>({});
-  const [style, setStyle] = useState("forest");
+  const [layout, setLayout] = useState<SashLayout>(sash?.layout ?? {});
+  const [style, setStyle] = useState(sash?.style ?? "forest");
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [showThemes, setShowThemes] = useState(false);
-  const layoutRef = useRef<SashLayout>({});
-  const styleRef = useRef("forest");
+  const layoutRef = useRef<SashLayout>(sash?.layout ?? {});
+  const styleRef = useRef(sash?.style ?? "forest");
   const drag = useRef<{ id: string; moved: boolean } | null>(null);
 
   useEffect(() => {
+    // Viewing another user: use the layout/theme passed in, don't fetch own.
+    if (readOnly) {
+      setLayout(sash?.layout ?? {}); layoutRef.current = sash?.layout ?? {};
+      setStyle(sash?.style ?? "forest"); styleRef.current = sash?.style ?? "forest";
+      return;
+    }
     let active = true;
     fetch("/api/sash").then((r) => r.json()).then((d) => {
       if (!active) return;
@@ -58,33 +67,36 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile }: Pr
       setStyle(d.style ?? "forest"); styleRef.current = d.style ?? "forest";
     }).catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [readOnly, sash]);
 
   const save = useCallback(() => {
+    if (readOnly) return;
     fetch("/api/sash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layout: layoutRef.current, style: styleRef.current }),
     }).catch(() => {});
-  }, []);
+  }, [readOnly]);
 
   function chooseTheme(key: string) {
     setStyle(key); styleRef.current = key; setShowThemes(false); save();
   }
 
   function onPointerDown(e: React.PointerEvent, id: string, i: number) {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    if (!layout[id]) {
-      const p = defaultPos(i);
-      const next = { ...layoutRef.current, [id]: p };
-      layoutRef.current = next; setLayout(next);
+    if (!readOnly) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      if (!layout[id]) {
+        const p = defaultPos(i);
+        const next = { ...layoutRef.current, [id]: p };
+        layoutRef.current = next; setLayout(next);
+      }
     }
     drag.current = { id, moved: false };
     setDragId(id);
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!drag.current || !boxRef.current) return;
+    if (readOnly || !drag.current || !boxRef.current) return;
     const rect = boxRef.current.getBoundingClientRect();
     const half = BADGE / 2;
     const x = Math.min(1 - half / rect.width, Math.max(half / rect.width, (e.clientX - rect.left) / rect.width));
@@ -126,13 +138,15 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile }: Pr
           <div style={{ fontSize: 12.5, color: theme.sub }}>{profile.handle}</div>
           {profile.bio && <div style={{ fontSize: 12.5, color: theme.sub, marginTop: 2 }}>{profile.bio}</div>}
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button className="sashbtn" title="Edit profile" onClick={onEditProfile}>✎</button>
-          <button className="sashbtn" title="Customize sash" onClick={() => setShowThemes((s) => !s)}>🎨</button>
-        </div>
+        {!readOnly && (
+          <div style={{ display: "flex", gap: 6 }}>
+            {onEditProfile && <button className="sashbtn" title="Edit profile" onClick={onEditProfile}>✎</button>}
+            <button className="sashbtn" title="Customize sash" onClick={() => setShowThemes((s) => !s)}>🎨</button>
+          </div>
+        )}
       </div>
 
-      {showThemes && (
+      {!readOnly && showThemes && (
         <div className="sashthemes">
           {Object.entries(SASH_THEMES).map(([key, t]) => (
             <button

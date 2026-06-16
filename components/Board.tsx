@@ -40,18 +40,23 @@ interface PostCardProps {
   onCheer: () => void;
   onPick: (ch: Challenge) => void;
   onDelete?: () => void;
+  uid?: string;
+  onOpenProfile?: (userId: string) => void;
 }
 
-function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, onCheer, onPick, onDelete }: PostCardProps) {
+function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, onCheer, onPick, onDelete, uid, onOpenProfile }: PostCardProps) {
   const { byId } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
+  const openProfile = uid && onOpenProfile ? () => onOpenProfile(uid) : undefined;
   return (
     <div className="card post fadeup">
       <div className="ph">
-        <Avatar name={name} handle={handle} img={avatarUrl} />
+        <div onClick={openProfile} style={{ cursor: openProfile ? "pointer" : "default" }}>
+          <Avatar name={name} handle={handle} img={avatarUrl} />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5, letterSpacing: "-.01em" }}>{name}</div>
+          <div onClick={openProfile} style={{ fontWeight: 800, fontSize: 14.5, letterSpacing: "-.01em", cursor: openProfile ? "pointer" : "default", display: "inline-block" }}>{name}</div>
           <div className="muted" style={{ fontSize: 12.5 }}>{handle} · {ago}</div>
         </div>
         <div onClick={() => onPick(ch)} style={{ cursor: "pointer" }}>
@@ -107,10 +112,11 @@ interface Props {
   onCheer: (id: string) => void;
   onPick: (ch: Challenge) => void;
   onDelete: (id: string) => void;
+  onOpenProfile: (userId: string) => void;
   goTrail: () => void;
 }
 
-export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, goTrail }: Props) {
+export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, onOpenProfile, goTrail }: Props) {
   const { isAdmin } = useCatalog();
   const myPosts = posts.filter((p) => p.userId === profile.id).map((p) => ({
     id: p.id,
@@ -126,6 +132,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheered: !!cheers[p.id],
     ago: fmtAgo(p.createdAt),
     ts: new Date(p.createdAt).getTime(),
+    uid: p.userId as string | undefined,
     del: (() => onDelete(p.id)) as (() => void) | undefined,
   }));
 
@@ -143,6 +150,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheered: !!cheers[p.id],
     ago: fmtAgo(p.createdAt),
     ts: new Date(p.createdAt).getTime(),
+    uid: p.userId as string | undefined,
     // Admins can delete anyone's post.
     del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,
   }));
@@ -154,6 +162,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     cheerCount: s.cheers,
     cheered: false,
     ts: Date.now() - (parseInt(s.ago) * (s.ago.endsWith("d") ? 86400000 : s.ago.endsWith("h") ? 3600000 : 60000)),
+    uid: undefined as string | undefined,
     del: undefined as (() => void) | undefined,
   }));
 
@@ -182,6 +191,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
           onCheer={() => onCheer(p.id)}
           onPick={onPick}
           onDelete={p.del}
+          onOpenProfile={onOpenProfile}
         />
       ))}
     </div>

@@ -11,6 +11,7 @@ import Unlock from "./Unlock";
 import Onboard from "./Onboard";
 import AdminPanel from "./AdminPanel";
 import Leaderboard from "./Leaderboard";
+import ProfileView from "./ProfileView";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 import { useCatalog } from "@/lib/catalog";
 
@@ -35,6 +36,7 @@ export default function AppShell() {
   const [unlock, setUnlock] = useState<Challenge | null>(null);
   const [editing, setEditing] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [viewUser, setViewUser] = useState<string | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -231,13 +233,14 @@ export default function AppShell() {
             onCheer={toggleCheer}
             onPick={setDetail}
             onDelete={deletePost}
+            onOpenProfile={setViewUser}
             goTrail={() => setTab("trail")}
           />
         )}
         {tab === "trail" && (
           <Trail earnedIds={earnedIds} onPick={setDetail} />
         )}
-        {tab === "rank" && <Leaderboard posts={posts} profile={profile} />}
+        {tab === "rank" && <Leaderboard posts={posts} profile={profile} onOpenProfile={setViewUser} />}
         {tab === "sash" && (
           <Sash
             profile={profile}
@@ -299,6 +302,14 @@ export default function AppShell() {
         />
       )}
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
+      {viewUser && (
+        <ProfileView
+          userId={viewUser}
+          posts={posts}
+          onClose={() => setViewUser(null)}
+          onPick={(ch) => { setViewUser(null); setDetail(ch); }}
+        />
+      )}
     </div>
   );
 }

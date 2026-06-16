@@ -7,6 +7,7 @@ import type { UserProfile, Post } from "@/lib/types";
 interface Props {
   posts: Post[];
   profile: UserProfile;
+  onOpenProfile: (userId: string) => void;
 }
 
 // Fall begins at the autumnal equinox (~Sept 22). A season runs from one
@@ -72,7 +73,7 @@ function climberPos(pts: number, max: number, i: number) {
   return { left: `${x + off}%`, top: `${y}%` };
 }
 
-function MountainScene({ ranks, meId }: { ranks: Rank[]; meId: string }) {
+function MountainScene({ ranks, meId, onOpenProfile }: { ranks: Rank[]; meId: string; onOpenProfile: (id: string) => void }) {
   const max = ranks[0]?.pts || 1;
   return (
     <div className="lbmtn" style={{ height: 240 }}>
@@ -134,7 +135,8 @@ function MountainScene({ ranks, meId }: { ranks: Rank[]; meId: string }) {
           <div
             key={r.userId}
             title={`${r.name} · ${r.pts} pts`}
-            style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%,-50%)", zIndex: 2, textAlign: "center" }}
+            onClick={() => onOpenProfile(r.userId)}
+            style={{ position: "absolute", left: p.left, top: p.top, transform: "translate(-50%,-50%)", zIndex: 2, textAlign: "center", cursor: "pointer" }}
           >
             <div style={{ borderRadius: "50%", padding: 2, background: RING(i), boxShadow: r.userId === meId ? "0 0 0 2px var(--accent)" : "0 2px 6px rgba(0,0,0,.3)" }}>
               <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={size} />
@@ -149,7 +151,7 @@ function MountainScene({ ranks, meId }: { ranks: Rank[]; meId: string }) {
   );
 }
 
-export default function Leaderboard({ posts, profile }: Props) {
+export default function Leaderboard({ posts, profile, onOpenProfile }: Props) {
   const { byId } = useCatalog();
   const season = currentSeason();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -180,7 +182,7 @@ export default function Leaderboard({ posts, profile }: Props) {
         Who&apos;s climbing highest this season. Ranked by points earned.
       </p>
 
-      <MountainScene ranks={ranks} meId={profile.id} />
+      <MountainScene ranks={ranks} meId={profile.id} onOpenProfile={onOpenProfile} />
 
       <div
         style={{
@@ -215,9 +217,14 @@ export default function Leaderboard({ posts, profile }: Props) {
                 ) : (
                   <span className="lbrank muted">{i + 1}</span>
                 )}
-                <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={40} />
+                <div onClick={(e) => { e.stopPropagation(); onOpenProfile(r.userId); }} style={{ cursor: "pointer" }}>
+                  <Avatar name={r.name} handle={r.handle} img={r.avatarUrl} size={40} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onOpenProfile(r.userId); }}
+                    style={{ fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}
+                  >
                     {r.name}{r.userId === profile.id && <span style={{ color: "var(--accent)" }}> · you</span>}
                   </div>
                   <div className="muted" style={{ fontSize: 12.5 }}>
