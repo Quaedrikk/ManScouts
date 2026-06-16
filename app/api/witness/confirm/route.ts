@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
-    const { token } = (await req.json()) as { token: string };
+    const { token, witnessPhotoUrl } = (await req.json()) as { token: string; witnessPhotoUrl?: string };
     const s = await getWitnessSession(token);
     if (!s) return NextResponse.json({ error: "This request expired or doesn't exist." }, { status: 404 });
     if (s.earnerId === session.user.id) {
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
     s.witnessId = session.user.id;
     s.witnessName = profile?.name ?? session.user.name ?? "A scout";
     s.witnessHandle = profile?.handle ?? "";
+    s.witnessPhotoUrl = witnessPhotoUrl;
     await updateWitnessSession(s);
     return NextResponse.json({ ok: true });
   } catch (err) {

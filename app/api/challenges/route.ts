@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
       care: b.care?.trim() || undefined,
       imageUrl: b.imageUrl || undefined,
       color: b.color || undefined,
+      shape: b.shape || "circle",
+      effect: b.effect || "none",
       custom: true,
     };
     await addCustomChallenge(challenge);

@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession, signIn } from "next-auth/react";
+import { upload } from "@vercel/blob/client";
 
 interface Status {
   found: boolean;
@@ -15,6 +16,20 @@ export default function WitnessConfirm({ token }: { token: string }) {
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const camRef = useRef<HTMLInputElement>(null);
+
+  async function takePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setUploading(true);
+    try {
+      const blob = await upload(`witness/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" });
+      setPhotoUrl(blob.url);
+    } catch { setError("Photo upload failed — try again."); }
+    setUploading(false);
+  }
 
   useEffect(() => {
     fetch(`/api/witness/status?token=${token}`)
@@ -30,7 +45,7 @@ export default function WitnessConfirm({ token }: { token: string }) {
       const res = await fetch("/api/witness/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, witnessPhotoUrl: photoUrl }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Couldn't verify."); setSubmitting(false); return; }
@@ -81,8 +96,27 @@ export default function WitnessConfirm({ token }: { token: string }) {
       <div style={{ height: 24 }} />
       {authStatus === "authenticated" ? (
         <>
-          <button className="btn green" style={{ maxWidth: 320 }} disabled={submitting} onClick={confirm}>
-            {submitting ? "Confirming…" : "I witnessed this — confirm"}
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="witness proof" style={{ width: 200, height: 200, objectFit: "cover", borderRadius: 16, margin: "0 auto 14px", display: "block" }} />
+          ) : (
+            <button
+              className="btn dark"
+              style={{ maxWidth: 320, marginBottom: 14 }}
+              disabled={uploading}
+              onClick={() => camRef.current?.click()}
+            >
+              📷 {uploading ? "Uploading…" : "Take a photo of them"}
+            </button>
+          )}
+          <input ref={camRef} type="file" accept="image/*" capture="environment" onChange={takePhoto} style={{ display: "none" }} />
+          {photoUrl && (
+            <button className="btn ghost" style={{ maxWidth: 320, marginBottom: 14 }} onClick={() => camRef.current?.click()}>
+              Retake photo
+            </button>
+          )}
+          <button className="btn green" style={{ maxWidth: 320 }} disabled={submitting || !photoUrl} onClick={confirm}>
+            {submitting ? "Confirming…" : photoUrl ? "I witnessed this — confirm" : "Take a photo first"}
           </button>
           {error && <p style={{ color: "var(--accent-d)", marginTop: 12, fontWeight: 600 }}>{error}</p>}
         </>

@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
       note: body.note,
       witnessName: witness.witnessName ?? "",
       witnessHandle: witness.witnessHandle ?? "",
+      witnessPhotoUrl: witness.witnessPhotoUrl,
       cheerCount: 0,
       createdAt: new Date().toISOString(),
     };

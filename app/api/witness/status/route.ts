@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       challengeName: s.challengeName,
       witnessName: s.witnessName,
       witnessHandle: s.witnessHandle,
+      witnessPhotoUrl: s.witnessPhotoUrl,
     });
   } catch (err) {
     console.error("GET /api/witness/status", err);

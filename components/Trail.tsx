@@ -13,13 +13,14 @@ interface Props {
 }
 
 export default function Trail({ earnedIds, onPick }: Props) {
-  const { challenges, catList, catColor } = useCatalog();
+  const { challenges, catList, catColor, favourites, toggleFavourite } = useCatalog();
   const [fCat, setFCat] = useState("All");
   const [fDiff, setFDiff] = useState(0); // 0 = all, else 1–5 stars
 
-  const list = challenges.filter(
-    (c) => (fCat === "All" || c.cat === fCat) && (fDiff === 0 || chStars(c) === fDiff)
-  );
+  const list = challenges
+    .filter((c) => (fCat === "All" || c.cat === fCat) && (fDiff === 0 || chStars(c) === fDiff))
+    // Favourites float to the top.
+    .sort((a, b) => (favourites.has(b.id) ? 1 : 0) - (favourites.has(a.id) ? 1 : 0));
 
   return (
     <div>
@@ -63,6 +64,20 @@ export default function Trail({ earnedIds, onPick }: Props) {
           const e = earnedIds.has(c.id);
           return (
             <div key={c.id} className={"cell" + (e ? "" : " locked")} onClick={() => onPick(c)}>
+              <button
+                onClick={(ev) => { ev.stopPropagation(); toggleFavourite(c.id); }}
+                title={favourites.has(c.id) ? "Unfavourite" : "Favourite"}
+                style={{
+                  position: "absolute", top: 7, left: 7, background: "none", border: "none",
+                  cursor: "pointer", padding: 2, lineHeight: 1, zIndex: 2,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24"
+                  fill={favourites.has(c.id) ? "var(--gold)" : "none"}
+                  stroke={favourites.has(c.id) ? "var(--gold)" : "#b7ab97"} strokeWidth="2" strokeLinejoin="round">
+                  <path d="M12 2l2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 17.8 5.9 21.2l1.4-6.8L2.2 9.7l6.9-.7z" />
+                </svg>
+              </button>
               <span className="corner" style={{ background: e ? "var(--green)" : "var(--tint)" }}>
                 {e ? (
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5">

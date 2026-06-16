@@ -9,6 +9,19 @@ const CUSTOM_CHALLENGES_KEY = "ms:custom:challenges";
 const CUSTOM_CATS_KEY = "ms:custom:categories";
 const SASH_KEY = (id: string) => `ms:sash:${id}`;
 const WITNESS_KEY = (token: string) => `ms:witness:${token}`;
+const FAVS_KEY = (id: string) => `ms:favs:${id}`;
+
+// ---- Favourite (starred) passages, per user ----
+export async function getFavourites(userId: string): Promise<string[]> {
+  return (await kv.get<string[]>(FAVS_KEY(userId))) ?? [];
+}
+
+export async function toggleFavourite(userId: string, challengeId: string): Promise<string[]> {
+  const list = await getFavourites(userId);
+  const next = list.includes(challengeId) ? list.filter((x) => x !== challengeId) : [...list, challengeId];
+  await kv.set(FAVS_KEY(userId), next);
+  return next;
+}
 
 // ---- Admin-created badges / Rights of Passage ----
 export async function getCustomChallenges(): Promise<Challenge[]> {

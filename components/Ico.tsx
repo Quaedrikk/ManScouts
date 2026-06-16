@@ -31,6 +31,22 @@ const icons: Record<string, React.ReactNode> = {
   wave: <g {...P}><path d="M16 46 q9-10 18 0 t18 0 t18 0"/><path d="M16 62 q9-10 18 0 t18 0 t18 0"/></g>,
   board: <g {...P}><rect x="22" y="24" width="56" height="52" rx="8"/><path d="M34 40 H66 M34 52 H58"/></g>,
   trophy: <g {...P}><path d="M34 24 H66 V40 a16 16 0 0 1-32 0 Z"/><path d="M34 30 H24 a8 8 0 0 0 10 12 M66 30 H76 a8 8 0 0 1-10 12"/><path d="M50 56 V66 M40 76 H60 M44 66 H56"/></g>,
+  star: <g {...F}><path d="M50 18 l9 20 22 2 -16.5 15 5 21.5 -19.5 -11 -19.5 11 5 -21.5 -16.5 -15 22 -2 Z"/></g>,
+  heart: <g {...P}><path d="M50 76 C26 60 20 46 28 36 C36 28 48 32 50 42 C52 32 64 28 72 36 C80 46 74 60 50 76 Z"/></g>,
+  bolt: <g {...F}><path d="M54 16 L30 54 H46 L42 84 L70 44 H52 Z"/></g>,
+  crown: <g {...P}><path d="M24 68 L20 34 L36 50 L50 28 L64 50 L80 34 L76 68 Z"/><path d="M24 68 H76"/></g>,
+  anchor: <g {...P}><circle cx="50" cy="26" r="6"/><path d="M50 32 V78"/><path d="M30 52 H70"/><path d="M22 60 a28 28 0 0 0 56 0"/></g>,
+  book: <g {...P}><path d="M26 28 C36 24 46 24 50 30 C54 24 64 24 74 28 V72 C64 68 54 68 50 74 C46 68 36 68 26 72 Z"/><path d="M50 30 V74"/></g>,
+  camera: <g {...P}><rect x="20" y="36" width="60" height="40" rx="7"/><path d="M38 36 L44 28 H56 L62 36"/><circle cx="50" cy="56" r="11"/></g>,
+  globe: <g {...P}><circle cx="50" cy="50" r="30"/><path d="M20 50 H80 M50 20 V80 M30 32 q20 14 40 0 M30 68 q20-14 40 0"/></g>,
+  dumbbell: <g {...P}><path d="M34 50 H66"/><rect x="20" y="40" width="12" height="20" rx="3"/><rect x="68" y="40" width="12" height="20" rx="3"/></g>,
+  paw: <g {...F}><circle cx="34" cy="40" r="7"/><circle cx="50" cy="34" r="7"/><circle cx="66" cy="40" r="7"/><path d="M50 50 C62 50 70 60 66 70 C62 78 38 78 34 70 C30 60 38 50 50 50 Z"/></g>,
+  sword: <g {...P}><path d="M70 24 L40 54 M30 64 L40 54 M30 64 L26 74 L36 70 L46 60"/><path d="M58 36 L64 30 M70 24 L62 26 L62 34"/></g>,
+  gear: <g {...P}><circle cx="50" cy="50" r="12"/><path d="M50 24 V34 M50 66 V76 M24 50 H34 M66 50 H76 M32 32 L40 40 M60 60 L68 68 M68 32 L60 40 M40 60 L32 68"/></g>,
+  target: <g {...P}><circle cx="50" cy="50" r="28"/><circle cx="50" cy="50" r="16"/><circle cx="50" cy="50" r="4" fill="currentColor"/></g>,
+  music: <g {...P}><path d="M44 70 a8 8 0 1 1-2-6 V32 L72 24 V60 a8 8 0 1 1-2-6"/><path d="M42 40 L70 32"/></g>,
+  feather: <g {...P}><path d="M72 28 C50 28 30 48 28 72 C52 70 72 50 72 28 Z"/><path d="M30 70 L60 40 M44 58 H58 M40 62 H52"/></g>,
+  flag: <g {...P}><path d="M34 24 V78"/><path d="M34 28 L72 34 L62 46 L72 58 L34 52 Z"/></g>,
 };
 
 export default function Ico({ name, stroke }: { name: string; stroke?: string }) {

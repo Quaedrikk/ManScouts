@@ -13,8 +13,13 @@ export interface Challenge {
   // Admin-created badges:
   imageUrl?: string; // custom uploaded art (used instead of the line icon)
   color?: string;    // explicit emblem color (falls back to category color)
+  shape?: BadgeShape;
+  effect?: BadgeEffect;
   custom?: boolean;  // true for admin-created badges
 }
+
+export type BadgeShape = "circle" | "shield" | "hex" | "rosette" | "square" | "star";
+export type BadgeEffect = "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold";
 
 export interface Category {
   name: string;
@@ -31,6 +36,7 @@ export interface WitnessSession {
   witnessId?: string;
   witnessName?: string;
   witnessHandle?: string;
+  witnessPhotoUrl?: string;
   createdAt: string;
 }
 
@@ -60,6 +66,7 @@ export interface Post {
   note: string;
   witnessName: string;
   witnessHandle: string;
+  witnessPhotoUrl?: string;
   cheerCount: number;
   createdAt: string;
 }

@@ -17,15 +17,18 @@ interface CatalogValue {
   byId: (id: string) => Challenge | undefined;
   catColor: (cat: string) => string;
   isAdmin: boolean;
+  favourites: Set<string>;
+  toggleFavourite: (id: string) => void;
   refresh: () => Promise<void>;
 }
 
 const CatalogContext = createContext<CatalogValue | null>(null);
 
 export function CatalogProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [custom, setCustom] = useState<Challenge[]>([]);
   const [customCats, setCustomCats] = useState<Category[]>([]);
+  const [favourites, setFavourites] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
     try {
@@ -40,6 +43,27 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Load this user's favourites once signed in.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/favourites").then((r) => r.json())
+      .then((d) => setFavourites(new Set(d.ids ?? [])))
+      .catch(() => {});
+  }, [status]);
+
+  const toggleFavourite = useCallback((id: string) => {
+    setFavourites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+    fetch("/api/favourites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challengeId: id }),
+    }).catch(() => {});
+  }, []);
+
   const cats: Record<string, { c: string }> = { ...CATS, ...EXTRA_CATS };
   for (const cc of customCats) cats[cc.name] = { c: cc.color };
 
@@ -53,6 +77,8 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     byId: (id) => map.get(id),
     catColor: (cat) => cats[cat]?.c ?? "#555",
     isAdmin: isAdminEmail(session?.user?.email),
+    favourites,
+    toggleFavourite,
     refresh,
   };
 

@@ -6,9 +6,18 @@ import Badge from "./Badge";
 import Stars from "./Stars";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
-import type { Challenge } from "@/lib/types";
+import type { Challenge, BadgeShape, BadgeEffect } from "@/lib/types";
 
 const REVOKE_PHRASE = "I revoke this right of passage";
+const SHAPES: BadgeShape[] = ["circle", "shield", "hex", "rosette", "square", "star"];
+const EFFECTS: { key: BadgeEffect; label: string }[] = [
+  { key: "none", label: "None" },
+  { key: "aura", label: "Aura" },
+  { key: "shimmer", label: "Shimmer" },
+  { key: "pulse", label: "Pulse" },
+  { key: "spin", label: "Spin" },
+  { key: "gold", label: "Gold" },
+];
 
 function starsToDf(s: number): Challenge["df"] {
   return s <= 1 ? "Tenderfoot" : s === 2 ? "Trailhand" : s === 3 ? "Pathfinder" : "Frontiersman";
@@ -18,6 +27,8 @@ const ICON_NAMES = [
   "mountain", "tent", "flame", "water", "compass", "leaf", "fish", "axe",
   "sunrise", "boot", "moon", "knife", "knot", "wrench", "pot", "bowl",
   "hands", "horn", "bag", "teach", "seed", "drop", "pack", "stars", "wave", "board",
+  "trophy", "star", "heart", "bolt", "crown", "anchor", "book", "camera",
+  "globe", "dumbbell", "paw", "sword", "gear", "target", "music", "feather", "flag",
 ];
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
@@ -37,6 +48,8 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [artMode, setArtMode] = useState<"icon" | "image">("icon");
   const [ico, setIco] = useState("stars");
   const [imageUrl, setImageUrl] = useState("");
+  const [shape, setShape] = useState<BadgeShape>("circle");
+  const [effect, setEffect] = useState<BadgeEffect>("none");
   const [how, setHow] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,7 +61,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   // Live preview challenge object
   const preview: Challenge = {
     id: "preview", nm: nm || "New Passage", cat, df: starsToDf(stars), stars, ico, an: "rays", pts,
-    blurb, how: [], color: artMode === "image" ? cats[cat]?.c : undefined,
+    blurb, how: [], color: cats[cat]?.c, shape, effect,
     imageUrl: artMode === "image" ? imageUrl : undefined, custom: true,
   };
 
@@ -71,7 +84,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nm, cat, df: starsToDf(stars), stars, pts, blurb,
+          nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effect,
           ico: artMode === "icon" ? ico : "stars",
           imageUrl: artMode === "image" ? imageUrl : undefined,
           color: catColor(cat),
@@ -190,6 +203,21 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                 <input type="file" accept="image/*" onChange={pickImage} className="hide" />
               </label>
             )}
+
+            <div className="label" style={{ margin: "16px 0 6px" }}>Shape</div>
+            <div className="seg">
+              {SHAPES.map((s) => (
+                <button key={s} className={"chip" + (shape === s ? " on" : "")} onClick={() => setShape(s)}
+                  style={{ textTransform: "capitalize" }}>{s}</button>
+              ))}
+            </div>
+
+            <div className="label" style={{ margin: "14px 0 6px" }}>Special effect</div>
+            <div className="seg">
+              {EFFECTS.map((e) => (
+                <button key={e.key} className={"chip" + (effect === e.key ? " on" : "")} onClick={() => setEffect(e.key)}>{e.label}</button>
+              ))}
+            </div>
 
             <div className="label" style={{ margin: "16px 0 6px" }}>How to earn it (one step per line)</div>
             <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} placeholder={"Do the thing\nProve it\nGet it witnessed"} />

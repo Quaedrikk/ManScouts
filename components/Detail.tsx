@@ -1,6 +1,7 @@
 "use client";
 import Badge from "./Badge";
 import Stars from "./Stars";
+import WitnessPhoto from "./WitnessPhoto";
 import { chStars } from "@/lib/challenges";
 import type { Challenge, Post } from "@/lib/types";
 
@@ -64,7 +65,7 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
                   ) : post.place}
                 </div>
               )}
-              <div>Witnessed by <b style={{ color: "var(--ink)" }}>{post.witnessName}</b> {post.witnessHandle}</div>
+              <div><WitnessPhoto url={post.witnessPhotoUrl}>Witnessed by <b style={{ color: "var(--ink)" }}>{post.witnessName}</b> {post.witnessHandle}</WitnessPhoto></div>
               {post.note && <div style={{ marginTop: 6, fontStyle: "italic" }}>"{post.note}"</div>}
             </div>
           </div>

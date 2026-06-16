@@ -90,6 +90,31 @@ textarea { resize: none; }
 .cell .nm { font-weight: 800; font-size: 13.5px; margin-top: 9px; line-height: 1.15; letter-spacing: -.01em; }
 .cell .df { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; margin-top: 5px; }
 .locked .emblemwrap { filter: grayscale(.9); opacity: .5; }
+
+/* Badge base + special effects */
+.emblemfx { filter: drop-shadow(0 4px 8px rgba(26,24,19,.18)); }
+.fx-aura { animation: fxaura 1.9s ease-in-out infinite; }
+@keyframes fxaura {
+  0%, 100% { filter: drop-shadow(0 3px 6px rgba(0,0,0,.2)) drop-shadow(0 0 3px var(--fx)); }
+  50% { filter: drop-shadow(0 3px 6px rgba(0,0,0,.2)) drop-shadow(0 0 15px var(--fx)); }
+}
+.fx-pulse { animation: fxpulse 1.7s ease-in-out infinite; }
+@keyframes fxpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+.fx-spin { animation: fxspin 9s linear infinite; }
+@keyframes fxspin { to { transform: rotate(360deg); } }
+.fx-shimmer { animation: fxshim 2.3s ease-in-out infinite; }
+@keyframes fxshim {
+  0%, 100% { filter: drop-shadow(0 3px 6px rgba(0,0,0,.2)) brightness(1); }
+  50% { filter: drop-shadow(0 0 10px #fff) brightness(1.25); }
+}
+.fx-gold { animation: fxgold 2s ease-in-out infinite; }
+@keyframes fxgold {
+  0%, 100% { filter: drop-shadow(0 0 4px #e8b54b) brightness(1.02); }
+  50% { filter: drop-shadow(0 0 16px #f3cd6b) drop-shadow(0 0 26px #e8b54b) brightness(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-aura, .fx-pulse, .fx-spin, .fx-shimmer, .fx-gold { animation-duration: .01s !important; }
+}
 .corner {
   position: absolute; top: 9px; right: 9px; width: 23px; height: 23px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;

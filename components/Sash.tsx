@@ -2,6 +2,7 @@
 import Badge from "./Badge";
 import SashBoard from "./SashBoard";
 import Stars from "./Stars";
+import WitnessPhoto from "./WitnessPhoto";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
@@ -84,7 +85,7 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
                 ) : p.place}
               </div>
             )}
-            <div>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</div>
+            <div><WitnessPhoto url={p.witnessPhotoUrl}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>
             {p.note && <div style={{ marginTop: 5, fontStyle: "italic" }}>"{p.note}"</div>}
           </div>
         </div>
