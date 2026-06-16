@@ -39,6 +39,7 @@ interface PostCardProps {
   cheered: boolean;
   ago: string;
   witnessPhotoUrl?: string;
+  witnessPhotos?: (string | undefined)[];
   onCheer: () => void;
   onPick: (ch: Challenge) => void;
   onDelete?: () => void;
@@ -46,7 +47,7 @@ interface PostCardProps {
   onOpenProfile?: (userId: string) => void;
 }
 
-function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, onCheer, onPick, onDelete, uid, onOpenProfile }: PostCardProps) {
+function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, onCheer, onPick, onDelete, uid, onOpenProfile }: PostCardProps) {
   const { byId } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
@@ -87,7 +88,7 @@ function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witn
       <div style={{ fontSize: 14, margin: "11px 2px 8px", lineHeight: 1.45 }}>{cap}</div>
       <div className="muted" style={{ fontSize: 12.5, margin: "0 2px 12px" }}>
         {place && <>📍 {place} · </>}
-        <WitnessPhoto url={witnessPhotoUrl}>vouched by {witness}</WitnessPhoto>
+        <WitnessPhoto url={witnessPhotoUrl} photos={witnessPhotos}>vouched by {witness}</WitnessPhoto>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button className={"cheer" + (cheered ? " on" : "")} onClick={onCheer}>
@@ -137,6 +138,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     ts: new Date(p.createdAt).getTime(),
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
+    witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
     del: (() => onDelete(p.id)) as (() => void) | undefined,
   }));
 
@@ -156,6 +158,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     ts: new Date(p.createdAt).getTime(),
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
+    witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
     // Admins can delete anyone's post.
     del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,
   }));
@@ -169,6 +172,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     ts: Date.now() - (parseInt(s.ago) * (s.ago.endsWith("d") ? 86400000 : s.ago.endsWith("h") ? 3600000 : 60000)),
     uid: undefined as string | undefined,
     witnessPhotoUrl: undefined as string | undefined,
+    witnessPhotos: undefined as (string | undefined)[] | undefined,
     del: undefined as (() => void) | undefined,
   }));
 

@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
       color: b.color || undefined,
       shape: b.shape || "circle",
       effects: Array.isArray(b.effects) ? b.effects : (b.effect && b.effect !== "none" ? [b.effect] : []),
-      effectColor: b.effectColor || undefined,
+      effectColors: b.effectColors || undefined,
+      proofMedia: b.proofMedia || "either",
       custom: true,
     };
     await addCustomChallenge(challenge);

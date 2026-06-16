@@ -12,12 +12,18 @@ export async function POST(req: NextRequest) {
     if (s.earnerId === session.user.id) {
       return NextResponse.json({ error: "You can't witness your own badge." }, { status: 400 });
     }
+    if (!witnessPhotoUrl) {
+      return NextResponse.json({ error: "A photo is required." }, { status: 400 });
+    }
     const profile = await getUserProfile(session.user.id);
-    s.status = "confirmed";
-    s.witnessId = session.user.id;
-    s.witnessName = profile?.name ?? session.user.name ?? "A scout";
-    s.witnessHandle = profile?.handle ?? "";
-    s.witnessPhotoUrl = witnessPhotoUrl;
+    const entry = {
+      id: session.user.id,
+      name: profile?.name ?? session.user.name ?? "A scout",
+      handle: profile?.handle ?? "",
+      photoUrl: witnessPhotoUrl,
+    };
+    // De-dupe by witness id (re-confirm replaces).
+    s.witnesses = [...s.witnesses.filter((w) => w.id !== entry.id), entry];
     await updateWitnessSession(s);
     return NextResponse.json({ ok: true });
   } catch (err) {

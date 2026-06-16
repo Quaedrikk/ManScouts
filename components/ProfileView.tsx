@@ -95,7 +95,7 @@ export default function ProfileView({ userId, posts, onClose, onPick }: Props) {
                 {p.proofUrl && <img className="proof" src={p.proofUrl} alt="proof" />}
                 <div className="muted" style={{ marginTop: 9, fontSize: 13, lineHeight: 1.6 }}>
                   {p.place && <div>📍 {p.place}</div>}
-                  {p.witnessName && <div><WitnessPhoto url={p.witnessPhotoUrl}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>}
+                  {p.witnessName && <div><WitnessPhoto url={p.witnessPhotoUrl} photos={p.witnesses?.map((w) => w.photoUrl)}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>}
                   {p.note && <div style={{ marginTop: 5, fontStyle: "italic" }}>&quot;{p.note}&quot;</div>}
                 </div>
               </div>

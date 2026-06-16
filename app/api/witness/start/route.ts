@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       earnerName: profile?.name ?? session.user.name ?? "A scout",
       challengeId,
       challengeName,
-      status: "pending",
+      witnesses: [],
       createdAt: new Date().toISOString(),
     };
     await createWitnessSession(s);

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWitnessSession } from "@/lib/kv";
 
-// Polled by both the earner (waiting for confirmation) and the witness page
-// (to show who/what they're vouching for). Token is unguessable, so no auth.
+// Polled by the earner (to list witnesses) and the witness page (to show what
+// they're vouching for). Token is unguessable, so no auth.
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
   if (!token) return NextResponse.json({ error: "No token" }, { status: 400 });
@@ -11,12 +11,9 @@ export async function GET(req: NextRequest) {
     if (!s) return NextResponse.json({ found: false });
     return NextResponse.json({
       found: true,
-      status: s.status,
       earnerName: s.earnerName,
       challengeName: s.challengeName,
-      witnessName: s.witnessName,
-      witnessHandle: s.witnessHandle,
-      witnessPhotoUrl: s.witnessPhotoUrl,
+      witnesses: s.witnesses,
     });
   } catch (err) {
     console.error("GET /api/witness/status", err);

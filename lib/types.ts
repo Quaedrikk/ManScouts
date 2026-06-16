@@ -16,13 +16,16 @@ export interface Challenge {
   shape?: BadgeShape;
   effect?: BadgeEffect;     // legacy single effect (still honored)
   effects?: BadgeEffect[];  // combinable effects
-  effectColor?: string;     // main color for the effects (falls back to emblem color)
+  effectColor?: string;     // fallback color for effects (legacy / shared)
+  effectColors?: Partial<Record<BadgeEffect, string>>; // per-effect color
+  proofMedia?: "photo" | "video" | "either"; // required proof format
   custom?: boolean;  // true for admin-created badges
 }
 
 export type BadgeShape =
   | "circle" | "shield" | "hex" | "rosette" | "square" | "star"
-  | "fish" | "heart" | "diamond" | "octagon" | "flower" | "leaf";
+  | "fish" | "heart" | "diamond" | "octagon" | "flower" | "leaf"
+  | "triangle" | "pentagon" | "arrow" | "crescent" | "gem" | "paw";
 export type BadgeEffect =
   | "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold"
   | "orbit" | "sparkle" | "fire" | "lightning" | "water" | "frost" | "petals"
@@ -39,11 +42,7 @@ export interface WitnessSession {
   earnerName: string;
   challengeId: string;
   challengeName: string;
-  status: "pending" | "confirmed";
-  witnessId?: string;
-  witnessName?: string;
-  witnessHandle?: string;
-  witnessPhotoUrl?: string;
+  witnesses: WitnessEntry[]; // everyone who scanned in and confirmed with a photo
   createdAt: string;
 }
 
@@ -71,11 +70,19 @@ export interface Post {
   lat?: number;
   lng?: number;
   note: string;
-  witnessName: string;
-  witnessHandle: string;
-  witnessPhotoUrl?: string;
+  witnessName: string;       // joined names, for summary lines
+  witnessHandle: string;     // first witness handle (legacy)
+  witnessPhotoUrl?: string;  // first witness photo (legacy)
+  witnesses?: WitnessEntry[];
   cheerCount: number;
   createdAt: string;
+}
+
+export interface WitnessEntry {
+  id: string;
+  name: string;
+  handle: string;
+  photoUrl?: string;
 }
 
 export interface SeedPost {

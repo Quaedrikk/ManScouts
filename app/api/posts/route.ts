@@ -43,9 +43,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A witness is required" }, { status: 400 });
     }
     const witness = await getWitnessSession(body.witnessToken);
-    if (!witness || witness.status !== "confirmed" || witness.earnerId !== profile.id) {
+    if (!witness || witness.witnesses.length === 0 || witness.earnerId !== profile.id) {
       return NextResponse.json({ error: "Witness not verified" }, { status: 400 });
     }
+    const ws = witness.witnesses;
 
     const post: Post = {
       id: `p${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -60,9 +61,10 @@ export async function POST(req: NextRequest) {
       lat: body.lat,
       lng: body.lng,
       note: body.note,
-      witnessName: witness.witnessName ?? "",
-      witnessHandle: witness.witnessHandle ?? "",
-      witnessPhotoUrl: witness.witnessPhotoUrl,
+      witnessName: ws.map((w) => w.name).join(", "),
+      witnessHandle: ws[0]?.handle ?? "",
+      witnessPhotoUrl: ws[0]?.photoUrl,
+      witnesses: ws,
       cheerCount: 0,
       createdAt: new Date().toISOString(),
     };

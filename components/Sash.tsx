@@ -85,7 +85,7 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
                 ) : p.place}
               </div>
             )}
-            <div><WitnessPhoto url={p.witnessPhotoUrl}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>
+            <div><WitnessPhoto url={p.witnessPhotoUrl} photos={p.witnesses?.map((w) => w.photoUrl)}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>
             {p.note && <div style={{ marginTop: 5, fontStyle: "italic" }}>"{p.note}"</div>}
           </div>
         </div>

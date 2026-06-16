@@ -65,7 +65,7 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
                   ) : post.place}
                 </div>
               )}
-              <div><WitnessPhoto url={post.witnessPhotoUrl}>Witnessed by <b style={{ color: "var(--ink)" }}>{post.witnessName}</b> {post.witnessHandle}</WitnessPhoto></div>
+              <div><WitnessPhoto url={post.witnessPhotoUrl} photos={post.witnesses?.map((w) => w.photoUrl)}>Witnessed by <b style={{ color: "var(--ink)" }}>{post.witnessName}</b> {post.witnessHandle}</WitnessPhoto></div>
               {post.note && <div style={{ marginTop: 6, fontStyle: "italic" }}>"{post.note}"</div>}
             </div>
           </div>

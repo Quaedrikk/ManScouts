@@ -37,10 +37,16 @@ function ShapeFig({ shape, ...rest }: { shape: BadgeShape } & React.SVGProps<SVG
     case "octagon": return <polygon points={poly(8, 46, 22.5)} {...p} />;
     case "diamond": return <polygon points={poly(4, 49, -90)} {...p} />;
     case "flower": return <polygon points={poly(8, 47, -90, 28)} {...p} />;
+    case "triangle": return <polygon points={poly(3, 52, -90)} {...p} />;
+    case "pentagon": return <polygon points={poly(5, 47, -90)} {...p} />;
     case "shield": return <path d="M50 5 L90 19 V49 C90 74 72 91 50 96 C28 91 10 74 10 49 V19 Z" {...p} />;
     case "heart": return <path d="M50 84 C16 60 14 34 32 27 C44 22 50 32 50 39 C50 32 56 22 68 27 C86 34 84 60 50 84 Z" {...p} />;
     case "leaf": return <path d="M50 8 C76 26 76 62 50 92 C24 62 24 26 50 8 Z" {...p} />;
     case "fish": return <path d="M14 50 C28 30 60 30 74 50 C60 70 28 70 14 50 Z M74 50 L94 38 L94 62 Z" {...p} />;
+    case "arrow": return <path d="M50 6 L88 46 H66 V94 H34 V46 H12 Z" {...p} />;
+    case "crescent": return <path d="M64 10 A40 40 0 1 0 64 90 A30 30 0 1 1 64 10 Z" {...p} />;
+    case "gem": return <path d="M30 18 H70 L90 44 L50 94 L10 44 Z" {...p} />;
+    case "paw": return <path d="M34 38 a7 7 0 1 0 .1 0 Z M50 32 a7 7 0 1 0 .1 0 Z M66 38 a7 7 0 1 0 .1 0 Z M50 50 C64 50 72 62 67 73 C63 82 37 82 33 73 C28 62 36 50 50 50 Z" {...p} />;
     case "circle":
     default: return <circle cx={50} cy={50} r={46} {...p} />;
   }
@@ -135,7 +141,9 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
   const { catColor } = useCatalog();
   const col = ch.color ?? catColor(ch.cat);
   const shape = ch.shape ?? "circle";
-  const effColor = ch.effectColor || col;
+  // Each effect can carry its own color; falls back to a shared one, then the badge color.
+  const filColor = (f: BadgeEffect) => ch.effectColors?.[f] ?? ch.effectColor ?? col;
+  const ovColor = (f: BadgeEffect) => ch.effectColors?.[f] ?? ch.effectColor; // undefined => elemental default
 
   // Resolve the combinable effect list (with legacy single-effect fallback).
   const all: BadgeEffect[] = ch.effects?.length
@@ -175,7 +183,7 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
   // Stack filter effects by nesting wrappers so their filters/transforms compose.
   for (const f of filterFx) {
     core = (
-      <div className={`fx-${f}`} style={{ position: "absolute", inset: 0, ["--fx" as string]: effColor }}>
+      <div className={`fx-${f}`} style={{ position: "absolute", inset: 0, ["--fx" as string]: filColor(f) }}>
         {core}
       </div>
     );
@@ -188,7 +196,7 @@ export default function Badge({ ch, size = 82, drawn = false, rot = 0 }: Props) 
     >
       {core}
       {overlayFx.map((f) => (
-        <BadgeFx key={f} effect={f} color={ch.effectColor} />
+        <BadgeFx key={f} effect={f} color={ovColor(f)} />
       ))}
     </div>
   );

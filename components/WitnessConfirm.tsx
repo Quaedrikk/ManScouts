@@ -5,7 +5,6 @@ import { upload } from "@vercel/blob/client";
 
 interface Status {
   found: boolean;
-  status?: "pending" | "confirmed";
   earnerName?: string;
   challengeName?: string;
 }
@@ -34,7 +33,7 @@ export default function WitnessConfirm({ token }: { token: string }) {
   useEffect(() => {
     fetch(`/api/witness/status?token=${token}`)
       .then((r) => r.json())
-      .then((d) => { setInfo(d); if (d.status === "confirmed") setDone(true); })
+      .then((d) => setInfo(d))
       .catch(() => setInfo({ found: false }));
   }, [token]);
 

@@ -63,9 +63,11 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [imageUrl, setImageUrl] = useState("");
   const [shape, setShape] = useState<BadgeShape>("circle");
   const [effects, setEffects] = useState<BadgeEffect[]>([]);
-  const [effectColor, setEffectColor] = useState("");
+  const [effectColors, setEffectColors] = useState<Partial<Record<BadgeEffect, string>>>({});
+  const [proofMedia, setProofMedia] = useState<"photo" | "video" | "either">("either");
   const toggleEffect = (k: BadgeEffect) =>
     setEffects((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  const setFxColor = (k: BadgeEffect, c: string) => setEffectColors((p) => ({ ...p, [k]: c }));
   const [how, setHow] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,7 +79,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   // Live preview challenge object
   const preview: Challenge = {
     id: "preview", nm: nm || "New Passage", cat, df: starsToDf(stars), stars, ico, an: "rays", pts,
-    blurb, how: [], color: cats[cat]?.c, shape, effects, effectColor: effectColor || undefined,
+    blurb, how: [], color: cats[cat]?.c, shape, effects, effectColors, proofMedia,
     imageUrl: artMode === "image" ? imageUrl : undefined, custom: true,
   };
 
@@ -100,7 +102,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effects, effectColor: effectColor || undefined,
+          nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effects, effectColors, proofMedia,
           ico: artMode === "icon" ? ico : "stars",
           imageUrl: artMode === "image" ? imageUrl : undefined,
           color: catColor(cat),
@@ -177,10 +179,31 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
-            <div className="label" style={{ margin: "0 0 6px" }}>Effect color</div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
-              <input type="color" value={effectColor || "#e5552b"} onChange={(e) => setEffectColor(e.target.value)} style={{ width: 50, height: 40, padding: 4 }} />
-              <button className="chip" onClick={() => setEffectColor("")}>{effectColor ? "Reset to badge color" : "Using badge color"}</button>
+            {effects.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div className="label" style={{ margin: "0 0 6px" }}>Color each effect</div>
+                {effects.map((e) => {
+                  const label = EFFECTS.find((x) => x.key === e)?.label ?? e;
+                  return (
+                    <div key={e} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
+                      <input type="color" value={effectColors[e] || catColor(cat)} onChange={(ev) => setFxColor(e, ev.target.value)} style={{ width: 40, height: 32, padding: 2 }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>{label}</span>
+                      {effectColors[e] && (
+                        <button className="chip" style={{ fontSize: 11 }} onClick={() => setEffectColors((p) => { const n = { ...p }; delete n[e]; return n; })}>Auto</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="label" style={{ margin: "0 0 6px" }}>Required proof</div>
+            <div className="seg" style={{ marginBottom: 16 }}>
+              {(["either", "photo", "video"] as const).map((m) => (
+                <button key={m} className={"chip" + (proofMedia === m ? " on" : "")} onClick={() => setProofMedia(m)} style={{ textTransform: "capitalize" }}>
+                  {m === "either" ? "Photo or video" : m}
+                </button>
+              ))}
             </div>
 
             <div className="label" style={{ marginBottom: 6 }}>Name</div>
