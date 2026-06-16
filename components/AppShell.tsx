@@ -10,12 +10,14 @@ import EarnFlow from "./EarnFlow";
 import Unlock from "./Unlock";
 import Onboard from "./Onboard";
 import AdminPanel from "./AdminPanel";
+import Leaderboard from "./Leaderboard";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 import { useCatalog } from "@/lib/catalog";
 
 const TABS = [
   { id: "board", ico: "board", label: "Board" },
   { id: "trail", ico: "mountain", label: "Passages" },
+  { id: "rank", ico: "trophy", label: "Ranks" },
   { id: "sash", ico: "pack", label: "Sash" },
 ];
 
@@ -226,6 +228,7 @@ export default function AppShell() {
         {tab === "trail" && (
           <Trail earnedIds={earnedIds} onPick={setDetail} />
         )}
+        {tab === "rank" && <Leaderboard posts={posts} profile={profile} />}
         {tab === "sash" && (
           <Sash
             profile={profile}

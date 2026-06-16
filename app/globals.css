@@ -221,6 +221,34 @@ textarea { resize: none; }
 .catbtn.on { opacity: 1; transform: scale(1.06); box-shadow: 0 6px 16px color-mix(in srgb, var(--cc, #555) 50%, transparent); }
 .catbtn:active { transform: scale(.97); }
 
+/* ---- Leaderboard animated mountain ---- */
+.lbmtn { position: relative; width: 100%; height: 200px; border-radius: 20px; overflow: hidden; margin: 4px 0 18px; }
+.lbsun { transform-origin: center; animation: lbsun 5s ease-in-out infinite; }
+@keyframes lbsun { 0%,100% { opacity: .85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+.lbcloud { animation: lbdrift linear infinite; }
+@keyframes lbdrift { from { transform: translateX(-40px); } to { transform: translateX(360px); } }
+.lbflag { transform-origin: bottom left; animation: lbwave 1.6s ease-in-out infinite; }
+@keyframes lbwave { 0%,100% { transform: skewX(0) scaleX(1); } 50% { transform: skewX(-10deg) scaleX(.92); } }
+.lbshine { animation: lbtwk 2.2s ease-in-out infinite; }
+@keyframes lbtwk { 0%,100% { opacity: 0; transform: scale(.5); } 50% { opacity: 1; transform: scale(1.2); } }
+.lbridge { stroke-dasharray: 600; stroke-dashoffset: 600; animation: lbdraw 2s ease-out forwards; }
+@keyframes lbdraw { to { stroke-dashoffset: 0; } }
+
+.lbrow {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 10px;
+  border-radius: 16px; background: var(--card); border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(26,24,19,.04), 0 6px 16px rgba(26,24,19,.04);
+  animation: fadeup .45s both;
+}
+.lbrow.me { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 20px rgba(229,85,43,.12); }
+.lbrank { width: 30px; text-align: center; font-weight: 800; font-size: 17px; flex-shrink: 0; }
+.lbmedal { width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 15px; font-weight: 800; color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lbsun, .lbcloud, .lbflag, .lbshine, .lbridge, .lbrow { animation-duration: .01s !important; }
+}
+
 .unlock {
   position: fixed; inset: 0; z-index: 60;
   display: flex; flex-direction: column; align-items: center; justify-content: center;

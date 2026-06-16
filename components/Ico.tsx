@@ -30,6 +30,7 @@ const icons: Record<string, React.ReactNode> = {
   stars: <g {...F}><path d="M30 30 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 Z"/><path d="M64 50 l2.5 5 5.5 .8 -4 4 1 5.5 -5 -2.5 -5 2.5 1 -5.5 -4 -4 5.5 -.8 Z"/></g>,
   wave: <g {...P}><path d="M16 46 q9-10 18 0 t18 0 t18 0"/><path d="M16 62 q9-10 18 0 t18 0 t18 0"/></g>,
   board: <g {...P}><rect x="22" y="24" width="56" height="52" rx="8"/><path d="M34 40 H66 M34 52 H58"/></g>,
+  trophy: <g {...P}><path d="M34 24 H66 V40 a16 16 0 0 1-32 0 Z"/><path d="M34 30 H24 a8 8 0 0 0 10 12 M66 30 H76 a8 8 0 0 1-10 12"/><path d="M50 56 V66 M40 76 H60 M44 66 H56"/></g>,
 };
 
 export default function Ico({ name, stroke }: { name: string; stroke?: string }) {
