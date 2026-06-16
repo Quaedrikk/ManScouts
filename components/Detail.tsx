@@ -1,6 +1,7 @@
 "use client";
 import Badge from "./Badge";
-import { DIFFS } from "@/lib/challenges";
+import Stars from "./Stars";
+import { chStars } from "@/lib/challenges";
 import type { Challenge, Post } from "@/lib/types";
 
 function fmtFull(iso: string) {
@@ -28,7 +29,7 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
         <div style={{ padding: "6px 0" }}><Badge ch={ch} size={112} /></div>
         <h2 className="display" style={{ fontSize: 24, textAlign: "center", margin: "12px 0 8px" }}>{ch.nm}</h2>
         <div className="seg" style={{ justifyContent: "center", marginBottom: 14 }}>
-          <span className="chip" style={{ background: DIFFS[ch.df].c, color: "#fff" }}>{ch.df}</span>
+          <span className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stars n={chStars(ch)} /></span>
           <span className="chip">{ch.cat}</span>
           <span className="chip">{ch.pts} pts</span>
         </div>

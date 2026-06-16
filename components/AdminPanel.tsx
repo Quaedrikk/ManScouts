@@ -3,9 +3,16 @@ import { useState } from "react";
 import { upload } from "@vercel/blob/client";
 import Ico from "./Ico";
 import Badge from "./Badge";
-import { DIFFS } from "@/lib/challenges";
+import Stars from "./Stars";
+import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { Challenge } from "@/lib/types";
+
+const REVOKE_PHRASE = "I revoke this right of passage";
+
+function starsToDf(s: number): Challenge["df"] {
+  return s <= 1 ? "Tenderfoot" : s === 2 ? "Trailhand" : s === 3 ? "Pathfinder" : "Frontiersman";
+}
 
 const ICON_NAMES = [
   "mountain", "tent", "flame", "water", "compass", "leaf", "fish", "axe",
@@ -14,15 +21,19 @@ const ICON_NAMES = [
 ];
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
-  const { catList, cats, catColor, refresh } = useCatalog();
-  const [mode, setMode] = useState<"badge" | "category">("badge");
+  const { challenges, catList, cats, catColor, refresh } = useCatalog();
+  const [mode, setMode] = useState<"badge" | "category" | "manage">("badge");
 
   // Badge / Right of Passage form
   const [nm, setNm] = useState("");
   const [blurb, setBlurb] = useState("");
   const [cat, setCat] = useState("Real Passages");
-  const [df, setDf] = useState<Challenge["df"]>("Frontiersman");
+  const [stars, setStars] = useState(3);
   const [pts, setPts] = useState(50);
+
+  // Delete flow
+  const [toDelete, setToDelete] = useState<Challenge | null>(null);
+  const [confirmText, setConfirmText] = useState("");
   const [artMode, setArtMode] = useState<"icon" | "image">("icon");
   const [ico, setIco] = useState("stars");
   const [imageUrl, setImageUrl] = useState("");
@@ -36,7 +47,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
   // Live preview challenge object
   const preview: Challenge = {
-    id: "preview", nm: nm || "New Passage", cat, df, ico, an: "rays", pts,
+    id: "preview", nm: nm || "New Passage", cat, df: starsToDf(stars), stars, ico, an: "rays", pts,
     blurb, how: [], color: artMode === "image" ? cats[cat]?.c : undefined,
     imageUrl: artMode === "image" ? imageUrl : undefined, custom: true,
   };
@@ -60,7 +71,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nm, cat, df, pts, blurb,
+          nm, cat, df: starsToDf(stars), stars, pts, blurb,
           ico: artMode === "icon" ? ico : "stars",
           imageUrl: artMode === "image" ? imageUrl : undefined,
           color: catColor(cat),
@@ -92,15 +103,30 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     setSaving(false);
   }
 
+  async function deleteBadge() {
+    if (!toDelete || confirmText.trim() !== REVOKE_PHRASE) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/challenges?id=${encodeURIComponent(toDelete.id)}`, { method: "DELETE" });
+      if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
+      await refresh();
+      setToDelete(null); setConfirmText("");
+    } catch { alert("Couldn't delete — try again."); }
+    setSaving(false);
+  }
+
+  const customBadges = challenges.filter((c) => c.custom);
+
   return (
     <div className="scrim" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="grip" />
-        <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 14px" }}>Admin · Create</h2>
+        <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 14px" }}>Admin</h2>
 
         <div className="seg" style={{ marginBottom: 18 }}>
-          <button className={"chip" + (mode === "badge" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("badge")}>Right of Passage</button>
+          <button className={"chip" + (mode === "badge" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("badge")}>Create</button>
           <button className={"chip" + (mode === "category" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("category")}>Category</button>
+          <button className={"chip" + (mode === "manage" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("manage")}>Manage</button>
         </div>
 
         {mode === "badge" ? (
@@ -122,8 +148,11 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
             <div className="label" style={{ margin: "14px 0 6px" }}>Difficulty</div>
             <div className="seg">
-              {Object.keys(DIFFS).map((d) => (
-                <button key={d} className={"chip" + (df === d ? " on" : "")} onClick={() => setDf(d as Challenge["df"])}>{d}</button>
+              {[1, 2, 3, 4, 5].map((d) => (
+                <button key={d} className={"chip" + (stars === d ? " on" : "")} onClick={() => setStars(d)}
+                  style={{ display: "inline-flex", alignItems: "center" }}>
+                  <Stars n={d} size={13} color={stars === d ? "#fff" : "var(--gold)"} />
+                </button>
               ))}
             </div>
 
@@ -170,7 +199,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               {saving ? "Saving…" : "Create Right of Passage"}
             </button>
           </>
-        ) : (
+        ) : mode === "category" ? (
           <>
             <div className="label" style={{ marginBottom: 6 }}>Category name</div>
             <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Brotherhood" />
@@ -187,11 +216,65 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               Existing: {catList.join(", ")}
             </p>
           </>
+        ) : (
+          <>
+            <p className="muted" style={{ fontSize: 13.5, margin: "0 0 12px" }}>
+              Your created Rights of Passage. Deleting one revokes it for everyone.
+            </p>
+            {customBadges.length === 0 && (
+              <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 16 }}>
+                You haven&apos;t created any yet.
+              </p>
+            )}
+            {customBadges.map((c) => (
+              <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                <Badge ch={c} size={42} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
+                </div>
+                <button
+                  onClick={() => { setToDelete(c); setConfirmText(""); }}
+                  style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}
+                >Delete</button>
+              </div>
+            ))}
+          </>
         )}
 
         <div style={{ height: 10 }} />
         <button className="btn ghost" onClick={onClose}>Close</button>
       </div>
+
+      {toDelete && (
+        <div className="scrim" style={{ alignItems: "center", zIndex: 60 }} onClick={() => setToDelete(null)}>
+          <div className="sheet" style={{ borderRadius: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="grip" />
+            <h3 className="display" style={{ fontSize: 20, textAlign: "center" }}>Revoke “{toDelete.nm}”?</h3>
+            <p className="muted" style={{ fontSize: 14, textAlign: "center", margin: "8px 0 16px" }}>
+              This permanently deletes the right of passage for everyone. To confirm, type:
+              <br /><b style={{ color: "var(--ink)" }}>{REVOKE_PHRASE}</b>
+            </p>
+            <input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={REVOKE_PHRASE}
+              autoFocus
+            />
+            <div style={{ height: 16 }} />
+            <button
+              className="btn"
+              style={{ background: "var(--accent-d)", boxShadow: "none" }}
+              disabled={confirmText.trim() !== REVOKE_PHRASE || saving}
+              onClick={deleteBadge}
+            >
+              {saving ? "Revoking…" : "Permanently revoke"}
+            </button>
+            <div style={{ height: 10 }} />
+            <button className="btn ghost" onClick={() => setToDelete(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

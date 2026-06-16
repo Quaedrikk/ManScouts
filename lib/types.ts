@@ -9,6 +9,7 @@ export interface Challenge {
   blurb: string;
   how: string[];
   care?: string;
+  stars?: number; // 1–5 difficulty; falls back to a mapping from `df`
   // Admin-created badges:
   imageUrl?: string; // custom uploaded art (used instead of the line icon)
   color?: string;    // explicit emblem color (falls back to category color)

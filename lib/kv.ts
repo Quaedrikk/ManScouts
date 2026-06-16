@@ -35,13 +35,15 @@ export async function saveCustomCategory(cat: Category): Promise<void> {
   await kv.set(CUSTOM_CATS_KEY, [...list.filter((c) => c.name !== cat.name), cat]);
 }
 
-// ---- Sash layout (per user) ----
-export async function getSashLayout(userId: string): Promise<SashLayout> {
-  return (await kv.get<SashLayout>(SASH_KEY(userId))) ?? {};
+// ---- Sash (per user): badge positions + chosen theme ----
+export interface SashData { layout: SashLayout; style: string; }
+
+export async function getSashData(userId: string): Promise<SashData> {
+  return (await kv.get<SashData>(SASH_KEY(userId))) ?? { layout: {}, style: "forest" };
 }
 
-export async function saveSashLayout(userId: string, layout: SashLayout): Promise<void> {
-  await kv.set(SASH_KEY(userId), layout);
+export async function saveSashData(userId: string, data: SashData): Promise<void> {
+  await kv.set(SASH_KEY(userId), data);
 }
 
 // ---- QR witness sessions ----

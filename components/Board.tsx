@@ -2,7 +2,8 @@
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 import Scene from "./Scene";
-import { DIFFS } from "@/lib/challenges";
+import Stars from "./Stars";
+import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 
@@ -56,9 +57,9 @@ function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witn
           <Badge ch={ch} size={42} />
         </div>
       </div>
-      <div style={{ fontSize: 14.5, marginBottom: 10, lineHeight: 1.4 }}>
-        Earned <b>{ch.nm}</b>{" "}
-        <span style={{ color: DIFFS[ch.df].c, fontWeight: 800, fontSize: 12 }}>· {ch.df}</span>
+      <div style={{ fontSize: 14.5, marginBottom: 10, lineHeight: 1.4, display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        <span>Earned <b>{ch.nm}</b></span>
+        <Stars n={chStars(ch)} size={12} />
       </div>
       {proofUrl
         ? <img className="proof" src={proofUrl} alt="proof" />
