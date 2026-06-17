@@ -39,12 +39,17 @@ interface PostCardProps {
 }
 
 function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, onCheer, onPick, onDelete, uid, onOpenProfile }: PostCardProps) {
-  const { byId } = useCatalog();
+  const { byId, catColor } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
   const openProfile = uid && onOpenProfile ? () => onOpenProfile(uid) : undefined;
+  const five = chStars(ch) === 5;
+  const pc = ch.color ?? catColor(ch.cat);
   return (
-    <div className="card post fadeup">
+    <div
+      className={"card post fadeup" + (five ? " post5" : "")}
+      style={five ? ({ ["--pc" as string]: pc, background: `color-mix(in srgb, ${pc} 9%, var(--card))` }) : undefined}
+    >
       <div className="ph">
         <div onClick={openProfile} style={{ cursor: openProfile ? "pointer" : "default" }}>
           <Avatar name={name} handle={handle} img={avatarUrl} />
@@ -111,12 +116,10 @@ interface Props {
   goTrail: () => void;
 }
 
-// Deterministic daily pick: same 3 challenges for everyone, all day.
-function challengesOfTheDay(all: Challenge[], n = 3): Challenge[] {
-  if (all.length <= n) return all;
-  const day = new Date().toISOString().slice(0, 10);
+// Deterministic seeded pick: same selection for everyone within the period.
+function seededPick(all: Challenge[], seedStr: string, n: number): Challenge[] {
   let seed = 0;
-  for (let i = 0; i < day.length; i++) seed = (seed * 31 + day.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < seedStr.length; i++) seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
   const pool = [...all];
   const out: Challenge[] = [];
   for (let i = 0; i < n && pool.length; i++) {
@@ -128,7 +131,11 @@ function challengesOfTheDay(all: Challenge[], n = 3): Challenge[] {
 
 export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, onOpenProfile, goTrail }: Props) {
   const { isAdmin, challenges } = useCatalog();
-  const daily = challengesOfTheDay(challenges);
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const weekKey = "w" + Math.floor(Date.now() / (7 * 86400000));
+  // Daily = easy (1–2★), weekly = hard (3–5★).
+  const daily = seededPick(challenges.filter((c) => chStars(c) <= 2), dayKey, 3);
+  const weekly = seededPick(challenges.filter((c) => chStars(c) >= 3), weekKey, 1)[0];
   const myPosts = posts.filter((p) => p.userId === profile.id).map((p) => ({
     id: p.id,
     cid: p.challengeId,
@@ -180,6 +187,20 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
           <div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>What scouts are pulling off right now</div>
         </div>
       </div>
+
+      {weekly && (
+        <div className="card" style={{ padding: "14px 14px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(135deg,#2a2140,#4a3a6b)" }}>
+          <div onClick={() => onPick(weekly)} style={{ cursor: "pointer" }}><Badge ch={weekly} size={66} /></div>
+          <div onClick={() => onPick(weekly)} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
+            <div className="label" style={{ color: "rgba(255,255,255,.75)" }}>🏔 Challenge of the week</div>
+            <div className="display" style={{ color: "#fff", fontSize: 18, marginTop: 2 }}>{weekly.nm}</div>
+            <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
+              <Stars n={chStars(weekly)} size={12} />
+              <span style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 700 }}>{weekly.pts} pts</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {daily.length > 0 && (
         <div className="card" style={{ padding: "14px 12px 12px", marginBottom: 16, background: "linear-gradient(160deg,#fff,#f6efe2)" }}>

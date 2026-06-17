@@ -384,6 +384,26 @@ textarea { resize: none; }
 @keyframes pop { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .stamp { animation: stamp .7s cubic-bezier(.18,1.4,.4,1) both; }
 @keyframes stamp { 0% { transform: scale(0) rotate(-18deg); opacity: 0; } 55% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+/* Confetti cannons from the bottom corners */
+.cannon { position: fixed; bottom: -8px; z-index: 70; pointer-events: none; width: 0; height: 0; }
+.cannon.left { left: 14px; }
+.cannon.right { right: 14px; }
+.cannon i {
+  position: absolute; bottom: 0; left: 0; width: 9px; height: 14px; border-radius: 2px;
+  opacity: 0; animation-name: confshoot; animation-timing-function: cubic-bezier(.15,.6,.4,1); animation-fill-mode: forwards;
+}
+@keyframes confshoot {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; }
+}
+
+/* 5-star post: fancy pulsing glow in the badge color */
+.post5 { border: 2px solid var(--pc); animation: post5pulse 2.2s ease-in-out infinite; }
+@keyframes post5pulse {
+  0%, 100% { box-shadow: 0 6px 16px color-mix(in srgb, var(--pc) 28%, transparent); }
+  50% { box-shadow: 0 0 24px 3px var(--pc); }
+}
+
 .pill {
   display: inline-block; background: var(--accent); color: #fff; font-weight: 800;
   font-size: 11px; letter-spacing: .12em; text-transform: uppercase;

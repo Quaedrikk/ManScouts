@@ -17,6 +17,11 @@ export default function Trail({ earnedIds, onPick }: Props) {
   const [fCat, setFCat] = useState("All");
   const [fDiff, setFDiff] = useState(0); // 0 = all, else 1–5 stars
   const [open, setOpen] = useState<"diff" | "cat" | null>(null);
+  const [q, setQ] = useState("");
+
+  const matches = q.trim()
+    ? challenges.filter((c) => c.nm.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8)
+    : [];
 
   const list = challenges
     .filter((c) => (fCat === "All" || c.cat === fCat) && (fDiff === 0 || chStars(c) === fDiff))
@@ -32,6 +37,23 @@ export default function Trail({ earnedIds, onPick }: Props) {
       <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 16px" }}>
         {earnedIds.size} of {challenges.length} badges earned. Pick one, go do it for real, prove it.
       </p>
+
+      {/* Search */}
+      <div style={{ position: "relative", marginBottom: 14, zIndex: 6 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 Search passages…" />
+        {matches.length > 0 && (
+          <div className="ddmenu" style={{ maxHeight: 320 }}>
+            {matches.map((c) => (
+              <button key={c.id} className="ddopt" style={{ gap: 10 }} onClick={() => { onPick(c); setQ(""); }}>
+                <Badge ch={c} size={30} />
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nm}</span>
+                <Stars n={chStars(c)} size={11} />
+                <span className="muted" style={{ fontSize: 11, fontWeight: 700, marginLeft: 8 }}>{c.pts} pts</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <CategoryScene cat={fCat} color={fCat === "All" ? "#6f4a2a" : catColor(fCat)} />
 

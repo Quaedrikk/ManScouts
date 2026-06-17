@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       nm: b.nm.trim(),
       cat: b.cat.trim(),
       df: b.df ?? "Frontiersman",
+      stars: typeof b.stars === "number" ? b.stars : undefined,
       ico: b.ico || "stars",
       an: b.an || "rays",
       pts: typeof b.pts === "number" ? b.pts : 50,
