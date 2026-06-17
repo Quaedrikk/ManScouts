@@ -16,6 +16,7 @@ function shapeEl(shape: Coat["shape"], props: Record<string, unknown>) {
 export default function CoatOfArms({ coat, size = 64 }: { coat: Coat; size?: number }) {
   const uid = useId().replace(/:/g, "");
   const clip = `coat-${uid}`;
+  const charges = (coat.icons && coat.icons.length ? coat.icons : [coat.icon]).slice(0, 3);
   return (
     <div style={{ width: size, height: size, position: "relative", filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }}>
       <svg viewBox="0 0 100 100" width="100%" height="100%">
@@ -30,9 +31,22 @@ export default function CoatOfArms({ coat, size = 64 }: { coat: Coat; size?: num
         {shapeEl(coat.shape, { fill: "none", stroke: "rgba(255,255,255,.7)", strokeWidth: 2.5 })}
         {shapeEl(coat.shape, { fill: "none", stroke: "rgba(0,0,0,.35)", strokeWidth: 1 })}
       </svg>
-      <div style={{ position: "absolute", inset: "28%" }}>
-        <Ico name={coat.icon} stroke={coat.iconColor} />
+      <div className={"coatanim " + (coat.anim && coat.anim !== "none" ? `coat-${coat.anim}` : "")} style={{ position: "absolute", inset: 0 }}>
+        {charges.map((nm, i) => (
+          <div key={i} style={{ position: "absolute", ...chargePos(charges.length, i) }}>
+            <Ico name={nm} stroke={coat.iconColor} />
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+// Lay out 1–3 charges within the shield.
+function chargePos(n: number, i: number): React.CSSProperties {
+  if (n <= 1) return { inset: "28%" };
+  if (n === 2) return i === 0 ? { left: "16%", top: "30%", width: "34%", height: "34%" } : { left: "50%", top: "30%", width: "34%", height: "34%" };
+  // 3: one on top, two below
+  if (i === 0) return { left: "33%", top: "18%", width: "34%", height: "30%" };
+  return i === 1 ? { left: "16%", top: "48%", width: "32%", height: "30%" } : { left: "52%", top: "48%", width: "32%", height: "30%" };
 }

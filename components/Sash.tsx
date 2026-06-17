@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import Badge from "./Badge";
 import SashBoard from "./SashBoard";
 import SquadPanel from "./SquadPanel";
@@ -6,7 +7,7 @@ import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
-import type { UserProfile, Post, Challenge } from "@/lib/types";
+import type { UserProfile, Post, Challenge, SquadBadge } from "@/lib/types";
 
 function fmtFull(iso: string) {
   const d = new Date(iso);
@@ -33,6 +34,17 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
   const { byId } = useCatalog();
   const earned = posts.map((p) => ({ ...p, ch: byId(p.challengeId) })).filter((p) => p.ch) as (Post & { ch: Challenge })[];
 
+  const [squad, setSquad] = useState<SquadBadge | null>(null);
+  const [squadEditor, setSquadEditor] = useState(false);
+  useEffect(() => {
+    if (!profile.squadId) { setSquad(null); return; }
+    let active = true;
+    fetch(`/api/squads?id=${encodeURIComponent(profile.squadId)}`).then((r) => r.json())
+      .then((d) => { if (active && d.squad) setSquad({ id: d.squad.id, name: d.squad.name, coat: d.squad.coat }); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [profile.squadId]);
+
   // Unique earned challenges, for the leaderboard "featured 3" picker.
   const uniqueEarned = Array.from(new Map(earned.map((p) => [p.ch.id, p.ch])).values());
   const featured = profile.featured ?? [];
@@ -45,10 +57,14 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
   return (
     <div>
       <div style={{ height: 18 }} />
-      <SashBoard profile={profile} earned={earned} onPick={onPick} onEditProfile={onEdit} />
+      <SashBoard
+        profile={profile} earned={earned} onPick={onPick} onEditProfile={onEdit}
+        squad={squad} onOpenSquad={onOpenSquad} onAddSquad={() => setSquadEditor(true)}
+      />
       <p className="muted" style={{ fontSize: 12, margin: "8px 2px 0", textAlign: "center" }}>
-        Drag badges to arrange · tap to open · 🎨 to restyle your sash
+        Drag badges to arrange · tap to open · 🎨 to restyle · tap the crest for your squad
       </p>
+      {squadEditor && <SquadPanel onClose={() => setSquadEditor(false)} onReloadProfile={onReloadProfile} />}
 
       <div style={{ display: "flex", gap: 12, margin: "14px 0" }}>
         <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
@@ -61,8 +77,6 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
         </div>
       </div>
 
-      <div className="label" style={{ margin: "18px 2px 10px" }}>Squads</div>
-      <SquadPanel profile={profile} onReloadProfile={onReloadProfile} onOpenSquad={onOpenSquad} />
 
       {uniqueEarned.length > 0 && (
         <div style={{ margin: "8px 0 4px" }}>

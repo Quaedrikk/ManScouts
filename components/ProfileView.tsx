@@ -4,7 +4,6 @@ import Badge from "./Badge";
 import Stars from "./Stars";
 import SashBoard from "./SashBoard";
 import WitnessPhoto from "./WitnessPhoto";
-import CoatOfArms from "./CoatOfArms";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge, SashLayout, Squad } from "@/lib/types";
@@ -73,18 +72,11 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
           <div className="display muted" style={{ textAlign: "center", padding: 40 }}>Loading…</div>
         ) : (
           <>
-            <SashBoard profile={display} earned={earned} onPick={onPick} readOnly sash={sash} />
-
-            {squad && (
-              <div className="card" style={{ padding: 10, marginTop: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => onOpenSquad(squad.id)}>
-                <CoatOfArms coat={squad.coat} size={40} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="label">Squad</div>
-                  <div style={{ fontWeight: 800, fontSize: 15 }}>{squad.name}</div>
-                </div>
-                <span className="muted" style={{ fontSize: 18 }}>›</span>
-              </div>
-            )}
+            <SashBoard
+              profile={display} earned={earned} onPick={onPick} readOnly sash={sash}
+              squad={squad ? { id: squad.id, name: squad.name, coat: squad.coat } : null}
+              onOpenSquad={onOpenSquad}
+            />
 
             <div style={{ display: "flex", gap: 12, margin: "14px 0" }}>
               <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>

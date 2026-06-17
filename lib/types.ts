@@ -66,8 +66,10 @@ export interface CoatOfArms {
   division: "solid" | "pale" | "fess" | "bend" | "chevron";
   field: string;
   field2: string;
-  icon: string;
+  icon: string;          // legacy single charge
+  icons?: string[];      // multiple charges (1–3)
   iconColor: string;
+  anim?: "none" | "pulse" | "spin" | "shimmer" | "wave";
 }
 
 export interface Squad {

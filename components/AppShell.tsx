@@ -338,8 +338,10 @@ export default function AppShell() {
       {viewSquad && (
         <SquadView
           squadId={viewSquad}
+          currentUserId={profile.id}
           onClose={() => setViewSquad(null)}
           onOpenProfile={(id) => { setViewSquad(null); setViewUser(id); }}
+          onReloadProfile={reloadProfile}
         />
       )}
     </div>

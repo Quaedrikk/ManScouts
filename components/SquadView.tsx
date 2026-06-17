@@ -6,14 +6,25 @@ import type { Squad, UserProfile } from "@/lib/types";
 
 interface Props {
   squadId: string;
+  currentUserId?: string;
   onClose: () => void;
   onOpenProfile: (userId: string) => void;
+  onReloadProfile?: () => void;
 }
 
-export default function SquadView({ squadId, onClose, onOpenProfile }: Props) {
+export default function SquadView({ squadId, currentUserId, onClose, onOpenProfile, onReloadProfile }: Props) {
   const [squad, setSquad] = useState<Squad | null>(null);
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  async function leave() {
+    if (!confirm("Leave this squad?")) return;
+    try {
+      await fetch("/api/squads/leave", { method: "POST" });
+      onReloadProfile?.();
+      onClose();
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     let active = true;
@@ -61,6 +72,12 @@ export default function SquadView({ squadId, onClose, onOpenProfile }: Props) {
           </>
         )}
         <div style={{ height: 12 }} />
+        {squad && currentUserId && squad.memberIds.includes(currentUserId) && (
+          <>
+            <button className="btn ghost" style={{ color: "var(--accent-d)" }} onClick={leave}>Leave squad</button>
+            <div style={{ height: 8 }} />
+          </>
+        )}
         <button className="btn ghost" onClick={onClose}>Close</button>
       </div>
     </div>
