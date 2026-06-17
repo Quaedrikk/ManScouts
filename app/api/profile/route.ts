@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       handle,
       bio: (body.bio ?? "").trim(),
       avatarUrl: body.avatarUrl ?? "",
+      featured: Array.isArray(body.featured) ? body.featured.slice(0, 3) : undefined,
     };
     await saveUserProfile(profile);
     return NextResponse.json({ profile });

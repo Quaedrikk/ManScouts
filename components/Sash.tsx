@@ -23,11 +23,21 @@ interface Props {
   onEdit: () => void;
   onPick: (ch: Challenge) => void;
   onDelete: (id: string) => void;
+  onUpdateProfile: (p: UserProfile) => void;
 }
 
-export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelete }: Props) {
+export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelete, onUpdateProfile }: Props) {
   const { byId } = useCatalog();
   const earned = posts.map((p) => ({ ...p, ch: byId(p.challengeId) })).filter((p) => p.ch) as (Post & { ch: Challenge })[];
+
+  // Unique earned challenges, for the leaderboard "featured 3" picker.
+  const uniqueEarned = Array.from(new Map(earned.map((p) => [p.ch.id, p.ch])).values());
+  const featured = profile.featured ?? [];
+  function toggleFeatured(id: string) {
+    const has = featured.includes(id);
+    const next = has ? featured.filter((x) => x !== id) : (featured.length >= 3 ? featured : [...featured, id]);
+    onUpdateProfile({ ...profile, featured: next });
+  }
 
   return (
     <div>
@@ -47,6 +57,28 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
           <div className="label" style={{ marginTop: 3 }}>Points</div>
         </div>
       </div>
+
+      {uniqueEarned.length > 0 && (
+        <div style={{ margin: "8px 0 4px" }}>
+          <div className="label" style={{ margin: "0 2px 8px" }}>Featured on leaderboard ({featured.length}/3)</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            {uniqueEarned.map((ch) => {
+              const on = featured.includes(ch.id);
+              return (
+                <div
+                  key={ch.id}
+                  onClick={() => toggleFeatured(ch.id)}
+                  title={ch.nm}
+                  style={{ cursor: "pointer", opacity: on ? 1 : 0.5, position: "relative", transform: on ? "scale(1)" : "scale(.92)", transition: "transform .12s, opacity .12s" }}
+                >
+                  <Badge ch={ch} size={44} />
+                  {on && <span style={{ position: "absolute", top: -3, right: -3, width: 16, height: 16, borderRadius: "50%", background: "var(--gold)", color: "#fff", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>★</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="label" style={{ margin: "22px 2px 10px" }}>Field log</div>
       {earned.length === 0 && (

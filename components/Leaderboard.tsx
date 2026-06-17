@@ -1,13 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
+import Badge from "./Badge";
 import { useCatalog } from "@/lib/catalog";
-import type { UserProfile, Post } from "@/lib/types";
+import type { UserProfile, Post, Challenge } from "@/lib/types";
 
 interface Props {
   posts: Post[];
   profile: UserProfile;
   onOpenProfile: (userId: string) => void;
+  onOpenPost: (post: Post) => void;
+}
+
+function fmtDay(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 // Fall begins at the autumnal equinox (~Sept 22). A season runs from one
@@ -48,7 +54,7 @@ function Countdown({ to }: { to: Date }) {
   );
 }
 
-interface Item { nm: string; pts: number }
+interface Item { post: Post; ch: Challenge }
 interface Rank {
   userId: string;
   name: string;
@@ -151,10 +157,11 @@ function MountainScene({ ranks, meId, onOpenProfile }: { ranks: Rank[]; meId: st
   );
 }
 
-export default function Leaderboard({ posts, profile, onOpenProfile }: Props) {
+export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost }: Props) {
   const { byId } = useCatalog();
   const season = currentSeason();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [featured, setFeatured] = useState<Record<string, string[]>>({});
 
   // Only count badges earned this season (ranks reset each season).
   const seasonPosts = posts.filter((p) => new Date(p.createdAt) >= season.start);
@@ -168,12 +175,24 @@ export default function Leaderboard({ posts, profile, onOpenProfile }: Props) {
     };
     cur.pts += ch.pts;
     cur.badges += 1;
-    cur.items.push({ nm: ch.nm, pts: ch.pts });
+    cur.items.push({ post: p, ch });
     cur.name = p.userName; cur.avatarUrl = p.userAvatarUrl; cur.handle = p.userHandle;
     totals.set(p.userId, cur);
   }
   const ranks = [...totals.values()].sort((a, b) => b.pts - a.pts || b.badges - a.badges);
-  for (const r of ranks) r.items.sort((a, b) => b.pts - a.pts);
+  for (const r of ranks) r.items.sort((a, b) => b.ch.pts - a.ch.pts);
+
+  // Fetch each ranked user's featured badges for their leaderboard box.
+  const rankIds = ranks.map((r) => r.userId).join(",");
+  useEffect(() => {
+    const ids = rankIds ? rankIds.split(",") : [];
+    if (ids.length === 0) return;
+    let active = true;
+    Promise.all(ids.map((id) =>
+      fetch(`/api/users/${encodeURIComponent(id)}`).then((r) => r.json()).then((d) => [id, d.profile?.featured ?? []] as [string, string[]]).catch(() => [id, []] as [string, string[]])
+    )).then((entries) => { if (active) setFeatured(Object.fromEntries(entries)); });
+    return () => { active = false; };
+  }, [rankIds]);
 
   return (
     <div>
@@ -230,6 +249,14 @@ export default function Leaderboard({ posts, profile, onOpenProfile }: Props) {
                   <div className="muted" style={{ fontSize: 12.5 }}>
                     {r.badges} badge{r.badges === 1 ? "" : "s"} · tap to see them
                   </div>
+                  {(featured[r.userId]?.length ?? 0) > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                      {featured[r.userId].map((cid) => {
+                        const fch = byId(cid);
+                        return fch ? <Badge key={cid} ch={fch} size={22} /> : null;
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div className="display" style={{ fontSize: 19, color: "var(--accent)" }}>{r.pts}</div>
@@ -239,12 +266,24 @@ export default function Leaderboard({ posts, profile, onOpenProfile }: Props) {
               </div>
 
               {open && (
-                <div className="card" style={{ padding: "10px 14px", marginTop: 4, borderRadius: 14 }}>
+                <div className="card" style={{ padding: "6px 10px", marginTop: 4, borderRadius: 14 }}>
                   {r.items.map((it, k) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: k < r.items.length - 1 ? "1px solid var(--line)" : "none", fontSize: 13.5 }}>
-                      <span>{it.nm}</span>
-                      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{it.pts} pts</span>
-                    </div>
+                    <button
+                      key={k}
+                      onClick={() => onOpenPost(it.post)}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 4px",
+                        borderBottom: k < r.items.length - 1 ? "1px solid var(--line)" : "none",
+                        background: "none", border: "none", cursor: "pointer", textAlign: "left",
+                      }}
+                    >
+                      <Badge ch={it.ch} size={30} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.ch.nm}</div>
+                        <div className="muted" style={{ fontSize: 11.5 }}>{fmtDay(it.post.createdAt)}</div>
+                      </div>
+                      <span style={{ fontWeight: 800, color: "var(--accent)", fontSize: 13 }}>{it.ch.pts} pts</span>
+                    </button>
                   ))}
                 </div>
               )}

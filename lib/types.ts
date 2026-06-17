@@ -55,6 +55,7 @@ export interface UserProfile {
   handle: string;
   bio: string;
   avatarUrl: string;
+  featured?: string[]; // up to 3 challenge ids shown on the leaderboard
 }
 
 export interface Post {

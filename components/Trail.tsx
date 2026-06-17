@@ -25,10 +25,10 @@ export default function Trail({ earnedIds, onPick }: Props) {
 
   const list = challenges
     .filter((c) => (fCat === "All" || c.cat === fCat) && (fDiff === 0 || chStars(c) === fDiff))
-    // Favourites first, then always easiest → hardest.
+    // Favourites first, then lowest points → highest.
     .sort((a, b) => {
       const fav = (favourites.has(b.id) ? 1 : 0) - (favourites.has(a.id) ? 1 : 0);
-      return fav !== 0 ? fav : chStars(a) - chStars(b);
+      return fav !== 0 ? fav : a.pts - b.pts;
     });
 
   return (

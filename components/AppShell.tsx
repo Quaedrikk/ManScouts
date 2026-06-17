@@ -37,6 +37,7 @@ export default function AppShell() {
   const [editing, setEditing] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [viewUser, setViewUser] = useState<string | null>(null);
+  const [viewPost, setViewPost] = useState<Post | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -241,7 +242,7 @@ export default function AppShell() {
         {tab === "trail" && (
           <Trail earnedIds={earnedIds} onPick={setDetail} />
         )}
-        {tab === "rank" && <Leaderboard posts={posts} profile={profile} onOpenProfile={setViewUser} />}
+        {tab === "rank" && <Leaderboard posts={posts} profile={profile} onOpenProfile={setViewUser} onOpenPost={setViewPost} />}
         {tab === "sash" && (
           <Sash
             profile={profile}
@@ -250,6 +251,7 @@ export default function AppShell() {
             onEdit={() => setEditing(true)}
             onPick={setDetail}
             onDelete={deletePost}
+            onUpdateProfile={saveProfile}
           />
         )}
       </div>
@@ -287,6 +289,15 @@ export default function AppShell() {
           post={posts.find((p) => p.userId === profile.id && p.challengeId === detail.id)}
           onClose={() => setDetail(null)}
           onStart={() => { setEarn(detail); setDetail(null); }}
+        />
+      )}
+      {viewPost && byId(viewPost.challengeId) && (
+        <Detail
+          ch={byId(viewPost.challengeId)!}
+          earned
+          post={viewPost}
+          onClose={() => setViewPost(null)}
+          onStart={() => setViewPost(null)}
         />
       )}
       {earn && (
