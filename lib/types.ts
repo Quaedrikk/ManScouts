@@ -29,7 +29,9 @@ export type BadgeShape =
 export type BadgeEffect =
   | "none" | "aura" | "shimmer" | "pulse" | "spin" | "gold"
   | "orbit" | "sparkle" | "fire" | "lightning" | "water" | "frost" | "petals"
-  | "smoke" | "rainbow" | "glitch" | "emberring";
+  | "smoke" | "rainbow" | "glitch" | "emberring"
+  | "shake" | "bounce" | "wobble" | "breathe" | "neon" | "glow" | "jelly" | "flip"
+  | "bubbles" | "snow" | "rays" | "runes" | "confetti" | "comet";
 
 export interface Category {
   name: string;

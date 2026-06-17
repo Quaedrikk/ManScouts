@@ -23,6 +23,13 @@ const EFFECTS: { key: BadgeEffect; label: string }[] = [
   { key: "emberring", label: "Ember ring" }, { key: "smoke", label: "💨 Smoke" },
   { key: "lightning", label: "⚡ Lightning" }, { key: "water", label: "💧 Water" },
   { key: "frost", label: "❄ Frost" }, { key: "petals", label: "🍃 Petals" },
+  { key: "shake", label: "Shake" }, { key: "bounce", label: "Bounce" },
+  { key: "wobble", label: "Wobble" }, { key: "breathe", label: "Breathe" },
+  { key: "neon", label: "Neon" }, { key: "glow", label: "Glow" },
+  { key: "jelly", label: "Jelly" }, { key: "flip", label: "Flip" },
+  { key: "bubbles", label: "Bubbles" }, { key: "snow", label: "❄ Snow" },
+  { key: "rays", label: "Rays" }, { key: "runes", label: "Runes" },
+  { key: "confetti", label: "🎉 Confetti" }, { key: "comet", label: "☄ Comet" },
 ];
 
 function starsToDf(s: number): Challenge["df"] {
@@ -35,6 +42,8 @@ const ICON_NAMES = [
   "hands", "horn", "bag", "teach", "seed", "drop", "pack", "stars", "wave", "board",
   "trophy", "star", "heart", "bolt", "crown", "anchor", "book", "camera",
   "globe", "dumbbell", "paw", "sword", "gear", "target", "music", "feather", "flag",
+  "rock", "controller", "ball", "bike", "car", "key", "bulb", "clock",
+  "phone", "rocket", "skull", "dice", "mask", "brush", "shield",
 ];
 
 type Tool = "create" | "passages" | "categories";
@@ -308,7 +317,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             </div>
 
             {artMode === "icon" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 8 }}>
                 {ICON_NAMES.map((n) => (
                   <button key={n} onClick={() => setIco(n)}
                     style={{ aspectRatio: "1", borderRadius: 12, cursor: "pointer", border: ico === n ? "2px solid var(--ink)" : "1.5px solid var(--line)", background: ico === n ? catColor(cat) : "var(--card)", padding: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
