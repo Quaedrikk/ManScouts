@@ -29,6 +29,8 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [custom, setCustom] = useState<Challenge[]>([]);
   const [customCats, setCustomCats] = useState<Category[]>([]);
+  const [hiddenCh, setHiddenCh] = useState<string[]>([]);
+  const [hiddenCat, setHiddenCat] = useState<string[]>([]);
   const [favourites, setFavourites] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
@@ -38,7 +40,9 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
         fetch("/api/categories").then((r) => r.json()),
       ]);
       setCustom(c.challenges ?? []);
+      setHiddenCh(c.hidden ?? []);
       setCustomCats(k.categories ?? []);
+      setHiddenCat(k.hidden ?? []);
     } catch { /* ignore */ }
   }, []);
 
@@ -67,8 +71,10 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
 
   const cats: Record<string, { c: string }> = { ...CATS, ...EXTRA_CATS };
   for (const cc of customCats) cats[cc.name] = { c: cc.color };
+  for (const name of hiddenCat) delete cats[name]; // soft-deleted categories
 
-  const challenges = [...CHALLENGES, ...custom];
+  const hiddenSet = new Set(hiddenCh);
+  const challenges = [...CHALLENGES.filter((c) => !hiddenSet.has(c.id)), ...custom];
   const map = new Map(challenges.map((c) => [c.id, c]));
 
   const value: CatalogValue = {

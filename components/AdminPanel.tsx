@@ -158,6 +158,35 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     setSaving(false);
   }
 
+  async function deleteBuiltin(c: Challenge) {
+    if (!confirm(`Remove the built-in passage "${c.nm}"? You can restore built-ins later.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/challenges?id=${encodeURIComponent(c.id)}`, { method: "DELETE" });
+      if (!res.ok) { alert("Couldn't remove — admin only."); setSaving(false); return; }
+      await refresh();
+    } catch { alert("Couldn't remove — try again."); }
+    setSaving(false);
+  }
+
+  async function restoreBuiltins() {
+    setSaving(true);
+    try {
+      await fetch("/api/challenges?restore=1", { method: "DELETE" });
+      await refresh();
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
+  async function restoreBuiltinCats() {
+    setSaving(true);
+    try {
+      await fetch("/api/categories?restore=1", { method: "DELETE" });
+      await refresh();
+    } catch { /* ignore */ }
+    setSaving(false);
+  }
+
   async function saveCategory(name: string, color: string) {
     if (!name.trim()) return;
     setSaving(true);
@@ -309,29 +338,32 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         {tool === "passages" && (
           <>
             <p className="muted" style={{ fontSize: 13.5, margin: "0 0 12px" }}>
-              Your created Rights of Passage. Edit or revoke them — built-in ones can&apos;t be removed.
+              All Rights of Passage. Edit/revoke your custom ones, or remove built-in ones (restorable).
             </p>
-            {customBadges.length === 0 ? (
-              <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 16 }}>None created yet.</p>
-            ) : (
-              <>
-                {customBadges.map((c) => (
-                  <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                    <Badge ch={c} size={42} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
-                    </div>
+            {challenges.map((c) => (
+              <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                <Badge ch={c} size={42} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}{!c.custom && <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}> · built-in</span>}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
+                </div>
+                {c.custom ? (
+                  <>
                     <button className="chip" onClick={() => loadForEdit(c)}>Edit</button>
                     <button onClick={() => { setToDelete(c); setConfirmText(""); }} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
-                  </div>
-                ))}
-                <div style={{ height: 8 }} />
-                <button className="btn" style={{ background: "var(--accent-d)", boxShadow: "none" }} disabled={saving} onClick={deleteAllPassages}>
-                  Delete ALL custom passages ({customBadges.length})
-                </button>
-              </>
+                  </>
+                ) : (
+                  <button onClick={() => deleteBuiltin(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Remove</button>
+                )}
+              </div>
+            ))}
+            <div style={{ height: 8 }} />
+            {customBadges.length > 0 && (
+              <button className="btn" style={{ background: "var(--accent-d)", boxShadow: "none", marginBottom: 10 }} disabled={saving} onClick={deleteAllPassages}>
+                Delete ALL custom passages ({customBadges.length})
+              </button>
             )}
+            <button className="btn ghost" disabled={saving} onClick={restoreBuiltins}>Restore removed built-in passages</button>
           </>
         )}
 
@@ -357,14 +389,14 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                   {catEdits[c] && catEdits[c] !== catColor(c) && (
                     <button className="chip" onClick={() => saveCategory(c, catEdits[c])}>Save</button>
                   )}
-                  {isCustom && (
-                    <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
-                  )}
+                  <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
                 </div>
               );
             })}
+            <div style={{ height: 6 }} />
+            <button className="btn ghost" disabled={saving} onClick={restoreBuiltinCats}>Restore removed built-in categories</button>
             <p className="muted" style={{ fontSize: 12, textAlign: "center", marginTop: 8 }}>
-              Recoloring a built-in category saves an override; deleting is only for custom ones.
+              Recoloring a built-in saves an override. Deleting a built-in hides it (restorable); custom ones are removed.
             </p>
           </>
         )}

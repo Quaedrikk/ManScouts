@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge, deleteAllCustomChallenges } from "@/lib/kv";
+import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge, deleteAllCustomChallenges, getHiddenChallenges, hideChallenge, unhideAllChallenges } from "@/lib/kv";
 import type { Challenge } from "@/lib/types";
 
 export async function GET() {
   try {
-    const challenges = await getCustomChallenges();
-    return NextResponse.json({ challenges });
+    const [challenges, hidden] = await Promise.all([getCustomChallenges(), getHiddenChallenges()]);
+    return NextResponse.json({ challenges, hidden });
   } catch (err) {
     console.error("GET /api/challenges", err);
-    return NextResponse.json({ challenges: [] });
+    return NextResponse.json({ challenges: [], hidden: [] });
   }
 }
 
@@ -58,13 +58,19 @@ export async function DELETE(req: NextRequest) {
   }
   try {
     const params = new URL(req.url).searchParams;
+    if (params.get("restore") === "1") {
+      await unhideAllChallenges();
+      return NextResponse.json({ ok: true });
+    }
     if (params.get("all") === "1") {
       await deleteAllCustomChallenges();
       return NextResponse.json({ ok: true });
     }
     const id = params.get("id");
     if (!id) return NextResponse.json({ error: "No id" }, { status: 400 });
+    // Remove if custom; hide if it's a built-in (code-defined) one.
     await deleteCustomChallenge(id);
+    await hideChallenge(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("DELETE /api/challenges", err);

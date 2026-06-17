@@ -7,6 +7,30 @@ const CHEERS_KEY = (id: string) => `ms:cheers:${id}`;
 const USER_KEY = (id: string) => `ms:user:${id}`;
 const CUSTOM_CHALLENGES_KEY = "ms:custom:challenges";
 const CUSTOM_CATS_KEY = "ms:custom:categories";
+const HIDDEN_CH_KEY = "ms:hidden:challenges";
+const HIDDEN_CAT_KEY = "ms:hidden:categories";
+
+// ---- Hidden built-in challenges / categories (soft-delete of code-defined ones) ----
+export async function getHiddenChallenges(): Promise<string[]> {
+  return (await kv.get<string[]>(HIDDEN_CH_KEY)) ?? [];
+}
+export async function hideChallenge(id: string): Promise<void> {
+  const list = await getHiddenChallenges();
+  if (!list.includes(id)) await kv.set(HIDDEN_CH_KEY, [...list, id]);
+}
+export async function unhideAllChallenges(): Promise<void> {
+  await kv.set(HIDDEN_CH_KEY, []);
+}
+export async function getHiddenCategories(): Promise<string[]> {
+  return (await kv.get<string[]>(HIDDEN_CAT_KEY)) ?? [];
+}
+export async function hideCategory(name: string): Promise<void> {
+  const list = await getHiddenCategories();
+  if (!list.includes(name)) await kv.set(HIDDEN_CAT_KEY, [...list, name]);
+}
+export async function unhideAllCategories(): Promise<void> {
+  await kv.set(HIDDEN_CAT_KEY, []);
+}
 const SASH_KEY = (id: string) => `ms:sash:${id}`;
 const WITNESS_KEY = (token: string) => `ms:witness:${token}`;
 const FAVS_KEY = (id: string) => `ms:favs:${id}`;

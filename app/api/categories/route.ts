@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getCustomCategories, saveCustomCategory, deleteCustomCategory } from "@/lib/kv";
+import { getCustomCategories, saveCustomCategory, deleteCustomCategory, getHiddenCategories, hideCategory, unhideAllCategories } from "@/lib/kv";
 import type { Category } from "@/lib/types";
 
 export async function GET() {
   try {
-    const categories = await getCustomCategories();
-    return NextResponse.json({ categories });
+    const [categories, hidden] = await Promise.all([getCustomCategories(), getHiddenCategories()]);
+    return NextResponse.json({ categories, hidden });
   } catch (err) {
     console.error("GET /api/categories", err);
-    return NextResponse.json({ categories: [] });
+    return NextResponse.json({ categories: [], hidden: [] });
   }
 }
 
@@ -39,9 +39,16 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
-    const name = new URL(req.url).searchParams.get("name");
+    const params = new URL(req.url).searchParams;
+    if (params.get("restore") === "1") {
+      await unhideAllCategories();
+      return NextResponse.json({ ok: true });
+    }
+    const name = params.get("name");
     if (!name) return NextResponse.json({ error: "No name" }, { status: 400 });
+    // Remove if custom; hide if it's a built-in one.
     await deleteCustomCategory(name);
+    await hideCategory(name);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("DELETE /api/categories", err);
