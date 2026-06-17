@@ -212,7 +212,8 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
             <div className="display" style={{ color: "#fff", fontSize: 18, marginTop: 2 }}>{weekly.nm}</div>
             <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
               <Stars n={chStars(weekly)} size={12} />
-              <span style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 700 }}>{weekly.pts} pts</span>
+              <span style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 700 }}>{Math.round(weekly.pts * 1.5)} pts</span>
+              <span style={{ color: "#ffe14d", fontSize: 11, fontWeight: 800 }}>1.5×</span>
             </div>
           </div>
         </div>
@@ -226,7 +227,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
               <div key={c.id} onClick={() => onPick(c)} style={{ cursor: "pointer", textAlign: "center", flex: 1, minWidth: 0 }}>
                 <Badge ch={c} size={64} />
                 <div style={{ fontWeight: 800, fontSize: 11.5, marginTop: 6, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nm}</div>
-                <div className="muted" style={{ fontSize: 10.5 }}>{c.pts} pts</div>
+                <div className="muted" style={{ fontSize: 10.5 }}>{Math.round(c.pts * 1.25)} pts <span style={{ color: "var(--accent)", fontWeight: 800 }}>1.25×</span></div>
               </div>
             ))}
           </div>

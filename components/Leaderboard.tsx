@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 import { useCatalog } from "@/lib/catalog";
+import { effectivePoints } from "@/lib/bonus";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 
 interface Props {
@@ -159,7 +160,7 @@ function MountainScene({ ranks, meId, onOpenProfile }: { ranks: Rank[]; meId: st
 }
 
 export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost, onUpdateProfile }: Props) {
-  const { byId } = useCatalog();
+  const { byId, challenges } = useCatalog();
   const season = currentSeason();
   const [openId, setOpenId] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Record<string, string[]>>({});
@@ -187,7 +188,7 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
     const cur = totals.get(p.userId) ?? {
       userId: p.userId, name: p.userName, handle: p.userHandle, avatarUrl: p.userAvatarUrl, pts: 0, badges: 0, items: [],
     };
-    cur.pts += ch.pts;
+    cur.pts += effectivePoints(ch, p.createdAt, challenges);
     cur.badges += 1;
     cur.items.push({ post: p, ch });
     cur.name = p.userName; cur.avatarUrl = p.userAvatarUrl; cur.handle = p.userHandle;
@@ -324,7 +325,7 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
                         <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.ch.nm}</div>
                         <div className="muted" style={{ fontSize: 11.5 }}>{fmtDay(it.post.createdAt)}</div>
                       </div>
-                      <span style={{ fontWeight: 800, color: "var(--accent)", fontSize: 13 }}>{it.ch.pts} pts</span>
+                      <span style={{ fontWeight: 800, color: "var(--accent)", fontSize: 13 }}>{effectivePoints(it.ch, it.post.createdAt, challenges)} pts</span>
                     </button>
                   ))}
                 </div>

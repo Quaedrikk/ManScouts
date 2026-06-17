@@ -15,6 +15,7 @@ import ProfileView from "./ProfileView";
 import SquadView from "./SquadView";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 import { useCatalog } from "@/lib/catalog";
+import { effectivePoints } from "@/lib/bonus";
 
 const TABS = [
   { id: "board", ico: "board", label: "Board" },
@@ -25,7 +26,7 @@ const TABS = [
 
 export default function AppShell() {
   const { data: session, status } = useSession();
-  const { byId, isAdmin } = useCatalog();
+  const { byId, isAdmin, challenges } = useCatalog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -81,7 +82,10 @@ export default function AppShell() {
   }, [status]);
 
   const earnedIds = new Set(posts.filter((p) => p.userId === profile?.id).map((p) => p.challengeId));
-  const totalPts = posts.filter((p) => p.userId === profile?.id).reduce((s, p) => s + (byId(p.challengeId)?.pts ?? 0), 0);
+  const totalPts = posts.filter((p) => p.userId === profile?.id).reduce((s, p) => {
+    const ch = byId(p.challengeId);
+    return s + (ch ? effectivePoints(ch, p.createdAt, challenges) : 0);
+  }, 0);
 
   async function saveProfile(pf: UserProfile) {
     try {

@@ -5,6 +5,7 @@ import Stars from "./Stars";
 import SashBoard from "./SashBoard";
 import WitnessPhoto from "./WitnessPhoto";
 import { chStars } from "@/lib/challenges";
+import { effectivePoints } from "@/lib/bonus";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge, SashLayout, Squad } from "@/lib/types";
 
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export default function ProfileView({ userId, posts, onClose, onPick, onOpenSquad }: Props) {
-  const { byId } = useCatalog();
+  const { byId, challenges } = useCatalog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [sash, setSash] = useState<{ layout: SashLayout; style: string }>({ layout: {}, style: "forest" });
   const [squad, setSquad] = useState<Squad | null>(null);
@@ -53,7 +54,7 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
   const earnedRaw = userPosts
     .map((p) => ({ ...p, ch: byId(p.challengeId) }))
     .filter((p) => p.ch) as (Post & { ch: Challenge })[];
-  const totalPts = earnedRaw.reduce((s, p) => s + (p.ch.pts ?? 0), 0);
+  const totalPts = earnedRaw.reduce((s, p) => s + effectivePoints(p.ch, p.createdAt, challenges), 0);
   // Pinned field-log entry floats to the top.
   const pinnedId = profile?.pinnedPostId;
   const earned = [...earnedRaw].sort((a, b) => (b.id === pinnedId ? 1 : 0) - (a.id === pinnedId ? 1 : 0));
