@@ -12,6 +12,7 @@ import Onboard from "./Onboard";
 import AdminPanel from "./AdminPanel";
 import Leaderboard from "./Leaderboard";
 import ProfileView from "./ProfileView";
+import SquadView from "./SquadView";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 import { useCatalog } from "@/lib/catalog";
 
@@ -38,6 +39,7 @@ export default function AppShell() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [viewUser, setViewUser] = useState<string | null>(null);
   const [viewPost, setViewPost] = useState<Post | null>(null);
+  const [viewSquad, setViewSquad] = useState<string | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -94,6 +96,13 @@ export default function AppShell() {
     } catch {
       alert("Couldn't save profile — try again.");
     }
+  }
+
+  async function reloadProfile() {
+    try {
+      const res = await fetch("/api/profile");
+      if (res.ok) { const data = await res.json(); setProfile(data.profile ?? null); }
+    } catch { /* ignore */ }
   }
 
   async function deletePost(postId: string) {
@@ -236,6 +245,7 @@ export default function AppShell() {
             onPick={setDetail}
             onDelete={deletePost}
             onOpenProfile={setViewUser}
+            onOpenSquad={setViewSquad}
             goTrail={() => setTab("trail")}
           />
         )}
@@ -252,6 +262,8 @@ export default function AppShell() {
             onPick={setDetail}
             onDelete={deletePost}
             onUpdateProfile={saveProfile}
+            onReloadProfile={reloadProfile}
+            onOpenSquad={setViewSquad}
           />
         )}
       </div>
@@ -320,6 +332,14 @@ export default function AppShell() {
           posts={posts}
           onClose={() => setViewUser(null)}
           onPick={(ch) => { setViewUser(null); setDetail(ch); }}
+          onOpenSquad={(id) => { setViewUser(null); setViewSquad(id); }}
+        />
+      )}
+      {viewSquad && (
+        <SquadView
+          squadId={viewSquad}
+          onClose={() => setViewSquad(null)}
+          onOpenProfile={(id) => { setViewSquad(null); setViewUser(id); }}
         />
       )}
     </div>

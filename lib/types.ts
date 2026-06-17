@@ -56,6 +56,34 @@ export interface UserProfile {
   bio: string;
   avatarUrl: string;
   featured?: string[]; // up to 3 challenge ids shown on the leaderboard
+  squadId?: string;
+}
+
+export interface CoatOfArms {
+  shape: "shield" | "circle" | "diamond" | "banner";
+  division: "solid" | "pale" | "fess" | "bend" | "chevron";
+  field: string;
+  field2: string;
+  icon: string;
+  iconColor: string;
+}
+
+export interface Squad {
+  id: string;
+  name: string;
+  stakes: string;
+  coat: CoatOfArms;
+  memberIds: string[];
+  createdBy: string;
+  createdAt: string;
+  code: string; // invite code
+}
+
+// Lightweight squad snapshot stored on a profile/post for display.
+export interface SquadBadge {
+  id: string;
+  name: string;
+  coat: CoatOfArms;
 }
 
 export interface Post {
@@ -75,6 +103,7 @@ export interface Post {
   witnessHandle: string;     // first witness handle (legacy)
   witnessPhotoUrl?: string;  // first witness photo (legacy)
   witnesses?: WitnessEntry[];
+  squad?: SquadBadge;        // poster's squad at time of posting
   cheerCount: number;
   createdAt: string;
 }

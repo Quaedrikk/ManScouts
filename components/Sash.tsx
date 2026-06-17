@@ -1,6 +1,7 @@
 "use client";
 import Badge from "./Badge";
 import SashBoard from "./SashBoard";
+import SquadPanel from "./SquadPanel";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
 import { chStars } from "@/lib/challenges";
@@ -24,9 +25,11 @@ interface Props {
   onPick: (ch: Challenge) => void;
   onDelete: (id: string) => void;
   onUpdateProfile: (p: UserProfile) => void;
+  onReloadProfile: () => void;
+  onOpenSquad: (id: string) => void;
 }
 
-export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelete, onUpdateProfile }: Props) {
+export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelete, onUpdateProfile, onReloadProfile, onOpenSquad }: Props) {
   const { byId } = useCatalog();
   const earned = posts.map((p) => ({ ...p, ch: byId(p.challengeId) })).filter((p) => p.ch) as (Post & { ch: Challenge })[];
 
@@ -57,6 +60,9 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
           <div className="label" style={{ marginTop: 3 }}>Points</div>
         </div>
       </div>
+
+      <div className="label" style={{ margin: "18px 2px 10px" }}>Squads</div>
+      <SquadPanel profile={profile} onReloadProfile={onReloadProfile} onOpenSquad={onOpenSquad} />
 
       {uniqueEarned.length > 0 && (
         <div style={{ margin: "8px 0 4px" }}>

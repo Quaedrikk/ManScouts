@@ -1,5 +1,5 @@
 import { kv } from "@vercel/kv";
-import type { Post, UserProfile, Challenge, Category, WitnessSession, SashLayout } from "./types";
+import type { Post, UserProfile, Challenge, Category, WitnessSession, SashLayout, Squad } from "./types";
 
 const FEED_KEY = "ms:feed";
 const POST_KEY = (id: string) => `ms:post:${id}`;
@@ -112,6 +112,21 @@ export async function getUserProfile(id: string): Promise<UserProfile | null> {
 
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await kv.set(USER_KEY(profile.id), profile);
+}
+
+// ---- Squads ----
+const SQUAD_KEY = (id: string) => `ms:squad:${id}`;
+const SQUAD_CODE_KEY = (code: string) => `ms:squadcode:${code}`;
+
+export async function getSquad(id: string): Promise<Squad | null> {
+  return kv.get<Squad>(SQUAD_KEY(id));
+}
+export async function saveSquad(s: Squad): Promise<void> {
+  await kv.set(SQUAD_KEY(s.id), s);
+  await kv.set(SQUAD_CODE_KEY(s.code), s.id);
+}
+export async function getSquadIdByCode(code: string): Promise<string | null> {
+  return kv.get<string>(SQUAD_CODE_KEY(code.toUpperCase()));
 }
 
 export async function getFeed(limit = 50): Promise<Post[]> {

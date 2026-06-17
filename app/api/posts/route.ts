@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost } from "@/lib/kv";
+import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost, getSquad } from "@/lib/kv";
 import type { Post, WitnessEntry } from "@/lib/types";
 
 export async function GET() {
@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
       ws = witness.witnesses;
     }
 
+    // Snapshot the poster's squad (coat + name) for display on the post.
+    const squad = profile.squadId ? await getSquad(profile.squadId) : null;
+
     const post: Post = {
       id: `p${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       userId: profile.id,
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
       witnessHandle: ws[0]?.handle ?? "",
       witnessPhotoUrl: ws[0]?.photoUrl,
       witnesses: ws,
+      squad: squad ? { id: squad.id, name: squad.name, coat: squad.coat } : undefined,
       cheerCount: 0,
       createdAt: new Date().toISOString(),
     };

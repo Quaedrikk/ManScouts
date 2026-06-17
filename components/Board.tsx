@@ -4,9 +4,10 @@ import Badge from "./Badge";
 import Scene from "./Scene";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
+import CoatOfArms from "./CoatOfArms";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
-import type { UserProfile, Post, Challenge } from "@/lib/types";
+import type { UserProfile, Post, Challenge, SquadBadge } from "@/lib/types";
 
 function fmtAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -31,14 +32,16 @@ interface PostCardProps {
   ago: string;
   witnessPhotoUrl?: string;
   witnessPhotos?: (string | undefined)[];
+  squad?: SquadBadge;
   onCheer: () => void;
   onPick: (ch: Challenge) => void;
   onDelete?: () => void;
   uid?: string;
   onOpenProfile?: (userId: string) => void;
+  onOpenSquad?: (id: string) => void;
 }
 
-function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, onCheer, onPick, onDelete, uid, onOpenProfile }: PostCardProps) {
+function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, squad, onCheer, onPick, onDelete, uid, onOpenProfile, onOpenSquad }: PostCardProps) {
   const { byId, catColor } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
@@ -99,6 +102,16 @@ function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witn
           {cheerCount}
         </button>
         <span className="muted" style={{ fontSize: 12.5 }}>cheers</span>
+        {squad && (
+          <div
+            onClick={() => onOpenSquad?.(squad.id)}
+            title={squad.name}
+            style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, cursor: "pointer", maxWidth: "55%" }}
+          >
+            <span style={{ fontWeight: 800, fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{squad.name}</span>
+            <CoatOfArms coat={squad.coat} size={28} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -113,6 +126,7 @@ interface Props {
   onPick: (ch: Challenge) => void;
   onDelete: (id: string) => void;
   onOpenProfile: (userId: string) => void;
+  onOpenSquad: (id: string) => void;
   goTrail: () => void;
 }
 
@@ -129,7 +143,7 @@ function seededPick(all: Challenge[], seedStr: string, n: number): Challenge[] {
   return out;
 }
 
-export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, onOpenProfile, goTrail }: Props) {
+export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, onOpenProfile, onOpenSquad, goTrail }: Props) {
   const { isAdmin, challenges } = useCatalog();
   const dayKey = new Date().toISOString().slice(0, 10);
   const weekKey = "w" + Math.floor(Date.now() / (7 * 86400000));
@@ -153,6 +167,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
     witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
+    squad: p.squad,
     del: (() => onDelete(p.id)) as (() => void) | undefined,
   }));
 
@@ -173,6 +188,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
     witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
+    squad: p.squad,
     // Admins can delete anyone's post.
     del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,
   }));
@@ -232,6 +248,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
           onPick={onPick}
           onDelete={p.del}
           onOpenProfile={onOpenProfile}
+          onOpenSquad={onOpenSquad}
         />
       ))}
     </div>

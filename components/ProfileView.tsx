@@ -4,9 +4,10 @@ import Badge from "./Badge";
 import Stars from "./Stars";
 import SashBoard from "./SashBoard";
 import WitnessPhoto from "./WitnessPhoto";
+import CoatOfArms from "./CoatOfArms";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
-import type { UserProfile, Post, Challenge, SashLayout } from "@/lib/types";
+import type { UserProfile, Post, Challenge, SashLayout, Squad } from "@/lib/types";
 
 function fmtFull(iso: string) {
   const d = new Date(iso);
@@ -21,20 +22,29 @@ interface Props {
   posts: Post[];
   onClose: () => void;
   onPick: (ch: Challenge) => void;
+  onOpenSquad: (id: string) => void;
 }
 
-export default function ProfileView({ userId, posts, onClose, onPick }: Props) {
+export default function ProfileView({ userId, posts, onClose, onPick, onOpenSquad }: Props) {
   const { byId } = useCatalog();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [sash, setSash] = useState<{ layout: SashLayout; style: string }>({ layout: {}, style: "forest" });
+  const [squad, setSquad] = useState<Squad | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setSquad(null);
     fetch(`/api/users/${encodeURIComponent(userId)}`)
       .then((r) => r.json())
-      .then((d) => { if (active) { setProfile(d.profile); setSash(d.sash ?? { layout: {}, style: "forest" }); } })
+      .then((d) => {
+        if (!active) return;
+        setProfile(d.profile); setSash(d.sash ?? { layout: {}, style: "forest" });
+        if (d.profile?.squadId) {
+          fetch(`/api/squads?id=${encodeURIComponent(d.profile.squadId)}`).then((r) => r.json()).then((s) => { if (active) setSquad(s.squad ?? null); }).catch(() => {});
+        }
+      })
       .catch(() => {})
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -64,6 +74,17 @@ export default function ProfileView({ userId, posts, onClose, onPick }: Props) {
         ) : (
           <>
             <SashBoard profile={display} earned={earned} onPick={onPick} readOnly sash={sash} />
+
+            {squad && (
+              <div className="card" style={{ padding: 10, marginTop: 12, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => onOpenSquad(squad.id)}>
+                <CoatOfArms coat={squad.coat} size={40} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="label">Squad</div>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{squad.name}</div>
+                </div>
+                <span className="muted" style={{ fontSize: 18 }}>›</span>
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 12, margin: "14px 0" }}>
               <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
