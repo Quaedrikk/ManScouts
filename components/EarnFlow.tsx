@@ -221,13 +221,20 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
         {step === 2 && (
           <div>
             <p className="muted" style={{ fontSize: 14, margin: "0 0 14px" }}>
-              No badge is self-awarded. Friends scan the QR (top-left), snap a photo of you, and they appear here.
+              No badge is self-awarded. Have friends scan this QR, snap a photo of you, and they appear here.
             </p>
 
+            {qrUrl && (
+              <div className="card" style={{ padding: 16, textAlign: "center", marginBottom: 14 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrUrl} alt="Witness QR" onClick={() => setQrBig(true)} style={{ width: 240, maxWidth: "80%", aspectRatio: "1", borderRadius: 12, background: "#fff", padding: 8, cursor: "pointer", margin: "0 auto", display: "block" }} />
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Friends scan to witness · tap to enlarge</div>
+              </div>
+            )}
+
             {witnesses.length === 0 ? (
-              <div className="card" style={{ padding: 24, textAlign: "center" }}>
-                <div className="display" style={{ fontSize: 15, color: "var(--muted)" }}>No witnesses yet</div>
-                <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Have a friend scan the QR in the top-left corner.</div>
+              <div className="card" style={{ padding: 18, textAlign: "center" }}>
+                <div className="muted" style={{ fontSize: 13 }}>No witnesses yet — waiting for a scan…</div>
               </div>
             ) : (
               witnesses.map((w) => (
