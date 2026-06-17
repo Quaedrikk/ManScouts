@@ -45,13 +45,9 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
     return () => { active = false; };
   }, [profile.squadId]);
 
-  // Unique earned challenges, for the leaderboard "featured 3" picker.
-  const uniqueEarned = Array.from(new Map(earned.map((p) => [p.ch.id, p.ch])).values());
-  const featured = profile.featured ?? [];
-  function toggleFeatured(id: string) {
-    const has = featured.includes(id);
-    const next = has ? featured.filter((x) => x !== id) : (featured.length >= 3 ? featured : [...featured, id]);
-    onUpdateProfile({ ...profile, featured: next });
+  const pinnedId = profile.pinnedPostId;
+  function togglePin(id: string) {
+    onUpdateProfile({ ...profile, pinnedPostId: pinnedId === id ? undefined : id });
   }
 
   return (
@@ -78,43 +74,26 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
       </div>
 
 
-      {uniqueEarned.length > 0 && (
-        <div style={{ margin: "8px 0 4px" }}>
-          <div className="label" style={{ margin: "0 2px 8px" }}>Featured on leaderboard ({featured.length}/3)</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-            {uniqueEarned.map((ch) => {
-              const on = featured.includes(ch.id);
-              return (
-                <div
-                  key={ch.id}
-                  onClick={() => toggleFeatured(ch.id)}
-                  title={ch.nm}
-                  style={{ cursor: "pointer", opacity: on ? 1 : 0.5, position: "relative", transform: on ? "scale(1)" : "scale(.92)", transition: "transform .12s, opacity .12s" }}
-                >
-                  <Badge ch={ch} size={44} />
-                  {on && <span style={{ position: "absolute", top: -3, right: -3, width: 16, height: 16, borderRadius: "50%", background: "var(--gold)", color: "#fff", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>★</span>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      <div className="label" style={{ margin: "22px 2px 10px" }}>Field log</div>
+      <div className="label" style={{ margin: "18px 2px 10px" }}>Field log</div>
       {earned.length === 0 && (
         <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 12 }}>
           Earned challenges show here with proof, place and witness.
         </p>
       )}
       {earned.map((p) => (
-        <div key={p.id} className="card post">
+        <div key={p.id} className="card post" style={pinnedId === p.id ? { borderColor: "var(--gold)", boxShadow: "0 0 0 1px var(--gold)" } : undefined}>
           <div className="ph">
             <Badge ch={p.ch} size={44} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>{p.ch.nm}</div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>{p.ch.nm}{pinnedId === p.id && <span style={{ color: "var(--gold)", fontSize: 12 }}> · 📌 pinned</span>}</div>
               <div className="muted" style={{ fontSize: 12.5 }}>{fmtFull(p.createdAt)}</div>
             </div>
             <Stars n={chStars(p.ch)} size={12} />
+            <button
+              onClick={() => togglePin(p.id)}
+              title={pinnedId === p.id ? "Unpin from profile" : "Pin to profile"}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: pinnedId === p.id ? 1 : 0.5 }}
+            >📌</button>
             <button
               onClick={() => onDelete(p.id)}
               title="Delete post"

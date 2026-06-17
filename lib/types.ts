@@ -59,6 +59,7 @@ export interface UserProfile {
   avatarUrl: string;
   featured?: string[]; // up to 3 challenge ids shown on the leaderboard
   squadId?: string;
+  pinnedPostId?: string; // one field-log entry pinned to the profile
 }
 
 export interface CoatOfArms {

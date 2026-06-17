@@ -50,10 +50,13 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
   }, [userId]);
 
   const userPosts = posts.filter((p) => p.userId === userId);
-  const earned = userPosts
+  const earnedRaw = userPosts
     .map((p) => ({ ...p, ch: byId(p.challengeId) }))
     .filter((p) => p.ch) as (Post & { ch: Challenge })[];
-  const totalPts = earned.reduce((s, p) => s + (p.ch.pts ?? 0), 0);
+  const totalPts = earnedRaw.reduce((s, p) => s + (p.ch.pts ?? 0), 0);
+  // Pinned field-log entry floats to the top.
+  const pinnedId = profile?.pinnedPostId;
+  const earned = [...earnedRaw].sort((a, b) => (b.id === pinnedId ? 1 : 0) - (a.id === pinnedId ? 1 : 0));
 
   // Fall back to post fields if the profile record isn't found (e.g. legacy users).
   const display: UserProfile = profile ?? {
@@ -96,11 +99,11 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
               </p>
             )}
             {earned.map((p) => (
-              <div key={p.id} className="card post">
+              <div key={p.id} className="card post" style={pinnedId === p.id ? { borderColor: "var(--gold)", boxShadow: "0 0 0 1px var(--gold)" } : undefined}>
                 <div className="ph">
                   <Badge ch={p.ch} size={44} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, fontSize: 15 }}>{p.ch.nm}</div>
+                    <div style={{ fontWeight: 800, fontSize: 15 }}>{p.ch.nm}{pinnedId === p.id && <span style={{ color: "var(--gold)", fontSize: 12 }}> · 📌</span>}</div>
                     <div className="muted" style={{ fontSize: 12.5 }}>{fmtFull(p.createdAt)}</div>
                   </div>
                   <Stars n={chStars(p.ch)} size={12} />

@@ -3,11 +3,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Badge from "./Badge";
 import Avatar from "./Avatar";
 import CoatOfArms from "./CoatOfArms";
+import SashScene from "./SashScene";
 import type { UserProfile, Post, Challenge, SashLayout, SquadBadge } from "@/lib/types";
 
 const BADGE = 54;
 
-export interface SashTheme { name: string; bg: string; band: string; fg: string; sub: string; lockCat?: string; }
+export interface SashTheme { name: string; bg: string; band: string; fg: string; sub: string; lockCat?: string; scene?: string; }
 export const SASH_THEMES: Record<string, SashTheme> = {
   forest: { name: "Forest", fg: "#fff", sub: "rgba(255,255,255,.8)", bg: "linear-gradient(160deg,#2f5d45,#23433a)", band: "linear-gradient(180deg,#b8902f,#8c6b1f)" },
   midnight: { name: "Midnight", fg: "#fff", sub: "rgba(255,255,255,.78)", bg: "linear-gradient(160deg,#1c2540,#0f1626)", band: "linear-gradient(180deg,#9aa7c7,#5a6b88)" },
@@ -20,16 +21,16 @@ export const SASH_THEMES: Record<string, SashTheme> = {
   royal: { name: "Royal", fg: "#fff", sub: "rgba(255,255,255,.82)", bg: "linear-gradient(160deg,#3a2f6e,#221a45)", band: "linear-gradient(180deg,#e8c64b,#b8932a)" },
   obsidian: { name: "Obsidian", fg: "#fff", sub: "rgba(255,255,255,.7)", bg: "linear-gradient(160deg,#15161a,#000)", band: "linear-gradient(180deg,#e5552b,#a8381a)" },
   // Category-locked: need 5 badges in that category.
-  hooligan: { name: "Hooligan", lockCat: "Hooligan", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#7a1f33,#3a0f1c)", band: "linear-gradient(180deg,#b5384d,#7a2030)" },
-  angler: { name: "Angler", lockCat: "Angler", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#205a73,#0f3346)", band: "linear-gradient(180deg,#d9e7ef,#9fc2d4)" },
-  wildernessTheme: { name: "Wild", lockCat: "Wilderness", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#234d34,#11301f)", band: "linear-gradient(180deg,#cdebcf,#8fc79a)" },
-  greenthumb: { name: "Green Thumb", lockCat: "Green Thumb", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#3f6b2a,#244016)", band: "linear-gradient(180deg,#e3f0a8,#aacf6a)" },
-  nomad: { name: "Nomad", lockCat: "Nomad", fg: "#3a2f20", sub: "rgba(58,47,32,.7)", bg: "linear-gradient(160deg,#e3b97a,#c48a3a)", band: "linear-gradient(180deg,#7a4a24,#5a3618)" },
-  samaritan: { name: "Samaritan", lockCat: "Samaritan", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#2f8f8a,#16504d)", band: "linear-gradient(180deg,#fff,#cfe9e7)" },
-  courageTheme: { name: "Courage", lockCat: "Courage", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#c0461f,#6e2710)", band: "linear-gradient(180deg,#ffd98a,#e0a847)" },
-  adventureTheme: { name: "Adventure", lockCat: "Adventure", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#a8431f,#5e2410)", band: "linear-gradient(180deg,#f0d8a8,#c9a36a)" },
-  urbanist: { name: "Urbanist", lockCat: "Urbanist", fg: "#fff", sub: "rgba(255,255,255,.8)", bg: "linear-gradient(160deg,#46525e,#252c33)", band: "linear-gradient(180deg,#aab4be,#76808a)" },
-  athlete: { name: "Athlete", lockCat: "Athlete", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#3a4ad9,#1f2680)", band: "linear-gradient(180deg,#ffe14d,#e0b020)" },
+  hooligan: { name: "Hooligan", lockCat: "Hooligan", scene: "night", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#7a1f33,#2a0a14)", band: "linear-gradient(180deg,#b5384d,#7a2030)" },
+  angler: { name: "Angler", lockCat: "Angler", scene: "ocean", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#2f86a8,#0f3346)", band: "linear-gradient(180deg,#d9e7ef,#9fc2d4)" },
+  wildernessTheme: { name: "Wild", lockCat: "Wilderness", scene: "forest", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#2f6a44,#11301f)", band: "linear-gradient(180deg,#cdebcf,#8fc79a)" },
+  greenthumb: { name: "Green Thumb", lockCat: "Green Thumb", scene: "meadow", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#5a9a3c,#244016)", band: "linear-gradient(180deg,#e3f0a8,#aacf6a)" },
+  nomad: { name: "Nomad", lockCat: "Nomad", scene: "desert", fg: "#3a2f20", sub: "rgba(58,47,32,.7)", bg: "linear-gradient(160deg,#f0cd92,#c48a3a)", band: "linear-gradient(180deg,#7a4a24,#5a3618)" },
+  samaritan: { name: "Samaritan", lockCat: "Samaritan", scene: "meadow", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#2f8f8a,#16504d)", band: "linear-gradient(180deg,#fff,#cfe9e7)" },
+  courageTheme: { name: "Courage", lockCat: "Courage", scene: "volcano", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#c0461f,#4e1a0a)", band: "linear-gradient(180deg,#ffd98a,#e0a847)" },
+  adventureTheme: { name: "Adventure", lockCat: "Adventure", scene: "mountains", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#7fa6b8,#3e5a68)", band: "linear-gradient(180deg,#f0d8a8,#c9a36a)" },
+  urbanist: { name: "Urbanist", lockCat: "Urbanist", scene: "city", fg: "#fff", sub: "rgba(255,255,255,.8)", bg: "linear-gradient(160deg,#56636f,#252c33)", band: "linear-gradient(180deg,#aab4be,#76808a)" },
+  athlete: { name: "Athlete", lockCat: "Athlete", scene: "track", fg: "#fff", sub: "rgba(255,255,255,.85)", bg: "linear-gradient(160deg,#3a4ad9,#1f2680)", band: "linear-gradient(180deg,#ffe14d,#e0b020)" },
 };
 const NEED = 5;
 
@@ -124,6 +125,7 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile, read
 
   return (
     <div ref={boxRef} className="sashboard" style={{ background: theme.bg, color: theme.fg, height: 300 }} onPointerMove={onPointerMove}>
+      <SashScene scene={theme.scene} />
       <div className="sashband" style={{ background: theme.band }} />
 
       <div className="sashhead">

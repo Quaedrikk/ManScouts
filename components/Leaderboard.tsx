@@ -10,6 +10,7 @@ interface Props {
   profile: UserProfile;
   onOpenProfile: (userId: string) => void;
   onOpenPost: (post: Post) => void;
+  onUpdateProfile: (p: UserProfile) => void;
 }
 
 function fmtDay(iso: string) {
@@ -157,11 +158,24 @@ function MountainScene({ ranks, meId, onOpenProfile }: { ranks: Rank[]; meId: st
   );
 }
 
-export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost }: Props) {
+export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost, onUpdateProfile }: Props) {
   const { byId } = useCatalog();
   const season = currentSeason();
   const [openId, setOpenId] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Record<string, string[]>>({});
+
+  // My unique earned badges (for the featured picker shown on my own row).
+  const myEarned = Array.from(new Map(
+    posts.filter((p) => p.userId === profile.id)
+      .map((p) => { const ch = byId(p.challengeId); return ch ? [ch.id, ch] as const : null; })
+      .filter(Boolean) as (readonly [string, Challenge])[]
+  ).values());
+  const myFeatured = profile.featured ?? [];
+  function toggleMyFeatured(id: string) {
+    const next = myFeatured.includes(id) ? myFeatured.filter((x) => x !== id) : (myFeatured.length >= 3 ? myFeatured : [...myFeatured, id]);
+    onUpdateProfile({ ...profile, featured: next });
+    setFeatured((prev) => ({ ...prev, [profile.id]: next }));
+  }
 
   // Only count badges earned this season (ranks reset each season).
   const seasonPosts = posts.filter((p) => new Date(p.createdAt) >= season.start);
@@ -196,26 +210,26 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost 
 
   return (
     <div>
-      <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>Leaderboard</div>
-      <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>
-        Who&apos;s climbing highest this season. Ranked by points earned.
-      </p>
-
-      <MountainScene ranks={ranks} meId={profile.id} onOpenProfile={onOpenProfile} />
-
       <div
         style={{
-          borderRadius: 18, padding: "16px 14px", margin: "0 0 18px", textAlign: "center",
+          borderRadius: 18, padding: "14px 14px", margin: "16px 0 14px", textAlign: "center",
           background: "linear-gradient(135deg, #4a3a6b, #2a2140)",
           boxShadow: "0 8px 22px rgba(42,33,64,.28)",
         }}
       >
         <div className="label" style={{ color: "rgba(255,255,255,.7)", marginBottom: 2 }}>Ranked · {season.name}</div>
-        <div className="display" style={{ color: "#fff", fontSize: 17, marginBottom: 12 }}>
+        <div className="display" style={{ color: "#fff", fontSize: 16, marginBottom: 10 }}>
           Season ends when fall begins
         </div>
         <Countdown to={season.end} />
       </div>
+
+      <div className="display" style={{ fontSize: 26, margin: "4px 2px 4px" }}>Leaderboard</div>
+      <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>
+        Who&apos;s climbing highest this season. Ranked by points earned.
+      </p>
+
+      <MountainScene ranks={ranks} meId={profile.id} onOpenProfile={onOpenProfile} />
 
       {ranks.length === 0 ? (
         <p className="muted" style={{ textAlign: "center", fontSize: 14, padding: 24 }}>
@@ -249,15 +263,15 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost 
                   <div className="muted" style={{ fontSize: 12.5 }}>
                     {r.badges} badge{r.badges === 1 ? "" : "s"} · tap to see them
                   </div>
-                  {(featured[r.userId]?.length ?? 0) > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                      {featured[r.userId].map((cid) => {
-                        const fch = byId(cid);
-                        return fch ? <Badge key={cid} ch={fch} size={22} /> : null;
-                      })}
-                    </div>
-                  )}
                 </div>
+                {(featured[r.userId]?.length ?? 0) > 0 && (
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+                    {featured[r.userId].map((cid) => {
+                      const fch = byId(cid);
+                      return fch ? <Badge key={cid} ch={fch} size={42} /> : null;
+                    })}
+                  </div>
+                )}
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div className="display" style={{ fontSize: 19, color: "var(--accent)" }}>{r.pts}</div>
                   <div className="label">pts</div>
@@ -267,6 +281,23 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost 
 
               {open && (
                 <div className="card" style={{ padding: "6px 10px", marginTop: 4, borderRadius: 14 }}>
+                  {r.userId === profile.id && myEarned.length > 0 && (
+                    <div style={{ padding: "6px 4px 10px", borderBottom: "1px solid var(--line)", marginBottom: 4 }}>
+                      <div className="label" style={{ marginBottom: 8 }}>Featured on leaderboard ({myFeatured.length}/3)</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                        {myEarned.map((ch) => {
+                          const on = myFeatured.includes(ch.id);
+                          return (
+                            <div key={ch.id} onClick={() => toggleMyFeatured(ch.id)} title={ch.nm}
+                              style={{ cursor: "pointer", opacity: on ? 1 : 0.45, position: "relative" }}>
+                              <Badge ch={ch} size={40} />
+                              {on && <span style={{ position: "absolute", top: -3, right: -3, width: 15, height: 15, borderRadius: "50%", background: "var(--gold)", color: "#fff", fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>★</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {r.items.map((it, k) => (
                     <button
                       key={k}

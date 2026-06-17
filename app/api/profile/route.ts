@@ -30,14 +30,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name and handle required" }, { status: 400 });
     }
     if (!handle.startsWith("@")) handle = "@" + handle;
-    // id is always taken from the session — never trusted from the client.
+    // Merge with the existing record so saving the profile never clobbers
+    // server-managed fields like squad membership.
+    const existing = await getUserProfile(session.user.id);
     const profile: UserProfile = {
       id: session.user.id,
       name,
       handle,
       bio: (body.bio ?? "").trim(),
       avatarUrl: body.avatarUrl ?? "",
-      featured: Array.isArray(body.featured) ? body.featured.slice(0, 3) : undefined,
+      featured: Array.isArray(body.featured) ? body.featured.slice(0, 3) : existing?.featured,
+      pinnedPostId: body.pinnedPostId !== undefined ? (body.pinnedPostId || undefined) : existing?.pinnedPostId,
+      squadId: existing?.squadId, // never trust the client for squad membership
     };
     await saveUserProfile(profile);
     return NextResponse.json({ profile });

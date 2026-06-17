@@ -252,7 +252,7 @@ export default function AppShell() {
         {tab === "trail" && (
           <Trail earnedIds={earnedIds} onPick={setDetail} />
         )}
-        {tab === "rank" && <Leaderboard posts={posts} profile={profile} onOpenProfile={setViewUser} onOpenPost={setViewPost} />}
+        {tab === "rank" && <Leaderboard posts={posts} profile={profile} onOpenProfile={setViewUser} onOpenPost={setViewPost} onUpdateProfile={saveProfile} />}
         {tab === "sash" && (
           <Sash
             profile={profile}
