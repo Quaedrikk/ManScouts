@@ -8,15 +8,6 @@ import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
 
-const SEED = [
-  { id: "s1", cid: "summit", name: "Mateo Ruiz", handle: "@mateosends", ago: "2h", place: "Mt. Sanitas, CO", cap: "first peak of the season. legs are jelly, worth it 🫡", witness: "@joon", cheers: 48 },
-  { id: "s2", cid: "cold", name: "Theo Park", handle: "@theoplunge", ago: "5h", place: "Barton Springs, TX", cap: "58°F. screamed. did it anyway.", witness: "@dmoss", cheers: 127 },
-  { id: "s3", cid: "bread", name: "Andre Cole", handle: "@andrec", ago: "8h", place: "corner diner", cap: "sat with a guy named Sal for 2 hrs. heard his whole life story. underrated.", witness: "@kwon", cheers: 73 },
-  { id: "s4", cid: "fire", name: "Jonah Bell", handle: "@jonahmakes", ago: "1d", place: "backyard", cap: "flint & steel only. took 40 mins but we ate 🔥", witness: "@rafi", cheers: 91 },
-  { id: "s5", cid: "stars", name: "Dev Anand", handle: "@devlooksup", ago: "1d", place: "Joshua Tree", cap: "orion, cassiopeia, the big dipper. no light pollution = unreal", witness: "@mira", cheers: 64 },
-  { id: "s6", cid: "plant", name: "Cam Whit", handle: "@camgrows", ago: "2d", place: "community garden", cap: "planted an oak. it'll outlive me and that's the point.", witness: "@lopez", cheers: 39 },
-];
-
 function fmtAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
   if (s < 60) return "now";
@@ -163,20 +154,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,
   }));
 
-  const seedCards = SEED.map((s) => ({
-    ...s,
-    avatarUrl: undefined as string | undefined,
-    proofUrl: undefined as string | undefined,
-    cheerCount: s.cheers,
-    cheered: false,
-    ts: Date.now() - (parseInt(s.ago) * (s.ago.endsWith("d") ? 86400000 : s.ago.endsWith("h") ? 3600000 : 60000)),
-    uid: undefined as string | undefined,
-    witnessPhotoUrl: undefined as string | undefined,
-    witnessPhotos: undefined as (string | undefined)[] | undefined,
-    del: undefined as (() => void) | undefined,
-  }));
-
-  const feed = [...myPosts, ...otherPosts, ...seedCards].sort((a, b) => b.ts - a.ts);
+  const feed = [...myPosts, ...otherPosts].sort((a, b) => b.ts - a.ts);
 
   return (
     <div>
