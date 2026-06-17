@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getCustomCategories, saveCustomCategory } from "@/lib/kv";
+import { getCustomCategories, saveCustomCategory, deleteCustomCategory } from "@/lib/kv";
 import type { Category } from "@/lib/types";
 
 export async function GET() {
@@ -30,5 +30,21 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/categories", err);
     return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!isAdmin(session)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  try {
+    const name = new URL(req.url).searchParams.get("name");
+    if (!name) return NextResponse.json({ error: "No name" }, { status: 400 });
+    await deleteCustomCategory(name);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/categories", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge } from "@/lib/kv";
+import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge, deleteAllCustomChallenges } from "@/lib/kv";
 import type { Challenge } from "@/lib/types";
 
 export async function GET() {
@@ -57,7 +57,12 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
-    const id = new URL(req.url).searchParams.get("id");
+    const params = new URL(req.url).searchParams;
+    if (params.get("all") === "1") {
+      await deleteAllCustomChallenges();
+      return NextResponse.json({ ok: true });
+    }
+    const id = params.get("id");
     if (!id) return NextResponse.json({ error: "No id" }, { status: 400 });
     await deleteCustomChallenge(id);
     return NextResponse.json({ ok: true });

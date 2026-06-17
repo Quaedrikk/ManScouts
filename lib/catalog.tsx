@@ -16,6 +16,7 @@ interface CatalogValue {
   catList: string[];
   byId: (id: string) => Challenge | undefined;
   catColor: (cat: string) => string;
+  customCats: Category[];
   isAdmin: boolean;
   favourites: Set<string>;
   toggleFavourite: (id: string) => void;
@@ -76,6 +77,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     catList: Object.keys(cats),
     byId: (id) => map.get(id),
     catColor: (cat) => cats[cat]?.c ?? "#555",
+    customCats,
     isAdmin: isAdminEmail(session?.user?.email),
     favourites,
     toggleFavourite,

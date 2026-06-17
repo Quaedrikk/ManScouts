@@ -12,24 +12,17 @@ const REVOKE_PHRASE = "I revoke this right of passage";
 const SHAPES: BadgeShape[] = [
   "circle", "shield", "hex", "rosette", "square", "star",
   "fish", "heart", "diamond", "octagon", "flower", "leaf",
+  "triangle", "pentagon", "arrow", "crescent", "gem", "paw",
 ];
 const EFFECTS: { key: BadgeEffect; label: string }[] = [
-  { key: "aura", label: "Aura" },
-  { key: "shimmer", label: "Shimmer" },
-  { key: "pulse", label: "Pulse" },
-  { key: "spin", label: "Spin" },
-  { key: "gold", label: "Gold" },
-  { key: "rainbow", label: "🌈 Rainbow" },
-  { key: "glitch", label: "Glitch" },
-  { key: "orbit", label: "★ Orbit" },
-  { key: "sparkle", label: "Sparkle" },
-  { key: "fire", label: "🔥 Fire" },
-  { key: "emberring", label: "Ember ring" },
-  { key: "smoke", label: "💨 Smoke" },
-  { key: "lightning", label: "⚡ Lightning" },
-  { key: "water", label: "💧 Water" },
-  { key: "frost", label: "❄ Frost" },
-  { key: "petals", label: "🍃 Petals" },
+  { key: "aura", label: "Aura" }, { key: "shimmer", label: "Shimmer" },
+  { key: "pulse", label: "Pulse" }, { key: "spin", label: "Spin" },
+  { key: "gold", label: "Gold" }, { key: "rainbow", label: "🌈 Rainbow" },
+  { key: "glitch", label: "Glitch" }, { key: "orbit", label: "★ Orbit" },
+  { key: "sparkle", label: "Sparkle" }, { key: "fire", label: "🔥 Fire" },
+  { key: "emberring", label: "Ember ring" }, { key: "smoke", label: "💨 Smoke" },
+  { key: "lightning", label: "⚡ Lightning" }, { key: "water", label: "💧 Water" },
+  { key: "frost", label: "❄ Frost" }, { key: "petals", label: "🍃 Petals" },
 ];
 
 function starsToDf(s: number): Challenge["df"] {
@@ -44,20 +37,19 @@ const ICON_NAMES = [
   "globe", "dumbbell", "paw", "sword", "gear", "target", "music", "feather", "flag",
 ];
 
-export default function AdminPanel({ onClose }: { onClose: () => void }) {
-  const { challenges, catList, cats, catColor, refresh } = useCatalog();
-  const [mode, setMode] = useState<"badge" | "category" | "manage">("badge");
+type Tool = "create" | "passages" | "categories";
 
-  // Badge / Right of Passage form
+export default function AdminPanel({ onClose }: { onClose: () => void }) {
+  const { challenges, catList, cats, catColor, customCats, refresh } = useCatalog();
+  const [tool, setTool] = useState<Tool>("create");
+
+  // Create / edit form
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [nm, setNm] = useState("");
   const [blurb, setBlurb] = useState("");
   const [cat, setCat] = useState("Real Passages");
   const [stars, setStars] = useState(3);
   const [pts, setPts] = useState(50);
-
-  // Delete flow
-  const [toDelete, setToDelete] = useState<Challenge | null>(null);
-  const [confirmText, setConfirmText] = useState("");
   const [artMode, setArtMode] = useState<"icon" | "image">("icon");
   const [ico, setIco] = useState("stars");
   const [imageUrl, setImageUrl] = useState("");
@@ -65,23 +57,46 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [effects, setEffects] = useState<BadgeEffect[]>([]);
   const [effectColors, setEffectColors] = useState<Partial<Record<BadgeEffect, string>>>({});
   const [proofMedia, setProofMedia] = useState<"photo" | "video" | "either">("either");
-  const toggleEffect = (k: BadgeEffect) =>
-    setEffects((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
-  const setFxColor = (k: BadgeEffect, c: string) => setEffectColors((p) => ({ ...p, [k]: c }));
   const [how, setHow] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const toggleEffect = (k: BadgeEffect) =>
+    setEffects((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  const setFxColor = (k: BadgeEffect, c: string) => setEffectColors((p) => ({ ...p, [k]: c }));
+
+  // Delete passage flow
+  const [toDelete, setToDelete] = useState<Challenge | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   // Category form
   const [catName, setCatName] = useState("");
   const [catColorVal, setCatColorVal] = useState("#6f4a2a");
+  const [catEdits, setCatEdits] = useState<Record<string, string>>({});
 
-  // Live preview challenge object
+  const customBadges = challenges.filter((c) => c.custom);
+  const customCatNames = new Set(customCats.map((c) => c.name));
+
   const preview: Challenge = {
     id: "preview", nm: nm || "New Passage", cat, df: starsToDf(stars), stars, ico, an: "rays", pts,
     blurb, how: [], color: cats[cat]?.c, shape, effects, effectColors, proofMedia,
     imageUrl: artMode === "image" ? imageUrl : undefined, custom: true,
   };
+
+  function resetForm() {
+    setEditingId(null); setNm(""); setBlurb(""); setCat("Real Passages"); setStars(3);
+    setPts(50); setArtMode("icon"); setIco("stars"); setImageUrl(""); setShape("circle");
+    setEffects([]); setEffectColors({}); setProofMedia("either"); setHow("");
+  }
+
+  function loadForEdit(c: Challenge) {
+    setEditingId(c.id);
+    setNm(c.nm); setBlurb(c.blurb ?? ""); setCat(c.cat); setStars(chStars(c)); setPts(c.pts);
+    setShape(c.shape ?? "circle"); setEffects(c.effects ?? []); setEffectColors(c.effectColors ?? {});
+    setProofMedia(c.proofMedia ?? "either"); setHow((c.how ?? []).join("\n"));
+    if (c.imageUrl) { setArtMode("image"); setImageUrl(c.imageUrl); }
+    else { setArtMode("icon"); setIco(c.ico || "stars"); setImageUrl(""); }
+    setTool("create");
+  }
 
   async function pickImage(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -102,6 +117,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingId ?? undefined,
           nm, cat, df: starsToDf(stars), stars, pts, blurb, shape, effects, effectColors, proofMedia,
           ico: artMode === "icon" ? ico : "stars",
           imageUrl: artMode === "image" ? imageUrl : undefined,
@@ -111,25 +127,9 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
       });
       if (!res.ok) { alert("Couldn't save — admin only."); setSaving(false); return; }
       await refresh();
-      setNm(""); setBlurb(""); setImageUrl(""); setHow("");
-      alert("Saved! It's now in Rights of Passage.");
-    } catch { alert("Couldn't save — try again."); }
-    setSaving(false);
-  }
-
-  async function saveCategory() {
-    if (!catName.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: catName.trim(), color: catColorVal }),
-      });
-      if (!res.ok) { alert("Couldn't save — admin only."); setSaving(false); return; }
-      await refresh();
-      setCatName("");
-      alert("Category saved!");
+      const wasEditing = !!editingId;
+      resetForm();
+      alert(wasEditing ? "Updated!" : "Saved! It's now in Rights of Passage.");
     } catch { alert("Couldn't save — try again."); }
     setSaving(false);
   }
@@ -146,29 +146,70 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     setSaving(false);
   }
 
-  const customBadges = challenges.filter((c) => c.custom);
+  async function deleteAllPassages() {
+    if (!confirm(`Delete ALL ${customBadges.length} custom Rights of Passage? Built-in ones stay. This can't be undone.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/challenges?all=1", { method: "DELETE" });
+      if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
+      await refresh();
+      alert("All custom passages deleted.");
+    } catch { alert("Couldn't delete — try again."); }
+    setSaving(false);
+  }
+
+  async function saveCategory(name: string, color: string) {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), color }),
+      });
+      if (!res.ok) { alert("Couldn't save — admin only."); setSaving(false); return; }
+      await refresh();
+      setCatName("");
+    } catch { alert("Couldn't save — try again."); }
+    setSaving(false);
+  }
+
+  async function deleteCategory(name: string) {
+    if (!confirm(`Delete the "${name}" category? Badges keep their tag but the category disappears from the list.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/categories?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+      if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
+      await refresh();
+    } catch { alert("Couldn't delete — try again."); }
+    setSaving(false);
+  }
 
   return (
     <div className="scrim" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="grip" />
-        <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 14px" }}>Admin</h2>
+        <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 14px" }}>Admin Dashboard</h2>
 
         <div className="seg" style={{ marginBottom: 18 }}>
-          <button className={"chip" + (mode === "badge" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("badge")}>Create</button>
-          <button className={"chip" + (mode === "category" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("category")}>Category</button>
-          <button className={"chip" + (mode === "manage" ? " on" : "")} style={{ flex: 1 }} onClick={() => setMode("manage")}>Manage</button>
+          <button className={"chip" + (tool === "create" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("create")}>{editingId ? "Edit" : "Create"}</button>
+          <button className={"chip" + (tool === "passages" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("passages")}>Passages</button>
+          <button className={"chip" + (tool === "categories" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("categories")}>Categories</button>
         </div>
 
-        {mode === "badge" ? (
+        {tool === "create" && (
           <>
+            {editingId && (
+              <div className="card" style={{ padding: "8px 12px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700 }}>Editing an existing passage</span>
+                <button className="chip" onClick={resetForm}>New instead</button>
+              </div>
+            )}
             <div style={{ padding: "4px 0 14px" }}><Badge ch={preview} size={92} /></div>
 
             <div className="label" style={{ margin: "0 0 6px" }}>Shape</div>
             <div className="seg" style={{ marginBottom: 12 }}>
               {SHAPES.map((s) => (
-                <button key={s} className={"chip" + (shape === s ? " on" : "")} onClick={() => setShape(s)}
-                  style={{ textTransform: "capitalize" }}>{s}</button>
+                <button key={s} className={"chip" + (shape === s ? " on" : "")} onClick={() => setShape(s)} style={{ textTransform: "capitalize" }}>{s}</button>
               ))}
             </div>
 
@@ -222,8 +263,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             <div className="label" style={{ margin: "14px 0 6px" }}>Difficulty</div>
             <div className="seg">
               {[1, 2, 3, 4, 5].map((d) => (
-                <button key={d} className={"chip" + (stars === d ? " on" : "")} onClick={() => setStars(d)}
-                  style={{ display: "inline-flex", alignItems: "center" }}>
+                <button key={d} className={"chip" + (stars === d ? " on" : "")} onClick={() => setStars(d)} style={{ display: "inline-flex", alignItems: "center" }}>
                   <Stars n={d} size={13} color={stars === d ? "#fff" : "var(--gold)"} />
                 </button>
               ))}
@@ -241,16 +281,8 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             {artMode === "icon" ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
                 {ICON_NAMES.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setIco(n)}
-                    style={{
-                      aspectRatio: "1", borderRadius: 12, cursor: "pointer",
-                      border: ico === n ? "2px solid var(--ink)" : "1.5px solid var(--line)",
-                      background: ico === n ? catColor(cat) : "var(--card)",
-                      padding: 8, display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
+                  <button key={n} onClick={() => setIco(n)}
+                    style={{ aspectRatio: "1", borderRadius: 12, cursor: "pointer", border: ico === n ? "2px solid var(--ink)" : "1.5px solid var(--line)", background: ico === n ? catColor(cat) : "var(--card)", padding: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Ico name={n} stroke={ico === n ? "#fff" : "var(--muted)"} />
                   </button>
                 ))}
@@ -269,49 +301,71 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
             <div style={{ height: 18 }} />
             <button className="btn" disabled={!nm.trim() || saving} onClick={saveBadge}>
-              {saving ? "Saving…" : "Create Right of Passage"}
+              {saving ? "Saving…" : editingId ? "Save changes" : "Create Right of Passage"}
             </button>
           </>
-        ) : mode === "category" ? (
-          <>
-            <div className="label" style={{ marginBottom: 6 }}>Category name</div>
-            <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Brotherhood" />
-            <div className="label" style={{ margin: "14px 0 6px" }}>Color</div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <input type="color" value={catColorVal} onChange={(e) => setCatColorVal(e.target.value)} style={{ width: 56, height: 44, padding: 4 }} />
-              <input value={catColorVal} onChange={(e) => setCatColorVal(e.target.value)} placeholder="#6f4a2a" />
-            </div>
-            <div style={{ height: 18 }} />
-            <button className="btn" disabled={!catName.trim() || saving} onClick={saveCategory}>
-              {saving ? "Saving…" : "Save Category"}
-            </button>
-            <p className="muted" style={{ fontSize: 12.5, textAlign: "center", marginTop: 12 }}>
-              Existing: {catList.join(", ")}
-            </p>
-          </>
-        ) : (
+        )}
+
+        {tool === "passages" && (
           <>
             <p className="muted" style={{ fontSize: 13.5, margin: "0 0 12px" }}>
-              Your created Rights of Passage. Deleting one revokes it for everyone.
+              Your created Rights of Passage. Edit or revoke them — built-in ones can&apos;t be removed.
             </p>
-            {customBadges.length === 0 && (
-              <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 16 }}>
-                You haven&apos;t created any yet.
-              </p>
+            {customBadges.length === 0 ? (
+              <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 16 }}>None created yet.</p>
+            ) : (
+              <>
+                {customBadges.map((c) => (
+                  <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                    <Badge ch={c} size={42} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
+                    </div>
+                    <button className="chip" onClick={() => loadForEdit(c)}>Edit</button>
+                    <button onClick={() => { setToDelete(c); setConfirmText(""); }} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
+                  </div>
+                ))}
+                <div style={{ height: 8 }} />
+                <button className="btn" style={{ background: "var(--accent-d)", boxShadow: "none" }} disabled={saving} onClick={deleteAllPassages}>
+                  Delete ALL custom passages ({customBadges.length})
+                </button>
+              </>
             )}
-            {customBadges.map((c) => (
-              <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                <Badge ch={c} size={42} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
+          </>
+        )}
+
+        {tool === "categories" && (
+          <>
+            <div className="label" style={{ marginBottom: 6 }}>New category</div>
+            <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Brotherhood" />
+            <div style={{ display: "flex", gap: 12, alignItems: "center", margin: "10px 0 0" }}>
+              <input type="color" value={catColorVal} onChange={(e) => setCatColorVal(e.target.value)} style={{ width: 50, height: 40, padding: 4 }} />
+              <button className="btn" style={{ flex: 1 }} disabled={!catName.trim() || saving} onClick={() => saveCategory(catName, catColorVal)}>
+                {saving ? "Saving…" : "Add category"}
+              </button>
+            </div>
+
+            <div className="label" style={{ margin: "20px 0 8px" }}>All categories</div>
+            {catList.map((c) => {
+              const current = catEdits[c] ?? catColor(c);
+              const isCustom = customCatNames.has(c);
+              return (
+                <div key={c} className="card" style={{ padding: 10, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                  <input type="color" value={current} onChange={(e) => setCatEdits((p) => ({ ...p, [c]: e.target.value }))} style={{ width: 36, height: 30, padding: 2 }} />
+                  <span style={{ flex: 1, fontWeight: 700, fontSize: 13.5 }}>{c}{!isCustom && <span className="muted" style={{ fontWeight: 400 }}> · built-in</span>}</span>
+                  {catEdits[c] && catEdits[c] !== catColor(c) && (
+                    <button className="chip" onClick={() => saveCategory(c, catEdits[c])}>Save</button>
+                  )}
+                  {isCustom && (
+                    <button onClick={() => deleteCategory(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
+                  )}
                 </div>
-                <button
-                  onClick={() => { setToDelete(c); setConfirmText(""); }}
-                  style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}
-                >Delete</button>
-              </div>
-            ))}
+              );
+            })}
+            <p className="muted" style={{ fontSize: 12, textAlign: "center", marginTop: 8 }}>
+              Recoloring a built-in category saves an override; deleting is only for custom ones.
+            </p>
           </>
         )}
 
@@ -328,19 +382,9 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               This permanently deletes the right of passage for everyone. To confirm, type:
               <br /><b style={{ color: "var(--ink)" }}>{REVOKE_PHRASE}</b>
             </p>
-            <input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder={REVOKE_PHRASE}
-              autoFocus
-            />
+            <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder={REVOKE_PHRASE} autoFocus />
             <div style={{ height: 16 }} />
-            <button
-              className="btn"
-              style={{ background: "var(--accent-d)", boxShadow: "none" }}
-              disabled={confirmText.trim() !== REVOKE_PHRASE || saving}
-              onClick={deleteBadge}
-            >
+            <button className="btn" style={{ background: "var(--accent-d)", boxShadow: "none" }} disabled={confirmText.trim() !== REVOKE_PHRASE || saving} onClick={deleteBadge}>
               {saving ? "Revoking…" : "Permanently revoke"}
             </button>
             <div style={{ height: 10 }} />

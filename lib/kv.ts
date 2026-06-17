@@ -38,6 +38,10 @@ export async function deleteCustomChallenge(id: string): Promise<void> {
   await kv.set(CUSTOM_CHALLENGES_KEY, list.filter((c) => c.id !== id));
 }
 
+export async function deleteAllCustomChallenges(): Promise<void> {
+  await kv.set(CUSTOM_CHALLENGES_KEY, []);
+}
+
 // ---- Custom categories ----
 export async function getCustomCategories(): Promise<Category[]> {
   return (await kv.get<Category[]>(CUSTOM_CATS_KEY)) ?? [];
@@ -46,6 +50,11 @@ export async function getCustomCategories(): Promise<Category[]> {
 export async function saveCustomCategory(cat: Category): Promise<void> {
   const list = await getCustomCategories();
   await kv.set(CUSTOM_CATS_KEY, [...list.filter((c) => c.name !== cat.name), cat]);
+}
+
+export async function deleteCustomCategory(name: string): Promise<void> {
+  const list = await getCustomCategories();
+  await kv.set(CUSTOM_CATS_KEY, list.filter((c) => c.name !== name));
 }
 
 // ---- Sash (per user): badge positions + chosen theme ----
