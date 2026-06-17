@@ -79,6 +79,24 @@ textarea { resize: none; }
 }
 .chip.on { background: var(--ink); color: #fff; }
 
+.ddbtn {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 12px;
+  padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--ink); cursor: pointer;
+}
+.ddmenu {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(26,24,19,.16); padding: 6px; max-height: 260px; overflow: auto;
+}
+.ddopt {
+  width: 100%; display: flex; align-items: center; text-align: left;
+  background: none; border: none; cursor: pointer; padding: 9px 10px; border-radius: 9px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.ddopt:hover { background: var(--tint); }
+.ddopt.on { background: var(--ink); color: #fff; }
+
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cell {
   background: var(--card); border: 1px solid var(--line); border-radius: 20px;
@@ -89,7 +107,7 @@ textarea { resize: none; }
 .cell:active { transform: scale(.97); }
 .cell .nm { font-weight: 800; font-size: 13.5px; margin-top: 9px; line-height: 1.15; letter-spacing: -.01em; }
 .cell .df { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; margin-top: 5px; }
-.locked .emblemwrap { filter: grayscale(.9); opacity: .5; }
+.locked .emblemwrap { filter: grayscale(.55) brightness(.97); opacity: .72; }
 
 /* Badge base + special effects */
 .emblemfx { filter: drop-shadow(0 4px 8px rgba(26,24,19,.18)); }

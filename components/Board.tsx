@@ -111,8 +111,24 @@ interface Props {
   goTrail: () => void;
 }
 
+// Deterministic daily pick: same 3 challenges for everyone, all day.
+function challengesOfTheDay(all: Challenge[], n = 3): Challenge[] {
+  if (all.length <= n) return all;
+  const day = new Date().toISOString().slice(0, 10);
+  let seed = 0;
+  for (let i = 0; i < day.length; i++) seed = (seed * 31 + day.charCodeAt(i)) >>> 0;
+  const pool = [...all];
+  const out: Challenge[] = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    out.push(pool.splice(seed % pool.length, 1)[0]);
+  }
+  return out;
+}
+
 export default function Board({ profile, posts, cheers, cheerCounts, onCheer, onPick, onDelete, onOpenProfile, goTrail }: Props) {
-  const { isAdmin } = useCatalog();
+  const { isAdmin, challenges } = useCatalog();
+  const daily = challengesOfTheDay(challenges);
   const myPosts = posts.filter((p) => p.userId === profile.id).map((p) => ({
     id: p.id,
     cid: p.challengeId,
@@ -164,6 +180,21 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
           <div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>What scouts are pulling off right now</div>
         </div>
       </div>
+
+      {daily.length > 0 && (
+        <div className="card" style={{ padding: "14px 12px 12px", marginBottom: 16, background: "linear-gradient(160deg,#fff,#f6efe2)" }}>
+          <div className="label" style={{ marginBottom: 10 }}>⛰ Challenges of the day</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "space-around" }}>
+            {daily.map((c) => (
+              <div key={c.id} onClick={() => onPick(c)} style={{ cursor: "pointer", textAlign: "center", flex: 1, minWidth: 0 }}>
+                <Badge ch={c} size={64} />
+                <div style={{ fontWeight: 800, fontSize: 11.5, marginTop: 6, lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nm}</div>
+                <div className="muted" style={{ fontSize: 10.5 }}>{c.pts} pts</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {myPosts.length === 0 && (
         <div className="card" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "center" }}>

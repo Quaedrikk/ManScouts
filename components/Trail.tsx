@@ -16,11 +16,15 @@ export default function Trail({ earnedIds, onPick }: Props) {
   const { challenges, catList, catColor, favourites, toggleFavourite } = useCatalog();
   const [fCat, setFCat] = useState("All");
   const [fDiff, setFDiff] = useState(0); // 0 = all, else 1–5 stars
+  const [open, setOpen] = useState<"diff" | "cat" | null>(null);
 
   const list = challenges
     .filter((c) => (fCat === "All" || c.cat === fCat) && (fDiff === 0 || chStars(c) === fDiff))
-    // Favourites float to the top.
-    .sort((a, b) => (favourites.has(b.id) ? 1 : 0) - (favourites.has(a.id) ? 1 : 0));
+    // Favourites first, then always easiest → hardest.
+    .sort((a, b) => {
+      const fav = (favourites.has(b.id) ? 1 : 0) - (favourites.has(a.id) ? 1 : 0);
+      return fav !== 0 ? fav : chStars(a) - chStars(b);
+    });
 
   return (
     <div>
@@ -31,32 +35,42 @@ export default function Trail({ earnedIds, onPick }: Props) {
 
       <CategoryScene cat={fCat} color={fCat === "All" ? "#6f4a2a" : catColor(fCat)} />
 
-      <div className="label" style={{ margin: "0 2px 7px" }}>Difficulty</div>
-      <div className="seg" style={{ marginBottom: 14 }}>
-        <button className={"chip" + (fDiff === 0 ? " on" : "")} onClick={() => setFDiff(0)}>All</button>
-        {[1, 2, 3, 4, 5].map((d) => (
-          <button key={d} className={"chip" + (fDiff === d ? " on" : "")} onClick={() => setFDiff(d)}
-            style={{ display: "inline-flex", alignItems: "center" }}>
-            <Stars n={d} size={12} color={fDiff === d ? "#fff" : "var(--gold)"} />
+      {/* Filter dropdowns */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 18, position: "relative", zIndex: 5 }}>
+        <div style={{ position: "relative", flex: 1 }}>
+          <button className="ddbtn" onClick={() => setOpen(open === "diff" ? null : "diff")}>
+            <span>{fDiff === 0 ? "Any difficulty" : <Stars n={fDiff} size={12} />}</span>
+            <span style={{ opacity: .6 }}>▾</span>
           </button>
-        ))}
-      </div>
+          {open === "diff" && (
+            <div className="ddmenu">
+              <button className={"ddopt" + (fDiff === 0 ? " on" : "")} onClick={() => { setFDiff(0); setOpen(null); }}>Any difficulty</button>
+              {[1, 2, 3, 4, 5].map((d) => (
+                <button key={d} className={"ddopt" + (fDiff === d ? " on" : "")} onClick={() => { setFDiff(d); setOpen(null); }}>
+                  <Stars n={d} size={13} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <div className="label" style={{ margin: "0 2px 7px" }}>Category</div>
-      <div className="catbtns">
-        <button
-          className={"catbtn" + (fCat === "All" ? " on" : "")}
-          style={{ ["--cc" as string]: "#6f4a2a" }}
-          onClick={() => setFCat("All")}
-        >All</button>
-        {catList.map((c) => (
-          <button
-            key={c}
-            className={"catbtn" + (fCat === c ? " on" : "")}
-            style={{ ["--cc" as string]: catColor(c) }}
-            onClick={() => setFCat(c)}
-          >{c}</button>
-        ))}
+        <div style={{ position: "relative", flex: 1 }}>
+          <button className="ddbtn" onClick={() => setOpen(open === "cat" ? null : "cat")}>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fCat === "All" ? "All categories" : fCat}</span>
+            <span style={{ opacity: .6 }}>▾</span>
+          </button>
+          {open === "cat" && (
+            <div className="ddmenu">
+              <button className={"ddopt" + (fCat === "All" ? " on" : "")} onClick={() => { setFCat("All"); setOpen(null); }}>All categories</button>
+              {catList.map((c) => (
+                <button key={c} className={"ddopt" + (fCat === c ? " on" : "")} onClick={() => { setFCat(c); setOpen(null); }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: catColor(c), display: "inline-block", marginRight: 8 }} />
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid2">
@@ -67,10 +81,7 @@ export default function Trail({ earnedIds, onPick }: Props) {
               <button
                 onClick={(ev) => { ev.stopPropagation(); toggleFavourite(c.id); }}
                 title={favourites.has(c.id) ? "Unfavourite" : "Favourite"}
-                style={{
-                  position: "absolute", top: 7, left: 7, background: "none", border: "none",
-                  cursor: "pointer", padding: 2, lineHeight: 1, zIndex: 2,
-                }}
+                style={{ position: "absolute", top: 7, left: 7, background: "none", border: "none", cursor: "pointer", padding: 2, lineHeight: 1, zIndex: 2 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24"
                   fill={favourites.has(c.id) ? "var(--gold)" : "none"}
@@ -93,6 +104,7 @@ export default function Trail({ earnedIds, onPick }: Props) {
               <Badge ch={c} size={76} />
               <div className="nm">{c.nm}</div>
               <div className="df" style={{ marginTop: 6 }}><Stars n={chStars(c)} size={12} /></div>
+              <div className="muted" style={{ fontSize: 11, fontWeight: 700, marginTop: 3 }}>{c.pts} pts</div>
             </div>
           );
         })}
