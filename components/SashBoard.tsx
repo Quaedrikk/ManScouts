@@ -4,6 +4,7 @@ import Badge from "./Badge";
 import Avatar from "./Avatar";
 import CoatOfArms from "./CoatOfArms";
 import SashScene from "./SashScene";
+import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge, SashLayout, SquadBadge } from "@/lib/types";
 
 const BADGE = 54;
@@ -52,6 +53,7 @@ function defaultPos(i: number): { x: number; y: number; rot: number } {
 }
 
 export default function SashBoard({ profile, earned, onPick, onEditProfile, readOnly, sash, squad, onOpenSquad, onAddSquad }: Props) {
+  const { isAdmin } = useCatalog();
   const boxRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<SashLayout>(sash?.layout ?? {});
   const [style, setStyle] = useState(sash?.style ?? "forest");
@@ -65,7 +67,7 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile, read
   // Earned count per category, for unlocking category sash themes.
   const byCat: Record<string, number> = {};
   for (const p of earned) byCat[p.ch.cat] = (byCat[p.ch.cat] ?? 0) + 1;
-  const unlocked = (t: SashTheme) => !t.lockCat || (byCat[t.lockCat] ?? 0) >= NEED;
+  const unlocked = (t: SashTheme) => isAdmin || !t.lockCat || (byCat[t.lockCat] ?? 0) >= NEED;
 
   useEffect(() => {
     if (readOnly) {

@@ -268,7 +268,18 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
                   <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
                     {featured[r.userId].map((cid) => {
                       const fch = byId(cid);
-                      return fch ? <Badge key={cid} ch={fch} size={42} /> : null;
+                      if (!fch) return null;
+                      const post = r.items.find((it) => it.ch.id === cid)?.post;
+                      return (
+                        <div
+                          key={cid}
+                          title={fch.nm}
+                          onClick={(e) => { e.stopPropagation(); if (post) onOpenPost(post); }}
+                          style={{ cursor: post ? "pointer" : "default" }}
+                        >
+                          <Badge ch={fch} size={42} />
+                        </div>
+                      );
                     })}
                   </div>
                 )}
