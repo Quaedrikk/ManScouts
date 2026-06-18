@@ -19,7 +19,8 @@ export interface Challenge {
   effectColor?: string;     // fallback color for effects (legacy / shared)
   effectColors?: Partial<Record<BadgeEffect, string>>; // per-effect color
   proofMedia?: "photo" | "video" | "either"; // required proof format
-  custom?: boolean;  // true for admin-created badges
+  custom?: boolean;    // true for admin-created badges
+  generated?: boolean; // true for AI-generated, code-shipped badges
 }
 
 export type BadgeShape =

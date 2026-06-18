@@ -82,6 +82,10 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [catColorVal, setCatColorVal] = useState("#6f4a2a");
   const [catEdits, setCatEdits] = useState<Record<string, string>>({});
 
+  // Passage editor controls
+  const [pq, setPq] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
+
   // Bulk import
   const [importText, setImportText] = useState("");
 
@@ -388,23 +392,42 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
         {tool === "passages" && (
           <>
-            <p className="muted" style={{ fontSize: 13.5, margin: "0 0 12px" }}>
-              All Rights of Passage. Edit/revoke your custom ones, or remove built-in ones (restorable).
-            </p>
-            {challenges.map((c) => (
-              <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                <Badge ch={c} size={42} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{c.nm}{!c.custom && <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}> · built-in</span>}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /></div>
+            <input value={pq} onChange={(e) => setPq(e.target.value)} placeholder="🔎 Search passages…" style={{ marginBottom: 8 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, margin: "0 2px 12px", cursor: "pointer" }}>
+              <input type="checkbox" checked={showInfo} onChange={(e) => setShowInfo(e.target.checked)} style={{ width: 16, height: 16 }} />
+              Show all info (steps)
+            </label>
+            {challenges
+              .filter((c) => { const q = pq.trim().toLowerCase(); return !q || c.nm.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q); })
+              .map((c) => (
+              <div key={c.id} className="card" style={{ padding: 12, marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Badge ch={c} size={42} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14.5 }}>
+                      {c.nm}
+                      {c.generated ? <span style={{ fontWeight: 800, fontSize: 10.5, color: "#7b219f" }}> · generated</span>
+                        : !c.custom ? <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}> · built-in</span> : null}
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>{c.cat} · <Stars n={chStars(c)} size={10} /> · {c.pts} pts</div>
+                  </div>
+                  {c.custom ? (
+                    <>
+                      <button className="chip" onClick={() => loadForEdit(c)}>Edit</button>
+                      <button onClick={() => { setToDelete(c); setConfirmText(""); }} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
+                    </>
+                  ) : (
+                    <button onClick={() => deleteBuiltin(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Remove</button>
+                  )}
                 </div>
-                {c.custom ? (
-                  <>
-                    <button className="chip" onClick={() => loadForEdit(c)}>Edit</button>
-                    <button onClick={() => { setToDelete(c); setConfirmText(""); }} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Delete</button>
-                  </>
-                ) : (
-                  <button onClick={() => deleteBuiltin(c)} style={{ background: "none", border: "none", color: "var(--accent-d)", fontWeight: 800, cursor: "pointer", fontSize: 13 }}>Remove</button>
+                {showInfo && (c.how?.length ?? 0) > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line)" }}>
+                    {c.how.map((step, i) => (
+                      <div key={i} className="muted" style={{ fontSize: 12.5, display: "flex", gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontWeight: 800, color: "var(--ink)" }}>{i + 1}.</span>{step}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}

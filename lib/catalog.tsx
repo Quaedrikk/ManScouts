@@ -2,12 +2,14 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { CHALLENGES, CATS } from "./challenges";
+import { GENERATED } from "./generated";
 import { isAdminEmail } from "./admin";
 import type { Challenge, Category } from "./types";
 
 // Categories that always exist on top of the built-in ones.
 const EXTRA_CATS: Record<string, { c: string }> = {
-  "Real Passages": { c: "#6f4a2a" },
+  Scholar: { c: "#a8c6fe" },
+  Gamer: { c: "#7b219f" },
 };
 
 interface CatalogValue {
@@ -74,7 +76,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   for (const name of hiddenCat) delete cats[name]; // soft-deleted categories
 
   const hiddenSet = new Set(hiddenCh);
-  const challenges = [...CHALLENGES.filter((c) => !hiddenSet.has(c.id)), ...custom];
+  const challenges = [...CHALLENGES, ...GENERATED, ...custom].filter((c) => !hiddenSet.has(c.id));
   const map = new Map(challenges.map((c) => [c.id, c]));
 
   const value: CatalogValue = {
