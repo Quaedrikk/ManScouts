@@ -46,7 +46,7 @@ const ICON_NAMES = [
   "phone", "rocket", "skull", "dice", "mask", "brush", "shield",
 ];
 
-type Tool = "create" | "passages" | "categories";
+type Tool = "create" | "passages" | "categories" | "bulk";
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const { challenges, catList, cats, catColor, customCats, refresh } = useCatalog();
@@ -81,6 +81,47 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [catName, setCatName] = useState("");
   const [catColorVal, setCatColorVal] = useState("#6f4a2a");
   const [catEdits, setCatEdits] = useState<Record<string, string>>({});
+
+  // Bulk import
+  const [importText, setImportText] = useState("");
+
+  // Full export of the current catalog (built-in + custom) with stylization.
+  const exportJson = JSON.stringify(
+    challenges.map((c) => ({
+      nm: c.nm, cat: c.cat, stars: chStars(c), pts: c.pts, blurb: c.blurb,
+      ico: c.ico, shape: c.shape ?? "circle", effects: c.effects ?? [],
+      effectColors: c.effectColors ?? {}, color: c.color, proofMedia: c.proofMedia ?? "either",
+      how: c.how ?? [], imageUrl: c.imageUrl, custom: !!c.custom,
+    })),
+    null, 2
+  );
+
+  async function copyExport() {
+    try { await navigator.clipboard.writeText(exportJson); alert("Copied all passages to clipboard."); }
+    catch { alert("Couldn't copy — select the text and copy manually."); }
+  }
+
+  async function importAll() {
+    let arr: Partial<Challenge>[];
+    try { arr = JSON.parse(importText); if (!Array.isArray(arr)) throw new Error(); }
+    catch { alert("That isn't a valid JSON array."); return; }
+    if (!confirm(`Import ${arr.length} passage(s)?`)) return;
+    setSaving(true);
+    let ok = 0;
+    for (const b of arr) {
+      try {
+        const res = await fetch("/api/challenges", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...b, color: b.color ?? catColor(b.cat ?? "Real Passages") }),
+        });
+        if (res.ok) ok++;
+      } catch { /* skip */ }
+    }
+    await refresh();
+    setImportText("");
+    setSaving(false);
+    alert(`Imported ${ok} of ${arr.length}.`);
+  }
 
   const customBadges = challenges.filter((c) => c.custom);
   const customCatNames = new Set(customCats.map((c) => c.name));
@@ -232,6 +273,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <button className={"chip" + (tool === "create" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("create")}>{editingId ? "Edit" : "Create"}</button>
           <button className={"chip" + (tool === "passages" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("passages")}>Passages</button>
           <button className={"chip" + (tool === "categories" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("categories")}>Categories</button>
+          <button className={"chip" + (tool === "bulk" ? " on" : "")} style={{ flex: 1 }} onClick={() => setTool("bulk")}>Bulk</button>
         </div>
 
         {tool === "create" && (
@@ -407,6 +449,26 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             <p className="muted" style={{ fontSize: 12, textAlign: "center", marginTop: 8 }}>
               Recoloring a built-in saves an override. Deleting a built-in hides it (restorable); custom ones are removed.
             </p>
+          </>
+        )}
+
+        {tool === "bulk" && (
+          <>
+            <div className="label" style={{ margin: "0 0 6px" }}>Export — current passages ({challenges.length})</div>
+            <p className="muted" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+              Copy this and paste it to Claude to generate new passages in the same style.
+            </p>
+            <textarea readOnly value={exportJson} rows={8} style={{ fontFamily: "monospace", fontSize: 11 }} onFocus={(e) => e.currentTarget.select()} />
+            <div style={{ height: 8 }} />
+            <button className="btn" onClick={copyExport}>Copy all passages</button>
+
+            <div className="label" style={{ margin: "20px 0 6px" }}>Import — paste a JSON array</div>
+            <p className="muted" style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+              Paste generated passages (array of objects) to add them all at once.
+            </p>
+            <textarea value={importText} onChange={(e) => setImportText(e.target.value)} rows={6} placeholder='[ { "nm": "...", "cat": "Real Passages", "stars": 3, "pts": 50, "blurb": "...", "ico": "flame", "shape": "shield", "effects": ["fire"], "how": ["..."] } ]' style={{ fontFamily: "monospace", fontSize: 11 }} />
+            <div style={{ height: 10 }} />
+            <button className="btn" disabled={!importText.trim() || saving} onClick={importAll}>{saving ? "Importing…" : "Import all"}</button>
           </>
         )}
 
