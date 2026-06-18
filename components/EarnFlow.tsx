@@ -1,19 +1,18 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { upload } from "@vercel/blob/client";
 import QRCode from "qrcode";
 import Badge from "./Badge";
 import Ico from "./Ico";
 import { useCatalog } from "@/lib/catalog";
-import type { Challenge, WitnessEntry } from "@/lib/types";
+import type { Challenge, WitnessEntry, ProofEntry } from "@/lib/types";
 
 interface Props {
   ch: Challenge;
   onCancel: () => void;
   onCommit: (
     challengeId: string,
-    proofUrl: string,
-    proofType: "photo" | "video",
+    proofs: ProofEntry[],
     place: string,
     witnessToken: string,
     note: string,
@@ -27,12 +26,13 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
   const { isAdmin } = useCatalog();
   const media = ch.proofMedia ?? "either";
   const accept = media === "photo" ? "image/*" : media === "video" ? "video/*" : "image/*,video/*";
-  const mediaLabel = media === "photo" ? "a photo" : media === "video" ? "a video" : "a photo or video";
+
+  // One proof per step. Falls back to a single slot if the challenge has no steps.
+  const steps = (ch.how && ch.how.length > 0) ? ch.how : ["Proof of completion"];
 
   const [step, setStep] = useState(0);
-  const [proofUrl, setProofUrl] = useState("");
-  const [proofType, setProofType] = useState<"photo" | "video">("photo");
-  const [uploading, setUploading] = useState(false);
+  const [proofs, setProofs] = useState<(ProofEntry | null)[]>(() => steps.map(() => null));
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [place, setPlace] = useState("");
   const [lat, setLat] = useState<number | undefined>(undefined);
   const [lng, setLng] = useState<number | undefined>(undefined);
@@ -42,7 +42,6 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
   const [qrUrl, setQrUrl] = useState("");
   const [qrBig, setQrBig] = useState(false);
   const [witnesses, setWitnesses] = useState<WitnessEntry[]>([]);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   // Create a witness session + QR as soon as the challenge box opens, so
   // friends can scan it from the top-left before the challenge even starts.
@@ -77,22 +76,24 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     return () => clearInterval(iv);
   }, [token]);
 
-  async function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function pickFile(e: React.ChangeEvent<HTMLInputElement>, idx: number) {
     const f = e.target.files?.[0];
+    e.target.value = "";
     if (!f) return;
     const isVideo = f.type.startsWith("video");
-    if (media === "photo" && isVideo) { alert("This passage needs a photo."); return; }
-    if (media === "video" && !isVideo) { alert("This passage needs a video."); return; }
-    setUploading(true);
+    if (media === "photo" && isVideo) { alert("This step needs a photo."); return; }
+    if (media === "video" && !isVideo) { alert("This step needs a video."); return; }
+    setUploadingIdx(idx);
     try {
       const blob = await upload(`proofs/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" });
-      setProofUrl(blob.url);
-      setProofType(isVideo ? "video" : "photo");
+      setProofs((prev) => prev.map((p, i) => (i === idx ? { url: blob.url, type: isVideo ? "video" : "photo", step: steps[idx] } : p)));
     } catch {
       alert("Upload failed — try again.");
     }
-    setUploading(false);
+    setUploadingIdx(null);
   }
+
+  const allProofsIn = proofs.every(Boolean);
 
   function useMyLocation() {
     if (!("geolocation" in navigator)) { alert("Location isn't available on this device."); return; }
@@ -119,7 +120,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
   }
 
   function commit(adminSkip = false) {
-    onCommit(ch.id, proofUrl, proofType, place.trim(), token, note.trim(), lat, lng, adminSkip);
+    onCommit(ch.id, proofs.filter(Boolean) as ProofEntry[], place.trim(), token, note.trim(), lat, lng, adminSkip);
   }
 
   return (
@@ -159,40 +160,39 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
         {step === 0 && (
           <div>
             <p className="muted" style={{ fontSize: 14, margin: "0 0 12px" }}>
-              Every badge needs proof. Add {mediaLabel} of you doing it.
+              Capture each step below. Every step needs its own photo or video.
             </p>
-            {proofUrl ? (
-              <div className="card" style={{ padding: 8 }}>
-                {proofType === "video"
-                  ? <video className="proof" src={proofUrl} controls playsInline />
-                  : <img className="proof" src={proofUrl} alt="proof" />}
-                <div className="muted" style={{ textAlign: "center", fontSize: 12.5, marginTop: 6 }}>
-                  {proofType === "video" ? "Video uploaded" : "Photo uploaded"}
+            {steps.map((s, i) => {
+              const pr = proofs[i];
+              return (
+                <div key={i} className="card" style={{ padding: 10, marginBottom: 10 }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ minWidth: 22, height: 22, borderRadius: "50%", background: pr ? "var(--green)" : "var(--tint)", color: pr ? "#fff" : "var(--muted)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{pr ? "✓" : i + 1}</span>
+                    <div style={{ flex: 1, fontSize: 13.5, lineHeight: 1.4 }}>{s}</div>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    {pr ? (
+                      <div>
+                        {pr.type === "video" ? <video className="proof" src={pr.url} controls playsInline /> : <img className="proof" src={pr.url} alt="proof" />}
+                        <label className="btn ghost" style={{ display: "block", marginTop: 8, cursor: "pointer", textAlign: "center" }}>
+                          Replace<input type="file" accept={accept} onChange={(e) => pickFile(e, i)} className="hide" />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className="card" style={{ display: "block", padding: 20, textAlign: "center", cursor: "pointer", borderStyle: "dashed" }}>
+                        <div style={{ width: 34, height: 34, margin: "0 auto 6px", opacity: .5 }}><Ico name="camera" stroke="#7a7367" /></div>
+                        <div className="display" style={{ fontSize: 14, color: "var(--muted)" }}>{uploadingIdx === i ? "Uploading…" : "Tap to capture"}</div>
+                        <input type="file" accept={accept} onChange={(e) => pickFile(e, i)} className="hide" />
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div
-                onClick={() => !uploading && fileRef.current?.click()}
-                className="card"
-                style={{ padding: 38, textAlign: "center", cursor: "pointer", borderStyle: "dashed" }}
-              >
-                <div style={{ width: 46, height: 46, margin: "0 auto 10px", opacity: .5 }}>
-                  <Ico name="camera" stroke="#7a7367" />
-                </div>
-                <div className="display" style={{ fontSize: 15, color: "var(--muted)" }}>
-                  {uploading ? "Uploading…" : `Tap to add ${mediaLabel}`}
-                </div>
-              </div>
-            )}
-            <input ref={fileRef} type="file" accept={accept} onChange={pickFile} className="hide" />
-            <div style={{ height: 14 }} />
-            {proofUrl && (
-              <>
-                <button className="btn ghost" onClick={() => fileRef.current?.click()}>Replace</button>
-                <div style={{ height: 10 }} />
-              </>
-            )}
-            <button className="btn" disabled={!proofUrl || uploading} onClick={() => setStep(1)}>Next</button>
+              );
+            })}
+            <div style={{ height: 6 }} />
+            <button className="btn" disabled={!allProofsIn || uploadingIdx !== null} onClick={() => setStep(1)}>
+              {allProofsIn ? "Next" : `Capture all ${steps.length} steps`}
+            </button>
           </div>
         )}
 

@@ -2,6 +2,7 @@
 import Badge from "./Badge";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
+import ProofGallery from "./ProofGallery";
 import { chStars } from "@/lib/challenges";
 import type { Challenge, Post } from "@/lib/types";
 
@@ -53,7 +54,7 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
         {earned && post ? (
           <div className="card" style={{ padding: 14 }}>
             <div className="label" style={{ marginBottom: 10, color: "var(--green)" }}>You earned this</div>
-            {post.proofUrl && <img className="proof" src={post.proofUrl} alt="proof" />}
+            <ProofGallery proofs={post.proofs} fallbackUrl={post.proofUrl} fallbackType={post.proofType} />
             <div className="muted" style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
               <div><b style={{ color: "var(--ink)" }}>{fmtFull(post.createdAt)}</b></div>
               {(post.place || post.lat != null) && (

@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
     // user can't post as someone else.
     const body = (await req.json()) as Pick<
       Post,
-      "challengeId" | "proofUrl" | "proofType" | "place" | "lat" | "lng" | "note"
+      "challengeId" | "proofs" | "place" | "lat" | "lng" | "note"
     > & { witnessToken?: string; adminSkip?: boolean };
+    const proofs = Array.isArray(body.proofs) ? body.proofs : [];
 
     // Admins can bypass witness verification (testing only).
     const adminSkip = body.adminSkip && isAdmin(session);
@@ -66,8 +67,9 @@ export async function POST(req: NextRequest) {
       userHandle: profile.handle,
       userAvatarUrl: profile.avatarUrl,
       challengeId: body.challengeId,
-      proofUrl: body.proofUrl,
-      proofType: body.proofType,
+      proofUrl: proofs[0]?.url ?? "",
+      proofType: proofs[0]?.type ?? "photo",
+      proofs,
       place: body.place,
       lat: body.lat,
       lng: body.lng,

@@ -99,8 +99,9 @@ export interface Post {
   userHandle: string;
   userAvatarUrl: string;
   challengeId: string;
-  proofUrl: string;
-  proofType: "photo" | "video";
+  proofUrl: string;             // first proof (back-compat / feed thumbnail)
+  proofType: "photo" | "video"; // first proof type
+  proofs?: ProofEntry[];        // one capture per step
   place: string;
   lat?: number;
   lng?: number;
@@ -119,6 +120,12 @@ export interface WitnessEntry {
   name: string;
   handle: string;
   photoUrl?: string;
+}
+
+export interface ProofEntry {
+  url: string;
+  type: "photo" | "video";
+  step?: string; // the step this capture proves
 }
 
 export interface SeedPost {

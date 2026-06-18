@@ -5,6 +5,7 @@ import SashBoard from "./SashBoard";
 import SquadPanel from "./SquadPanel";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
+import ProofGallery from "./ProofGallery";
 import { chStars } from "@/lib/challenges";
 import { useCatalog } from "@/lib/catalog";
 import type { UserProfile, Post, Challenge, SquadBadge } from "@/lib/types";
@@ -105,7 +106,7 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
               </svg>
             </button>
           </div>
-          {p.proofUrl && <img className="proof" src={p.proofUrl} alt="proof" />}
+          <ProofGallery proofs={p.proofs} fallbackUrl={p.proofUrl} fallbackType={p.proofType} />
           <div className="muted" style={{ marginTop: 9, fontSize: 13, lineHeight: 1.6 }}>
             {(p.place || p.lat != null) && (
               <div>

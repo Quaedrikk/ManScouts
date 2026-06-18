@@ -13,7 +13,7 @@ import AdminPanel from "./AdminPanel";
 import Leaderboard from "./Leaderboard";
 import ProfileView from "./ProfileView";
 import SquadView from "./SquadView";
-import type { UserProfile, Post, Challenge } from "@/lib/types";
+import type { UserProfile, Post, Challenge, ProofEntry } from "@/lib/types";
 import { useCatalog } from "@/lib/catalog";
 import { effectivePoints } from "@/lib/bonus";
 
@@ -133,8 +133,7 @@ export default function AppShell() {
 
   async function commitBadge(
     challengeId: string,
-    proofUrl: string,
-    proofType: "photo" | "video",
+    proofs: ProofEntry[],
     place: string,
     witnessToken: string,
     note: string,
@@ -148,7 +147,7 @@ export default function AppShell() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          challengeId, proofUrl, proofType, place, lat, lng, note, witnessToken, adminSkip,
+          challengeId, proofs, place, lat, lng, note, witnessToken, adminSkip,
         }),
       });
       if (res.ok) {

@@ -32,6 +32,7 @@ interface PostCardProps {
   ago: string;
   witnessPhotoUrl?: string;
   witnessPhotos?: (string | undefined)[];
+  proofCount?: number;
   squad?: SquadBadge;
   onCheer: () => void;
   onPick: (ch: Challenge) => void;
@@ -41,7 +42,7 @@ interface PostCardProps {
   onOpenSquad?: (id: string) => void;
 }
 
-function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, squad, onCheer, onPick, onDelete, uid, onOpenProfile, onOpenSquad }: PostCardProps) {
+function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witness, cheerCount, cheered, ago, witnessPhotoUrl, witnessPhotos, proofCount, squad, onCheer, onPick, onDelete, uid, onOpenProfile, onOpenSquad }: PostCardProps) {
   const { byId, catColor } = useCatalog();
   const ch = byId(cid);
   if (!ch) return null;
@@ -81,9 +82,16 @@ function PostCard({ id, cid, name, handle, avatarUrl, proofUrl, place, cap, witn
         <span>Earned <b>{ch.nm}</b></span>
         <Stars n={chStars(ch)} size={12} />
       </div>
-      {proofUrl
-        ? <img className="proof" src={proofUrl} alt="proof" />
-        : <Scene an={ch.an} id={id} />}
+      {proofUrl ? (
+        <div style={{ position: "relative" }}>
+          <img className="proof" src={proofUrl} alt="proof" />
+          {(proofCount ?? 0) > 1 && (
+            <span style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,.6)", color: "#fff", fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 999 }}>
+              ◰ {proofCount} captures
+            </span>
+          )}
+        </div>
+      ) : <Scene an={ch.an} id={id} />}
       <div style={{ fontSize: 14, margin: "11px 2px 8px", lineHeight: 1.45 }}>{cap}</div>
       <div className="muted" style={{ fontSize: 12.5, margin: "0 2px 12px" }}>
         {place && <>📍 {place} · </>}
@@ -167,6 +175,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
     witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
+    proofCount: p.proofs?.length ?? (p.proofUrl ? 1 : 0),
     squad: p.squad,
     del: (() => onDelete(p.id)) as (() => void) | undefined,
   }));
@@ -188,6 +197,7 @@ export default function Board({ profile, posts, cheers, cheerCounts, onCheer, on
     uid: p.userId as string | undefined,
     witnessPhotoUrl: p.witnessPhotoUrl,
     witnessPhotos: p.witnesses?.map((w) => w.photoUrl),
+    proofCount: p.proofs?.length ?? (p.proofUrl ? 1 : 0),
     squad: p.squad,
     // Admins can delete anyone's post.
     del: (isAdmin ? () => onDelete(p.id) : undefined) as (() => void) | undefined,

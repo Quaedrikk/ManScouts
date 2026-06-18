@@ -4,6 +4,7 @@ import Badge from "./Badge";
 import Stars from "./Stars";
 import SashBoard from "./SashBoard";
 import WitnessPhoto from "./WitnessPhoto";
+import ProofGallery from "./ProofGallery";
 import { chStars } from "@/lib/challenges";
 import { effectivePoints } from "@/lib/bonus";
 import { useCatalog } from "@/lib/catalog";
@@ -109,7 +110,7 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
                   </div>
                   <Stars n={chStars(p.ch)} size={12} />
                 </div>
-                {p.proofUrl && <img className="proof" src={p.proofUrl} alt="proof" />}
+                <ProofGallery proofs={p.proofs} fallbackUrl={p.proofUrl} fallbackType={p.proofType} />
                 <div className="muted" style={{ marginTop: 9, fontSize: 13, lineHeight: 1.6 }}>
                   {p.place && <div>📍 {p.place}</div>}
                   {p.witnessName && <div><WitnessPhoto url={p.witnessPhotoUrl} photos={p.witnesses?.map((w) => w.photoUrl)}>Witnessed by <b style={{ color: "var(--ink)" }}>{p.witnessName}</b> {p.witnessHandle}</WitnessPhoto></div>}
