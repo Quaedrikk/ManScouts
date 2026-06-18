@@ -230,7 +230,7 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
 
       <div
         style={{
-          borderRadius: 18, padding: "14px 14px", margin: "16px 0 10px", textAlign: "center",
+          borderRadius: 18, padding: "14px 14px 8px", margin: "16px 0 16px", textAlign: "center",
           background: "linear-gradient(135deg, #4a3a6b, #2a2140)",
           boxShadow: "0 8px 22px rgba(42,33,64,.28)",
         }}
@@ -240,23 +240,30 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
           Season ends when fall begins
         </div>
         <Countdown to={season.end} />
-      </div>
 
-      <button className="prizebtn" onClick={() => setShowPrizes((s) => !s)} style={{ marginBottom: 16 }}>
-        🏆 Season Prizes <span style={{ transform: showPrizes ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
-      </button>
-      {showPrizes && (
-        <div className="prizepanel" style={{ marginBottom: 16 }}>
-          {PRIZES.map((p, i) => (
-            <div key={p.place} className="prizerow">
-              <span className="prizemedal" style={{ background: MEDAL[i] }}>{i + 1}</span>
-              <div style={{ flex: 1, fontWeight: 800, fontSize: 14 }}>{p.place} place</div>
-              <span className="prizeamt">{p.amount}</span>
-            </div>
-          ))}
-          <p className="muted" style={{ fontSize: 11.5, textAlign: "center", marginTop: 10 }}>Top 3 at season&apos;s end.</p>
-        </div>
-      )}
+        {showPrizes && (
+          <div className="prizepanel" style={{ marginTop: 14 }}>
+            <div className="label" style={{ color: "rgba(255,255,255,.7)", marginBottom: 8 }}>🏆 Season Prizes</div>
+            {PRIZES.map((p, i) => (
+              <div key={p.place} className="prizerow prizerow-dark">
+                <span className="prizemedal" style={{ background: MEDAL[i] }}>{i + 1}</span>
+                <div style={{ flex: 1, fontWeight: 800, fontSize: 14, color: "#fff" }}>{p.place} place</div>
+                <span className="prizeamt">{p.amount}</span>
+              </div>
+            ))}
+            <p style={{ fontSize: 11.5, textAlign: "center", marginTop: 10, color: "rgba(255,255,255,.6)" }}>Top 3 at season&apos;s end.</p>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowPrizes((s) => !s)}
+          aria-label={showPrizes ? "Hide prizes" : "Show prizes"}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.85)", marginTop: 6, padding: "2px 16px", fontSize: 12, fontWeight: 800, letterSpacing: ".04em", display: "inline-flex", alignItems: "center", gap: 6 }}
+        >
+          {showPrizes ? "HIDE PRIZES" : "VIEW PRIZES"}
+          <span style={{ display: "inline-block", transform: showPrizes ? "rotate(180deg)" : "none", transition: "transform .2s", fontSize: 14 }}>▾</span>
+        </button>
+      </div>
 
       <div className="display" style={{ fontSize: 26, margin: "4px 2px 4px" }}>Leaderboard</div>
       <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>
