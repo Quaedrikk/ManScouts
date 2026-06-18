@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
 import Badge from "./Badge";
+import SeasonIntro from "./SeasonIntro";
 import { useCatalog } from "@/lib/catalog";
 import { effectivePoints } from "@/lib/bonus";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
@@ -68,6 +69,12 @@ interface Rank {
 }
 
 const MEDAL = ["#d9a441", "#b8b8c0", "#c9803f"]; // gold / silver / bronze
+// Edit these amounts anytime.
+const PRIZES = [
+  { place: "1st", amount: "$300" },
+  { place: "2nd", amount: "$200" },
+  { place: "3rd", amount: "$100" },
+];
 const RING = (i: number) => (i < 3 ? MEDAL[i] : "rgba(255,255,255,.85)");
 
 // A climber's spot on the slope: more points => higher toward the summit.
@@ -164,6 +171,14 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
   const season = currentSeason();
   const [openId, setOpenId] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Record<string, string[]>>({});
+  const [intro, setIntro] = useState(false);
+  const [showPrizes, setShowPrizes] = useState(false);
+
+  // Show the Season 1 intro once.
+  useEffect(() => {
+    if (!localStorage.getItem("ms:seenSeason1")) setIntro(true);
+  }, []);
+  function dismissIntro() { localStorage.setItem("ms:seenSeason1", "1"); setIntro(false); }
 
   // My unique earned badges (for the featured picker shown on my own row).
   const myEarned = Array.from(new Map(
@@ -211,9 +226,11 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
 
   return (
     <div>
+      {intro && <SeasonIntro onClose={dismissIntro} />}
+
       <div
         style={{
-          borderRadius: 18, padding: "14px 14px", margin: "16px 0 14px", textAlign: "center",
+          borderRadius: 18, padding: "14px 14px", margin: "16px 0 10px", textAlign: "center",
           background: "linear-gradient(135deg, #4a3a6b, #2a2140)",
           boxShadow: "0 8px 22px rgba(42,33,64,.28)",
         }}
@@ -224,6 +241,22 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
         </div>
         <Countdown to={season.end} />
       </div>
+
+      <button className="prizebtn" onClick={() => setShowPrizes((s) => !s)} style={{ marginBottom: 16 }}>
+        🏆 Season Prizes <span style={{ transform: showPrizes ? "rotate(180deg)" : "none", transition: "transform .2s" }}>▾</span>
+      </button>
+      {showPrizes && (
+        <div className="prizepanel" style={{ marginBottom: 16 }}>
+          {PRIZES.map((p, i) => (
+            <div key={p.place} className="prizerow">
+              <span className="prizemedal" style={{ background: MEDAL[i] }}>{i + 1}</span>
+              <div style={{ flex: 1, fontWeight: 800, fontSize: 14 }}>{p.place} place</div>
+              <span className="prizeamt">{p.amount}</span>
+            </div>
+          ))}
+          <p className="muted" style={{ fontSize: 11.5, textAlign: "center", marginTop: 10 }}>Top 3 at season&apos;s end.</p>
+        </div>
+      )}
 
       <div className="display" style={{ fontSize: 26, margin: "4px 2px 4px" }}>Leaderboard</div>
       <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>
