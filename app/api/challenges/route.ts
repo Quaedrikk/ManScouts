@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge, deleteAllCustomChallenges, getHiddenChallenges, hideChallenge, unhideAllChallenges } from "@/lib/kv";
+import { getCustomChallenges, addCustomChallenge, deleteCustomChallenge, deleteAllCustomChallenges, getHiddenChallenges, hideChallenge, unhideAllChallenges, getOverrides } from "@/lib/kv";
 import type { Challenge } from "@/lib/types";
 
 export async function GET() {
   try {
-    const [challenges, hidden] = await Promise.all([getCustomChallenges(), getHiddenChallenges()]);
-    return NextResponse.json({ challenges, hidden });
+    const [challenges, hidden, overrides] = await Promise.all([getCustomChallenges(), getHiddenChallenges(), getOverrides()]);
+    return NextResponse.json({ challenges, hidden, overrides });
   } catch (err) {
     console.error("GET /api/challenges", err);
-    return NextResponse.json({ challenges: [], hidden: [] });
+    return NextResponse.json({ challenges: [], hidden: [], overrides: {} });
   }
 }
 

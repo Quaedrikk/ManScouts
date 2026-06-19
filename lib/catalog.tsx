@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { CHALLENGES, CATS } from "./challenges";
 import { GENERATED } from "./generated";
 import { isAdminEmail } from "./admin";
-import type { Challenge, Category } from "./types";
+import type { Challenge, Category, ChallengeOverride } from "./types";
 
 // Categories that always exist on top of the built-in ones.
 const EXTRA_CATS: Record<string, { c: string }> = {
@@ -33,6 +33,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const [customCats, setCustomCats] = useState<Category[]>([]);
   const [hiddenCh, setHiddenCh] = useState<string[]>([]);
   const [hiddenCat, setHiddenCat] = useState<string[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, ChallengeOverride>>({});
   const [favourites, setFavourites] = useState<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
@@ -43,6 +44,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
       ]);
       setCustom(c.challenges ?? []);
       setHiddenCh(c.hidden ?? []);
+      setOverrides(c.overrides ?? {});
       setCustomCats(k.categories ?? []);
       setHiddenCat(k.hidden ?? []);
     } catch { /* ignore */ }
@@ -76,7 +78,12 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   for (const name of hiddenCat) delete cats[name]; // soft-deleted categories
 
   const hiddenSet = new Set(hiddenCh);
-  const challenges = [...CHALLENGES, ...GENERATED, ...custom].filter((c) => !hiddenSet.has(c.id));
+  const challenges = [...CHALLENGES, ...GENERATED, ...custom]
+    .filter((c) => !hiddenSet.has(c.id))
+    .map((c) => {
+      const o = overrides[c.id];
+      return o ? { ...c, ...(o.pts != null ? { pts: o.pts } : {}), ...(o.how ? { how: o.how } : {}), ...(o.proofMedia ? { proofMedia: o.proofMedia } : {}), ...(o.needsWitness != null ? { needsWitness: o.needsWitness } : {}) } : c;
+    });
   const map = new Map(challenges.map((c) => [c.id, c]));
 
   const value: CatalogValue = {

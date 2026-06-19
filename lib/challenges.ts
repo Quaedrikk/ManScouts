@@ -53,6 +53,8 @@ export const CHALLENGES: Challenge[] = [
 
 export const byId = (id: string) => CHALLENGES.find((c) => c.id === id);
 
-// Difficulty as a 1–5 star count for any challenge.
-export const chStars = (ch: { stars?: number; df?: string }): number =>
-  ch.stars ?? DIFF_STARS[ch.df ?? ""] ?? 3;
+// Difficulty is derived from how many points a badge gives.
+// 1★ 1–25 · 2★ 25–50 · 3★ 50–100 · 4★ 100–300 · 5★ 300+
+export const starsFromPoints = (pts: number): number =>
+  pts < 25 ? 1 : pts < 50 ? 2 : pts < 100 ? 3 : pts < 300 ? 4 : 5;
+export const chStars = (ch: { pts?: number }): number => starsFromPoints(ch.pts ?? 0);

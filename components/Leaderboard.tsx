@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 import SeasonIntro from "./SeasonIntro";
+import BadgeVoting from "./BadgeVoting";
 import { useCatalog } from "@/lib/catalog";
 import { effectivePoints } from "@/lib/bonus";
 import type { UserProfile, Post, Challenge } from "@/lib/types";
@@ -264,6 +265,8 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
           <span style={{ display: "inline-block", transform: showPrizes ? "rotate(180deg)" : "none", transition: "transform .2s", fontSize: 14 }}>▾</span>
         </button>
       </div>
+
+      <BadgeVoting />
 
       <div className="display" style={{ fontSize: 26, margin: "4px 2px 4px" }}>Leaderboard</div>
       <p className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>

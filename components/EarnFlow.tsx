@@ -29,6 +29,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
 
   // One proof per step. Falls back to a single slot if the challenge has no steps.
   const steps = (ch.how && ch.how.length > 0) ? ch.how : ["Proof of completion"];
+  const requiresWitness = ch.needsWitness !== false;
 
   const [step, setStep] = useState(0);
   const [proofs, setProofs] = useState<(ProofEntry | null)[]>(() => steps.map(() => null));
@@ -218,7 +219,21 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && !requiresWitness && (
+          <div style={{ textAlign: "center" }}>
+            <div className="card" style={{ padding: 22 }}>
+              <div style={{ fontSize: 40 }}>✓</div>
+              <div className="display" style={{ fontSize: 17, marginTop: 6 }}>No witness needed</div>
+              <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>This badge can be self-verified. You&apos;re good to post.</div>
+            </div>
+            <div style={{ height: 18 }} />
+            <button className="btn green" onClick={() => commit(false)}>Post &amp; award badge</button>
+            <div style={{ height: 10 }} />
+            <button className="btn ghost" onClick={() => setStep(1)}>Back</button>
+          </div>
+        )}
+
+        {step === 2 && requiresWitness && (
           <div>
             <p className="muted" style={{ fontSize: 14, margin: "0 0 14px" }}>
               No badge is self-awarded. Have friends scan this QR, snap a photo of you, and they appear here.

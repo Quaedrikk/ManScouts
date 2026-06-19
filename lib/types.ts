@@ -21,7 +21,37 @@ export interface Challenge {
   proofMedia?: "photo" | "video" | "either"; // required proof format
   custom?: boolean;    // true for admin-created badges
   generated?: boolean; // true for AI-generated, code-shipped badges
+  needsWitness?: boolean; // default true; can be voted off
 }
+
+// ---- Pre-season voting ----
+export interface ChallengeOverride {
+  pts?: number;
+  how?: string[];
+  proofMedia?: "photo" | "video" | "either";
+  needsWitness?: boolean;
+}
+
+export interface Proposal {
+  id: string;
+  challengeId: string;
+  challengeName: string;
+  userId: string;
+  userName: string;
+  pts?: number;
+  how?: string[];
+  proofMedia?: "photo" | "video" | "either";
+  needsWitness?: boolean;
+  note?: string;
+  createdAt: string;
+  // populated for display
+  votesYes?: number;
+  votesNo?: number;
+  myVote?: "yes" | "no" | null;
+}
+
+export type SeasonPhase = "off" | "voting" | "review" | "closed";
+export interface SeasonState { phase: SeasonPhase; updatedAt?: string; }
 
 export type BadgeShape =
   | "circle" | "shield" | "hex" | "rosette" | "square" | "star"

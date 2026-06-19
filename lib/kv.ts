@@ -1,5 +1,5 @@
 import { kv } from "@vercel/kv";
-import type { Post, UserProfile, Challenge, Category, WitnessSession, SashLayout, Squad } from "./types";
+import type { Post, UserProfile, Challenge, Category, WitnessSession, SashLayout, Squad, SeasonState, Proposal, ChallengeOverride } from "./types";
 
 const FEED_KEY = "ms:feed";
 const POST_KEY = (id: string) => `ms:post:${id}`;
@@ -127,6 +127,47 @@ export async function saveSquad(s: Squad): Promise<void> {
 }
 export async function getSquadIdByCode(code: string): Promise<string | null> {
   return kv.get<string>(SQUAD_CODE_KEY(code.toUpperCase()));
+}
+
+// ---- Pre-season voting ----
+const SEASON_KEY = "ms:season";
+const PROPOSALS_KEY = "ms:proposals";
+const PROPVOTES_KEY = "ms:propvotes";
+const OVERRIDES_KEY = "ms:overrides";
+
+export async function getSeason(): Promise<SeasonState> {
+  return (await kv.get<SeasonState>(SEASON_KEY)) ?? { phase: "off" };
+}
+export async function setSeason(s: SeasonState): Promise<void> {
+  await kv.set(SEASON_KEY, { ...s, updatedAt: new Date().toISOString() });
+}
+
+export async function getProposals(): Promise<Proposal[]> {
+  return (await kv.get<Proposal[]>(PROPOSALS_KEY)) ?? [];
+}
+export async function addProposal(p: Proposal): Promise<void> {
+  const list = await getProposals();
+  await kv.set(PROPOSALS_KEY, [...list, p]);
+}
+export async function clearProposals(): Promise<void> {
+  await kv.set(PROPOSALS_KEY, []);
+  await kv.set(PROPVOTES_KEY, {});
+}
+
+export async function getPropVotes(): Promise<Record<string, Record<string, "yes" | "no">>> {
+  return (await kv.get<Record<string, Record<string, "yes" | "no">>>(PROPVOTES_KEY)) ?? {};
+}
+export async function setPropVote(proposalId: string, userId: string, vote: "yes" | "no"): Promise<void> {
+  const all = await getPropVotes();
+  all[proposalId] = { ...(all[proposalId] ?? {}), [userId]: vote };
+  await kv.set(PROPVOTES_KEY, all);
+}
+
+export async function getOverrides(): Promise<Record<string, ChallengeOverride>> {
+  return (await kv.get<Record<string, ChallengeOverride>>(OVERRIDES_KEY)) ?? {};
+}
+export async function setOverrides(o: Record<string, ChallengeOverride>): Promise<void> {
+  await kv.set(OVERRIDES_KEY, o);
 }
 
 export async function getFeed(limit = 50): Promise<Post[]> {

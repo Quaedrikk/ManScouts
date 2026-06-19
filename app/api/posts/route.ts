@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost, getSquad } from "@/lib/kv";
+import { getFeed, createPost, getCheerCount, getUserProfile, getWitnessSession, getPost, deletePost, getSquad, getCustomChallenges, getOverrides } from "@/lib/kv";
+import { CHALLENGES } from "@/lib/challenges";
+import { GENERATED } from "@/lib/generated";
 import type { Post, WitnessEntry } from "@/lib/types";
 
 export async function GET() {
@@ -41,9 +43,16 @@ export async function POST(req: NextRequest) {
     // Admins can bypass witness verification (testing only).
     const adminSkip = body.adminSkip && isAdmin(session);
 
+    // Does this badge require a witness? (base def + season override)
+    const [customCh, overrides] = await Promise.all([getCustomChallenges(), getOverrides()]);
+    const base = [...CHALLENGES, ...GENERATED, ...customCh].find((c) => c.id === body.challengeId);
+    const needsWitness = overrides[body.challengeId]?.needsWitness ?? base?.needsWitness ?? true;
+
     let ws: WitnessEntry[];
-    if (adminSkip) {
-      ws = [{ id: profile.id, name: "Admin skip (test)", handle: "" }];
+    if (adminSkip || !needsWitness) {
+      ws = adminSkip
+        ? [{ id: profile.id, name: "Admin skip (test)", handle: "" }]
+        : [];
     } else {
       // A badge can't be self-awarded: require a confirmed witness session that
       // belongs to this earner. Witness identity is taken from the server record.
