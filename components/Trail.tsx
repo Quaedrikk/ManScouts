@@ -57,7 +57,6 @@ export default function Trail({ earnedIds, onPick }: Props) {
   }
 
   const SORTS: { k: SortMode; label: string }[] = [
-    { k: "difficulty", label: "By Difficulty" },
     { k: "category", label: "By Category" },
     { k: "points", label: "By Points" },
   ];

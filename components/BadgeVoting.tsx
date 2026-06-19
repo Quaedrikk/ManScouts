@@ -173,10 +173,10 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
                 <div className="card" style={{ padding: "12px 14px", margin: "14px 0 6px" }}>
                   <div className="label" style={{ marginBottom: 8 }}>Completion criteria</div>
                   {(ch.how ?? []).length === 0 ? (
-                    <div className="muted" style={{ fontSize: 13 }}>One proof of completion.</div>
+                    <div style={{ fontSize: 16 }}>One proof of completion.</div>
                   ) : (ch.how ?? []).map((h, k) => (
-                    <div key={k} style={{ fontSize: 13.5, display: "flex", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 800, color: "var(--muted)" }}>{k + 1}.</span>{h}
+                    <div key={k} style={{ fontSize: 16, fontWeight: 600, display: "flex", gap: 8, marginBottom: 7, lineHeight: 1.35 }}>
+                      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{k + 1}.</span>{h}
                     </div>
                   ))}
                   <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
