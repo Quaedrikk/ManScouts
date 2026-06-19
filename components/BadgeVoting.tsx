@@ -10,12 +10,6 @@ const PHASE_LABEL: Record<SeasonPhase, string> = {
   off: "Not open yet", voting: "Voting open", review: "Review & vote", closed: "Closed",
 };
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  return a;
-}
-
 export default function BadgeVoting() {
   const { challenges, isAdmin, refresh } = useCatalog();
   const [phase, setPhase] = useState<SeasonPhase>("off");
@@ -112,108 +106,122 @@ function VoteIntro({ onClose }: { onClose: () => void }) {
 }
 
 function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: () => void }) {
-  const order = useMemo(() => shuffle(challenges), [challenges]);
-  const [i, setI] = useState(0);
-  const [editing, setEditing] = useState(false);
-  const ch = order[i];
+  const cats = useMemo(() => Array.from(new Set(challenges.map((c) => c.cat))), [challenges]);
+  const [picked, setPicked] = useState<Set<string> | null>(null); // null = all
+  const [started, setStarted] = useState(false);
+  const [ci, setCi] = useState(0);
+  const [editing, setEditing] = useState<Challenge | null>(null);
+  const [submitted, setSubmitted] = useState(0);
+
+  // edit form
   const [pts, setPts] = useState(0);
   const [how, setHow] = useState("");
   const [witness, setWitness] = useState(true);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [submitted, setSubmitted] = useState(0);
-
   useEffect(() => {
-    if (!ch) return;
-    setPts(ch.pts); setHow((ch.how ?? []).join("\n")); setWitness(ch.needsWitness !== false); setNote(""); setEditing(false);
-  }, [ch]);
+    if (!editing) return;
+    setPts(editing.pts); setHow((editing.how ?? []).join("\n")); setWitness(editing.needsWitness !== false); setNote("");
+  }, [editing]);
 
-  if (!ch) return null;
-  const done = i >= order.length;
-  function next() { setI((x) => x + 1); }
+  const sel = picked ?? new Set(cats);
+  const reviewCats = cats.filter((c) => sel.has(c) && challenges.some((x) => x.cat === c));
+  const total = challenges.filter((c) => sel.has(c.cat)).length;
+  function toggle(c: string) { const n = new Set(sel); if (n.has(c)) n.delete(c); else n.add(c); setPicked(n); }
+
+  const cat = reviewCats[ci];
+  const badges = cat ? challenges.filter((c) => c.cat === cat).sort((a, b) => a.pts - b.pts) : [];
+  const lastCat = ci >= reviewCats.length - 1;
 
   async function saveChange() {
+    if (!editing) return;
     setBusy(true);
     const howArr = how.split("\n").map((s) => s.trim()).filter(Boolean);
-    const changed: Record<string, unknown> = { challengeId: ch.id, challengeName: ch.nm };
-    if (pts !== ch.pts) changed.pts = pts;
-    if (JSON.stringify(howArr) !== JSON.stringify(ch.how ?? [])) changed.how = howArr;
-    if (witness !== (ch.needsWitness !== false)) changed.needsWitness = witness;
+    const changed: Record<string, unknown> = { challengeId: editing.id, challengeName: editing.nm };
+    if (pts !== editing.pts) changed.pts = pts;
+    if (JSON.stringify(howArr) !== JSON.stringify(editing.how ?? [])) changed.how = howArr;
+    if (witness !== (editing.needsWitness !== false)) changed.needsWitness = witness;
     if (note.trim()) changed.note = note.trim();
     const hasChange = "pts" in changed || "how" in changed || "needsWitness" in changed;
     if (hasChange) {
       try { await fetch("/api/proposals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) }); setSubmitted((s) => s + 1); } catch { /* ignore */ }
     }
     setBusy(false);
-    next();
+    setEditing(null);
   }
 
   return (
     <div className="scrim" style={{ alignItems: "center" }} onClick={onClose}>
-      <div className="sheet" style={{ borderRadius: 24, maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" style={{ borderRadius: 24, maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
         <div className="grip" />
-        {done ? (
+
+        {!started ? (
+          <>
+            <div className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 4px" }}>Review badges</div>
+            <p className="muted" style={{ textAlign: "center", fontSize: 13, margin: "0 0 14px" }}>Pick the categories you want to review.</p>
+            <div className="seg" style={{ marginBottom: 14 }}>
+              {cats.map((c) => (
+                <button key={c} className={"chip" + (sel.has(c) ? " on" : "")} onClick={() => toggle(c)}>{c}</button>
+              ))}
+            </div>
+            <div className="card" style={{ padding: 14, textAlign: "center", marginBottom: 14 }}>
+              <div className="display" style={{ fontSize: 30, color: "var(--accent)" }}>{total}</div>
+              <div className="muted" style={{ fontSize: 13 }}>badge{total === 1 ? "" : "s"} to review</div>
+            </div>
+            <button className="btn" disabled={total === 0} onClick={() => { setStarted(true); setCi(0); }}>Start review</button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+          </>
+        ) : editing ? (
+          <div className="votecard">
+            <div style={{ padding: "4px 0 6px" }}><Badge ch={editing} size={72} /></div>
+            <div className="display" style={{ fontSize: 20, textAlign: "center" }}>{editing.nm}</div>
+            <div className="label" style={{ margin: "14px 0 6px" }}>Points ({chStars({ pts })}★)</div>
+            <input type="number" value={pts} onChange={(e) => setPts(Number(e.target.value) || 0)} />
+            <div className="label" style={{ margin: "12px 0 6px" }}>Completion criteria (one capture per line)</div>
+            <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5, cursor: "pointer" }}>
+              <input type="checkbox" checked={witness} onChange={(e) => setWitness(e.target.checked)} style={{ width: 18, height: 18 }} />
+              Needs a witness
+            </label>
+            <div className="label" style={{ margin: "12px 0 6px" }}>Why? (optional)</div>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason for the change" />
+            <div style={{ height: 16 }} />
+            <button className="btn green" disabled={busy} onClick={saveChange}>Done — save proposal</button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={() => setEditing(null)}>Cancel</button>
+          </div>
+        ) : !cat ? (
           <div style={{ textAlign: "center", padding: "10px 0" }}>
             <div className="votepop" style={{ fontSize: 46 }}>🎉</div>
             <div className="display" style={{ fontSize: 22, marginTop: 6 }}>All reviewed!</div>
-            <p className="muted" style={{ fontSize: 13.5, marginTop: 6 }}>You submitted {submitted} proposal{submitted === 1 ? "" : "s"}. They&apos;re saved for the review round.</p>
+            <p className="muted" style={{ fontSize: 13.5, marginTop: 6 }}>You submitted {submitted} proposal{submitted === 1 ? "" : "s"}.</p>
             <div style={{ height: 14 }} />
             <button className="btn" onClick={onClose}>Done</button>
           </div>
         ) : (
-          <div key={ch.id} className="votecard">
-            <div className="muted" style={{ textAlign: "center", fontSize: 12, fontWeight: 700 }}>{i + 1} / {order.length}</div>
-            <div style={{ padding: "6px 0 8px" }}><Badge ch={ch} size={84} /></div>
-            <div className="display" style={{ fontSize: 22, textAlign: "center" }}>{ch.nm}</div>
-            <div className="muted" style={{ fontSize: 12, textAlign: "center", marginTop: 2 }}>{ch.cat}</div>
+          <div className="votecard">
+            <div className="muted" style={{ textAlign: "center", fontSize: 12, fontWeight: 700 }}>Category {ci + 1} / {reviewCats.length}</div>
+            <div className="display" style={{ fontSize: 22, textAlign: "center", marginTop: 2 }}>{cat}</div>
+            <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "4px 0 12px" }}>Tap a badge to propose a change · sorted by points</p>
 
-            {!editing ? (
-              <>
-                {/* Static read-only view */}
-                <div className="card" style={{ padding: "12px 14px", margin: "14px 0 6px" }}>
-                  <div className="label" style={{ marginBottom: 8 }}>Completion criteria</div>
-                  {(ch.how ?? []).length === 0 ? (
-                    <div style={{ fontSize: 16 }}>One proof of completion.</div>
-                  ) : (ch.how ?? []).map((h, k) => (
-                    <div key={k} style={{ fontSize: 16, fontWeight: 600, display: "flex", gap: 8, marginBottom: 7, lineHeight: 1.35 }}>
-                      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{k + 1}.</span>{h}
-                    </div>
-                  ))}
-                  <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-                    {ch.needsWitness === false ? "No witness required" : "Witness required"}
-                  </div>
+            <div className="hscroll">
+              {badges.map((b) => (
+                <div key={b.id} className="cell" onClick={() => setEditing(b)}>
+                  <Badge ch={b} size={66} />
+                  <div className="nm">{b.nm}</div>
+                  <div className="display" style={{ color: "var(--accent)", fontSize: 18, marginTop: 4 }}>{b.pts} pts</div>
+                  <div style={{ marginTop: 2 }}><Stars n={chStars(b)} size={11} /></div>
                 </div>
-                <div style={{ textAlign: "center", margin: "10px 0 16px" }}>
-                  <div className="display" style={{ color: "var(--accent)", fontSize: 40, lineHeight: 1 }}>{ch.pts} pts</div>
-                  <div style={{ marginTop: 4 }}><Stars n={chStars(ch)} size={15} /></div>
-                </div>
+              ))}
+            </div>
 
-                <button className="btn" onClick={next}>Next</button>
-                <div style={{ height: 8 }} />
-                <button className="btn ghost" onClick={() => setEditing(true)}>Propose change</button>
-              </>
-            ) : (
-              <>
-                <div className="label" style={{ margin: "14px 0 6px" }}>Points ({chStars({ pts })}★)</div>
-                <input type="number" value={pts} onChange={(e) => setPts(Number(e.target.value) || 0)} />
-
-                <div className="label" style={{ margin: "12px 0 6px" }}>Completion criteria (one capture per line)</div>
-                <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} />
-
-                <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5, cursor: "pointer" }}>
-                  <input type="checkbox" checked={witness} onChange={(e) => setWitness(e.target.checked)} style={{ width: 18, height: 18 }} />
-                  Needs a witness
-                </label>
-
-                <div className="label" style={{ margin: "12px 0 6px" }}>Why? (optional)</div>
-                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason for the change" />
-
-                <div style={{ height: 16 }} />
-                <button className="btn green" disabled={busy} onClick={saveChange}>Done — save proposal</button>
-                <div style={{ height: 8 }} />
-                <button className="btn ghost" onClick={() => setEditing(false)}>Cancel</button>
-              </>
-            )}
+            <div style={{ height: 14 }} />
+            <button className="btn" onClick={() => { if (lastCat) setCi(reviewCats.length); else setCi((x) => x + 1); }}>
+              {lastCat ? "Finish review" : "Next category →"}
+            </button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={onClose}>Close</button>
           </div>
         )}
       </div>
