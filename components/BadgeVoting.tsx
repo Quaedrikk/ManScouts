@@ -114,6 +114,7 @@ function VoteIntro({ onClose }: { onClose: () => void }) {
 function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: () => void }) {
   const order = useMemo(() => shuffle(challenges), [challenges]);
   const [i, setI] = useState(0);
+  const [editing, setEditing] = useState(false);
   const ch = order[i];
   const [pts, setPts] = useState(0);
   const [how, setHow] = useState("");
@@ -124,13 +125,14 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
 
   useEffect(() => {
     if (!ch) return;
-    setPts(ch.pts); setHow((ch.how ?? []).join("\n")); setWitness(ch.needsWitness !== false); setNote("");
+    setPts(ch.pts); setHow((ch.how ?? []).join("\n")); setWitness(ch.needsWitness !== false); setNote(""); setEditing(false);
   }, [ch]);
 
   if (!ch) return null;
   const done = i >= order.length;
+  function next() { setI((x) => x + 1); }
 
-  async function submit() {
+  async function saveChange() {
     setBusy(true);
     const howArr = how.split("\n").map((s) => s.trim()).filter(Boolean);
     const changed: Record<string, unknown> = { challengeId: ch.id, challengeName: ch.nm };
@@ -145,7 +147,6 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
     setBusy(false);
     next();
   }
-  function next() { setI((x) => x + 1); }
 
   return (
     <div className="scrim" style={{ alignItems: "center" }} onClick={onClose}>
@@ -162,31 +163,57 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
         ) : (
           <div key={ch.id} className="votecard">
             <div className="muted" style={{ textAlign: "center", fontSize: 12, fontWeight: 700 }}>{i + 1} / {order.length}</div>
-            <div style={{ padding: "6px 0 10px" }}><Badge ch={ch} size={84} /></div>
-            <div className="display" style={{ fontSize: 21, textAlign: "center" }}>{ch.nm}</div>
-            <div className="seg" style={{ justifyContent: "center", margin: "8px 0 14px" }}>
-              <span className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Stars n={chStars({ pts })} /></span>
-              <span className="chip">{ch.cat}</span>
-            </div>
+            <div style={{ padding: "6px 0 8px" }}><Badge ch={ch} size={84} /></div>
+            <div className="display" style={{ fontSize: 22, textAlign: "center" }}>{ch.nm}</div>
+            <div className="muted" style={{ fontSize: 12, textAlign: "center", marginTop: 2 }}>{ch.cat}</div>
 
-            <div className="label" style={{ marginBottom: 6 }}>Points ({chStars({ pts })}★)</div>
-            <input type="number" value={pts} onChange={(e) => setPts(Number(e.target.value) || 0)} />
+            {!editing ? (
+              <>
+                {/* Static read-only view */}
+                <div className="card" style={{ padding: "12px 14px", margin: "14px 0 6px" }}>
+                  <div className="label" style={{ marginBottom: 8 }}>Completion criteria</div>
+                  {(ch.how ?? []).length === 0 ? (
+                    <div className="muted" style={{ fontSize: 13 }}>One proof of completion.</div>
+                  ) : (ch.how ?? []).map((h, k) => (
+                    <div key={k} style={{ fontSize: 13.5, display: "flex", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 800, color: "var(--muted)" }}>{k + 1}.</span>{h}
+                    </div>
+                  ))}
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+                    {ch.needsWitness === false ? "No witness required" : "Witness required"}
+                  </div>
+                </div>
+                <div style={{ textAlign: "center", margin: "10px 0 16px" }}>
+                  <div className="display" style={{ color: "var(--accent)", fontSize: 40, lineHeight: 1 }}>{ch.pts} pts</div>
+                  <div style={{ marginTop: 4 }}><Stars n={chStars(ch)} size={15} /></div>
+                </div>
 
-            <div className="label" style={{ margin: "12px 0 6px" }}>Completion criteria (one capture per line)</div>
-            <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} />
+                <button className="btn" onClick={next}>Next</button>
+                <div style={{ height: 8 }} />
+                <button className="btn ghost" onClick={() => setEditing(true)}>Propose change</button>
+              </>
+            ) : (
+              <>
+                <div className="label" style={{ margin: "14px 0 6px" }}>Points ({chStars({ pts })}★)</div>
+                <input type="number" value={pts} onChange={(e) => setPts(Number(e.target.value) || 0)} />
 
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5, cursor: "pointer" }}>
-              <input type="checkbox" checked={witness} onChange={(e) => setWitness(e.target.checked)} style={{ width: 18, height: 18 }} />
-              Needs a witness
-            </label>
+                <div className="label" style={{ margin: "12px 0 6px" }}>Completion criteria (one capture per line)</div>
+                <textarea rows={3} value={how} onChange={(e) => setHow(e.target.value)} />
 
-            <div className="label" style={{ margin: "12px 0 6px" }}>Why? (optional)</div>
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason for the change" />
+                <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5, cursor: "pointer" }}>
+                  <input type="checkbox" checked={witness} onChange={(e) => setWitness(e.target.checked)} style={{ width: 18, height: 18 }} />
+                  Needs a witness
+                </label>
 
-            <div style={{ height: 16 }} />
-            <button className="btn" disabled={busy} onClick={submit}>Submit proposal</button>
-            <div style={{ height: 8 }} />
-            <button className="btn ghost" onClick={next}>No change → next</button>
+                <div className="label" style={{ margin: "12px 0 6px" }}>Why? (optional)</div>
+                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason for the change" />
+
+                <div style={{ height: 16 }} />
+                <button className="btn green" disabled={busy} onClick={saveChange}>Done — save proposal</button>
+                <div style={{ height: 8 }} />
+                <button className="btn ghost" onClick={() => setEditing(false)}>Cancel</button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -194,11 +221,34 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
   );
 }
 
+function Diff({ from, to }: { from: React.ReactNode; to: React.ReactNode }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <span className="muted" style={{ textDecoration: "line-through" }}>{from}</span>
+      <span style={{ color: "var(--muted)" }}>→</span>
+      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{to}</span>
+    </span>
+  );
+}
+
 function ReviewVote({ onClose }: { onClose: () => void }) {
+  const { byId } = useCatalog();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [picked, setPicked] = useState<Set<string> | null>(null); // null = all
+  const [started, setStarted] = useState(false);
   const load = () => fetch("/api/proposals").then((r) => r.json()).then((d) => setProposals(d.proposals ?? [])).catch(() => {}).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
+
+  const catOf = (p: Proposal) => byId(p.challengeId)?.cat ?? "Other";
+  const cats = Array.from(new Set(proposals.map(catOf))).sort();
+  const sel = picked ?? new Set(cats);
+  const shown = proposals.filter((p) => sel.has(catOf(p)));
+  function toggleCat(c: string) {
+    const next = new Set(sel);
+    if (next.has(c)) next.delete(c); else next.add(c);
+    setPicked(next);
+  }
 
   async function vote(id: string, v: "yes" | "no") {
     setProposals((prev) => prev.map((p) => p.id === id ? { ...p, myVote: v, votesYes: (p.votesYes ?? 0) + (v === "yes" && p.myVote !== "yes" ? 1 : 0) - (p.myVote === "yes" && v !== "yes" ? 1 : 0), votesNo: (p.votesNo ?? 0) + (v === "no" && p.myVote !== "no" ? 1 : 0) - (p.myVote === "no" && v !== "no" ? 1 : 0) } : p));
@@ -211,31 +261,57 @@ function ReviewVote({ onClose }: { onClose: () => void }) {
         <div className="grip" />
         <div className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 4px" }}>Review the proposals</div>
         <p className="muted" style={{ textAlign: "center", fontSize: 13, margin: "0 0 16px" }}>Majority yes changes the badge for the season.</p>
-        {loading ? <div className="display muted" style={{ textAlign: "center", padding: 30 }}>Loading…</div>
-          : proposals.length === 0 ? <p className="muted" style={{ textAlign: "center", padding: 24 }}>No proposals were submitted.</p>
-          : proposals.map((p) => (
-            <div key={p.id} className="card fadeup" style={{ padding: 14, marginBottom: 12 }}>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>{p.challengeName}</div>
-              <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>proposed by {p.userName}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {typeof p.pts === "number" && <span className="chip">Points → {p.pts}</span>}
-                {p.needsWitness != null && <span className="chip">{p.needsWitness ? "Needs witness" : "No witness"}</span>}
-                {p.how && <span className="chip">New criteria</span>}
-              </div>
-              {p.how && (
-                <div className="muted" style={{ fontSize: 12.5, marginBottom: 8 }}>
-                  {p.how.map((h, k) => <div key={k}>{k + 1}. {h}</div>)}
-                </div>
-              )}
-              {p.note && <div style={{ fontSize: 13, fontStyle: "italic", marginBottom: 10 }}>&quot;{p.note}&quot;</div>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className={"btn" + (p.myVote === "yes" ? " green" : " ghost")} style={{ flex: 1 }} onClick={() => vote(p.id, "yes")}>Yes · {p.votesYes ?? 0}</button>
-                <button className={"btn" + (p.myVote === "no" ? "" : " ghost")} style={{ flex: 1, ...(p.myVote === "no" ? { background: "var(--accent-d)", boxShadow: "none" } : {}) }} onClick={() => vote(p.id, "no")}>No · {p.votesNo ?? 0}</button>
-              </div>
+
+        {loading ? (
+          <div className="display muted" style={{ textAlign: "center", padding: 30 }}>Loading…</div>
+        ) : proposals.length === 0 ? (
+          <p className="muted" style={{ textAlign: "center", padding: 24 }}>No proposals were submitted.</p>
+        ) : !started ? (
+          <>
+            <div className="label" style={{ marginBottom: 8 }}>Which categories will you vote on?</div>
+            <div className="seg" style={{ marginBottom: 14 }}>
+              {cats.map((c) => (
+                <button key={c} className={"chip" + (sel.has(c) ? " on" : "")} onClick={() => toggleCat(c)}>{c}</button>
+              ))}
             </div>
-          ))}
-        <div style={{ height: 8 }} />
-        <button className="btn ghost" onClick={onClose}>Close</button>
+            <div className="card" style={{ padding: 14, textAlign: "center", marginBottom: 14 }}>
+              <div className="display" style={{ fontSize: 30, color: "var(--accent)" }}>{shown.length}</div>
+              <div className="muted" style={{ fontSize: 13 }}>change{shown.length === 1 ? "" : "s"} to vote on</div>
+            </div>
+            <button className="btn" disabled={shown.length === 0} onClick={() => setStarted(true)}>Start voting</button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={onClose}>Close</button>
+          </>
+        ) : (
+          <>
+            {shown.map((p) => {
+              const orig = byId(p.challengeId);
+              return (
+                <div key={p.id} className="card fadeup" style={{ padding: 14, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>{p.challengeName}</div>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{catOf(p)} · proposed by {p.userName}</div>
+                  <div style={{ display: "grid", gap: 6, fontSize: 13, marginBottom: 8 }}>
+                    {typeof p.pts === "number" && <div><Diff from={`${orig?.pts ?? "?"} pts`} to={`${p.pts} pts`} /></div>}
+                    {p.needsWitness != null && <div><Diff from={(orig?.needsWitness === false) ? "No witness" : "Witness"} to={p.needsWitness ? "Witness" : "No witness"} /></div>}
+                    {p.how && (
+                      <div>
+                        <div className="muted" style={{ fontWeight: 700, marginBottom: 2 }}>Criteria →</div>
+                        {p.how.map((h, k) => <div key={k} style={{ fontWeight: 700 }}>{k + 1}. {h}</div>)}
+                      </div>
+                    )}
+                  </div>
+                  {p.note && <div style={{ fontSize: 13, fontStyle: "italic", marginBottom: 10 }}>&quot;{p.note}&quot;</div>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className={"btn" + (p.myVote === "yes" ? " green" : " ghost")} style={{ flex: 1 }} onClick={() => vote(p.id, "yes")}>Yes · {p.votesYes ?? 0}</button>
+                    <button className={"btn ghost"} style={{ flex: 1, ...(p.myVote === "no" ? { background: "var(--accent-d)", color: "#fff", boxShadow: "none" } : {}) }} onClick={() => vote(p.id, "no")}>No · {p.votesNo ?? 0}</button>
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={onClose}>Done</button>
+          </>
+        )}
       </div>
     </div>
   );
