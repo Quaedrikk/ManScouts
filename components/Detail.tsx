@@ -1,9 +1,11 @@
 "use client";
+import { useState } from "react";
 import Badge from "./Badge";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
 import ProofGallery from "./ProofGallery";
 import { chStars } from "@/lib/challenges";
+import { useCatalog } from "@/lib/catalog";
 import type { Challenge, Post } from "@/lib/types";
 
 function fmtFull(iso: string) {
@@ -24,6 +26,34 @@ interface Props {
 }
 
 export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
+  const { isAdmin, refresh } = useCatalog();
+  const [editing, setEditing] = useState(false);
+  const [pts, setPts] = useState(ch.pts);
+  const [how, setHow] = useState((ch.how ?? []).join("\n"));
+  const [media, setMedia] = useState<"photo" | "video" | "either">(ch.proofMedia ?? "either");
+  const [witness, setWitness] = useState(ch.needsWitness !== false);
+  const [saving, setSaving] = useState(false);
+
+  async function saveEdit() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/overrides", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId: ch.id,
+          pts,
+          how: how.split("\n").map((s) => s.trim()).filter(Boolean),
+          proofMedia: media,
+          needsWitness: witness,
+        }),
+      });
+      if (!res.ok) { alert("Couldn't save — admin only."); setSaving(false); return; }
+      await refresh();
+      setEditing(false);
+    } catch { alert("Couldn't save — try again."); }
+    setSaving(false);
+  }
+
   return (
     <div className="scrim" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -36,20 +66,52 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
           <span className="chip">{ch.pts} pts</span>
         </div>
         <p style={{ textAlign: "center", fontSize: 15, lineHeight: 1.5, margin: "0 6px 18px" }}>{ch.blurb}</p>
-        <div className="card" style={{ padding: 16, marginBottom: 14 }}>
-          <div className="label" style={{ marginBottom: 10 }}>How to earn it</div>
-          {ch.how.map((s, i) => (
-            <div key={i} style={{ display: "flex", gap: 11, marginBottom: 9 }}>
-              <span style={{
-                minWidth: 22, height: 22, borderRadius: "50%", background: "var(--ink)",
-                color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 800,
-              }}>{i + 1}</span>
-              <span style={{ fontSize: 14, lineHeight: 1.4 }}>{s}</span>
+
+        {editing ? (
+          <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+            <div className="label" style={{ marginBottom: 6 }}>Points ({chStars({ pts })}★)</div>
+            <input type="number" value={pts} onChange={(e) => setPts(Number(e.target.value) || 0)} />
+            <div className="label" style={{ margin: "12px 0 6px" }}>Completion criteria (one capture per line)</div>
+            <textarea rows={4} value={how} onChange={(e) => setHow(e.target.value)} />
+            <div className="label" style={{ margin: "12px 0 6px" }}>Required proof</div>
+            <div className="seg" style={{ marginBottom: 4 }}>
+              {(["either", "photo", "video"] as const).map((m) => (
+                <button key={m} className={"chip" + (media === m ? " on" : "")} onClick={() => setMedia(m)} style={{ textTransform: "capitalize" }}>
+                  {m === "either" ? "Photo or video" : m}
+                </button>
+              ))}
             </div>
-          ))}
-          {ch.care && <div style={{ marginTop: 8, fontSize: 12.5, color: "var(--accent-d)", fontWeight: 600 }}>⚠ {ch.care}</div>}
-        </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: 13.5, cursor: "pointer" }}>
+              <input type="checkbox" checked={witness} onChange={(e) => setWitness(e.target.checked)} style={{ width: 18, height: 18 }} />
+              Needs a witness
+            </label>
+            <div style={{ height: 14 }} />
+            <button className="btn green" disabled={saving} onClick={saveEdit}>{saving ? "Saving…" : "Save changes"}</button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+            <div className="label" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>How to earn it</span>
+              {isAdmin && <button className="chip" onClick={() => setEditing(true)}>✎ Edit</button>}
+            </div>
+            {ch.how.map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 11, marginBottom: 9 }}>
+                <span style={{
+                  minWidth: 22, height: 22, borderRadius: "50%", background: "var(--ink)",
+                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, fontWeight: 800,
+                }}>{i + 1}</span>
+                <span style={{ fontSize: 14, lineHeight: 1.4 }}>{s}</span>
+              </div>
+            ))}
+            <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+              {ch.needsWitness === false ? "No witness required" : "Witness required"}
+            </div>
+            {ch.care && <div style={{ marginTop: 8, fontSize: 12.5, color: "var(--accent-d)", fontWeight: 600 }}>⚠ {ch.care}</div>}
+          </div>
+        )}
 
         {earned && post ? (
           <div className="card" style={{ padding: 14 }}>
