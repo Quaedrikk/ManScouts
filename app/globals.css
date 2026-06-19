@@ -98,6 +98,17 @@ textarea { resize: none; }
 .ddopt.on { background: var(--ink); color: #fff; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Horizontal category scroller */
+.catrow { margin-bottom: 18px; }
+.catrow .cathead { display: flex; align-items: center; gap: 8px; margin: 0 2px 8px; }
+.catrow .cathead .dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+.catrow .cathead .nm { font-weight: 800; font-size: 16px; letter-spacing: -.01em; }
+.catrow .cathead .ct { font-size: 12px; color: var(--muted); font-weight: 700; }
+.hscroll { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.hscroll > .cell { width: 150px; flex-shrink: 0; scroll-snap-align: start; }
+.hscroll::-webkit-scrollbar { height: 6px; }
+.hscroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 .cell {
   background: var(--card); border: 1px solid var(--line); border-radius: 20px;
   padding: 16px 10px 14px; text-align: center; cursor: pointer; position: relative;
