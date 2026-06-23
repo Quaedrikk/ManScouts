@@ -18,6 +18,9 @@ export async function deleteRoute(gym: string, id: string): Promise<void> {
   const list = await getRoutes(gym);
   await kv.set(ROUTES(gym), list.filter((r) => r.id !== id));
 }
+export async function saveRoutes(gym: string, routes: Route[]): Promise<void> {
+  await kv.set(ROUTES(gym), routes);
+}
 
 export async function getFacility(gym: string): Promise<FacilityBox[]> {
   return (await kv.get<FacilityBox[]>(FACILITY(gym))) ?? [];

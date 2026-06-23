@@ -1,10 +1,10 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
-import { ColorPolygon } from "./ClimbBits";
 import { FacilityMap } from "./FacilityMap";
 import { HoldCallout, HOLD_TYPE_COLOR } from "./HoldCallout";
-import { WALLS, HOLD_TYPES, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
+import CIcon from "./ClimbIcons";
+import { WALLS, HOLD_TYPES, CLIMB_COLORS, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
 
 export { HOLD_TYPE_COLOR };
 
@@ -13,7 +13,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
 }) {
   const [wall, setWall] = useState<string>(facility[0]?.label ?? WALLS[0]);
   const [color, setColor] = useState<ClimbColor | null>(null);
-  const [grade, setGrade] = useState(1);
+  const [grade, setGrade] = useState<number>(1); // 0 = Unrated
   const [setters, setSetters] = useState<string[]>([meName]);
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<ClimbUserLite[]>([]);
@@ -64,25 +64,49 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
         <div className="grip" />
         <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 14px" }}>Set a route</h2>
 
-        {/* Wall + colour */}
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14, flexWrap: "wrap" }}>
-          <div style={{ flex: "0 0 150px", textAlign: "center" }}>
-            <div className="label" style={{ marginBottom: 6 }}>Colour</div>
-            <ColorPolygon value={color} onChange={setColor} size={150} />
+        {/* Photo + holds — at the top */}
+        <div className="label" style={{ margin: "0 0 6px" }}>Route photo — tap to mark holds</div>
+        {!photoUrl ? (
+          <button className="btn ghost" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            <CIcon name="camera" size={17} style={{ display: "inline-block", verticalAlign: "-3px", marginRight: 7 }} />{uploading ? "Uploading…" : "Take / choose photo"}
+          </button>
+        ) : (
+          <div ref={imgRef} onClick={tapImage} style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", cursor: "crosshair" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
+            {holds.map((h, i) => (
+              <HoldCallout key={i} hold={h} onRemove={() => setHolds((p) => p.filter((_, k) => k !== i))} />
+            ))}
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <div className="label" style={{ marginBottom: 6 }}>Wall — {wall}</div>
-            {facility.length > 0 ? <FacilityMap boxes={facility} selected={wall} onSelect={setWall} height={150} />
-              : <div className="seg">{WALLS.map((w) => <button key={w} className={"chip" + (wall === w ? " on" : "")} onClick={() => setWall(w)}>{w}</button>)}</div>}
-          </div>
+        )}
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={pickPhoto} className="hide" />
+        {photoUrl && <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => fileRef.current?.click()}>Replace photo</button>}
+
+        {/* Colour */}
+        <div className="label" style={{ margin: "16px 0 8px" }}>Colour</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {CLIMB_COLORS.map((c) => (
+            <button key={c.key} onClick={() => setColor(c.key)} title={c.key}
+              style={{ width: 34, height: 34, borderRadius: "50%", background: c.hex, cursor: "pointer",
+                border: color === c.key ? "3px solid var(--ink)" : "2px solid #fff",
+                boxShadow: color === c.key ? "0 0 0 2px var(--ink)" : "0 0 0 1px var(--line)", transition: "transform .1s" }} />
+          ))}
         </div>
 
-        <div className="label" style={{ margin: "0 0 6px" }}>Level</div>
-        <div className="seg" style={{ marginBottom: 14 }}>
+        {/* Wall */}
+        <div className="label" style={{ margin: "16px 0 6px" }}>Wall — {wall}</div>
+        {facility.length > 0 ? <FacilityMap boxes={facility} selected={wall} onSelect={setWall} height={150} />
+          : <div className="seg">{WALLS.map((w) => <button key={w} className={"chip" + (wall === w ? " on" : "")} onClick={() => setWall(w)}>{w}</button>)}</div>}
+
+        {/* Level + Unrated */}
+        <div className="label" style={{ margin: "16px 0 6px" }}>Level</div>
+        <div className="seg" style={{ marginBottom: 6 }}>
           {[1, 2, 3, 4, 5, 6].map((g) => <button key={g} className={"chip" + (grade === g ? " on" : "")} style={{ flex: 1 }} onClick={() => setGrade(g)}>V{g}</button>)}
         </div>
+        <button className={"chip" + (grade === 0 ? " on" : "")} style={{ width: "100%" }} onClick={() => setGrade(0)}>Unrated — let climbers suggest the grade</button>
 
-        <div className="label" style={{ margin: "0 0 6px" }}>Setters</div>
+        {/* Setters */}
+        <div className="label" style={{ margin: "16px 0 6px" }}>Setters</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
           {setters.map((s, i) => (
             <span key={i} className="chip" onClick={() => i > 0 && setSetters((p) => p.filter((_, k) => k !== i))} style={{ cursor: i > 0 ? "pointer" : "default" }}>{s}{i === 0 ? " · you" : " ✕"}</span>
@@ -99,23 +123,6 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
           )}
         </div>
 
-        {/* Photo + holds */}
-        <div className="label" style={{ margin: "0 0 6px" }}>Route photo — tap to mark holds</div>
-        {!photoUrl ? (
-          <button className="btn ghost" disabled={uploading} onClick={() => fileRef.current?.click()}>📷 {uploading ? "Uploading…" : "Take / choose photo"}</button>
-        ) : (
-          <div ref={imgRef} onClick={tapImage} style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", cursor: "crosshair" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
-            {holds.map((h, i) => (
-              <HoldCallout key={i} hold={h} onRemove={() => setHolds((p) => p.filter((_, k) => k !== i))} />
-            ))}
-          </div>
-        )}
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={pickPhoto} className="hide" />
-        {photoUrl && <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => fileRef.current?.click()}>Replace photo</button>}
-
-        <div style={{ height: 16 }} />
         <button className="btn green" disabled={!photoUrl || !color || busy} onClick={post}>
           {busy ? "Posting…" : !photoUrl ? "Add a photo" : !color ? "Pick a colour" : "Post route"}
         </button>

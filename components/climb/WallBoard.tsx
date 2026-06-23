@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import Avatar from "../Avatar";
 import { Hold } from "./ClimbBits";
+import CIcon from "./ClimbIcons";
 import { HOLD_SHAPES, CLIMB_COLORS, type ClimbProfile, type ClimbWall, type WallHold, type HoldShape } from "@/lib/climb";
 
 const WALL_BG = ["#3a4452", "#2f5d45", "#6e2b46", "#3a2f6e", "#1f1f24", "#7a4a24"];
@@ -49,7 +50,7 @@ export default function WallBoard({ profile, editable, onSave }: {
             <div style={{ fontSize: 12.5, opacity: .85 }}>{profile.handle}</div>
             {profile.bio && <div style={{ fontSize: 12.5, opacity: .85, marginTop: 2 }}>{profile.bio}</div>}
           </div>
-          {editable && !editing && <button className="sashbtn" title="Edit wall" onClick={() => setEditing(true)}>✎</button>}
+          {editable && !editing && <button className="sashbtn" title="Edit wall" onClick={() => setEditing(true)}><CIcon name="pencil" size={15} /></button>}
         </div>
 
         {holds.map((h, i) => (

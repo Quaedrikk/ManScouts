@@ -3,7 +3,7 @@
 export const GYMS = ["Vertical Adventures"] as const;
 export const WALLS = ["East Wall", "West Wall", "The Cave", "Slab", "Overhang"] as const;
 
-export type ClimbColor = "blue" | "green" | "yellow" | "purple" | "black" | "pink";
+export type ClimbColor = "blue" | "green" | "yellow" | "purple" | "black" | "pink" | "red" | "white";
 export const CLIMB_COLORS: { key: ClimbColor; hex: string }[] = [
   { key: "blue", hex: "#2f6fe0" },
   { key: "green", hex: "#2faa50" },
@@ -11,8 +11,12 @@ export const CLIMB_COLORS: { key: ClimbColor; hex: string }[] = [
   { key: "purple", hex: "#7b3fb5" },
   { key: "black", hex: "#1f1f1f" },
   { key: "pink", hex: "#e0559f" },
+  { key: "red", hex: "#d6342c" },
+  { key: "white", hex: "#f4f1ea" },
 ];
 export const colorHex = (c: ClimbColor) => CLIMB_COLORS.find((x) => x.key === c)?.hex ?? "#888";
+// Readable text colour on top of a hold colour (white/yellow need dark ink).
+export const colorText = (c: ClimbColor) => (c === "white" || c === "yellow" ? "#1a1813" : "#fff");
 
 // Bouldering hold shapes for the profile "holds box".
 export const HOLD_SHAPES = ["jug", "crimp", "sloper", "pinch", "pocket"] as const;
@@ -50,6 +54,7 @@ export interface ClimbComment {
   name: string;
   avatarUrl?: string;
   text: string;
+  parentId?: string; // set when this comment is a reply to another comment
   createdAt: string;
 }
 
@@ -73,12 +78,20 @@ export interface Route {
   gym: string;
   wall: string;
   color: ClimbColor;
-  grade: number;
+  grade: number;          // 0 = Unrated
+  suggestions?: Record<string, number>; // userId -> suggested V grade (Unrated routes)
   setters: string[];      // who set it (can be multiple)
   photoUrl: string;
   holds: RouteHold[];
   createdBy: string;
   createdAt: string;
+}
+
+// Average suggested grade for an Unrated route, rounded; null if none.
+export function suggestedGrade(r: Route): number | null {
+  const vals = Object.values(r.suggestions ?? {});
+  if (vals.length === 0) return null;
+  return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
 }
 
 export interface ClimbPost {

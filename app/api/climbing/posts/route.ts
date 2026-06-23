@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
-import { getClimbFeed, createClimbPost, getClimbProfile, getClimbPost, deleteClimbPost } from "@/lib/climbKv";
+import { getClimbFeed, createClimbPost, getClimbProfile, getClimbPost, deleteClimbPost, updateClimbPost } from "@/lib/climbKv";
 import type { ClimbPost } from "@/lib/climb";
 
 export async function GET() {
@@ -44,6 +44,24 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/climbing/posts", err);
     return NextResponse.json({ error: "Failed to post" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const b = (await req.json()) as { id: string; note?: string; visibility?: ClimbPost["visibility"] };
+    const post = await getClimbPost(b.id);
+    if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (post.userId !== session.user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (typeof b.note === "string") post.note = b.note.trim().slice(0, 600);
+    if (b.visibility === "everyone" || b.visibility === "followers" || b.visibility === "me") post.visibility = b.visibility;
+    await updateClimbPost(post);
+    return NextResponse.json({ post });
+  } catch (err) {
+    console.error("PATCH /api/climbing/posts", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
 

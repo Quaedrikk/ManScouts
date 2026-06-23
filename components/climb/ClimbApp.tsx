@@ -10,10 +10,11 @@ import RouteSetter from "./RouteSetter";
 import { HoldCallout, holdCounts } from "./HoldCallout";
 import EditClimbProfile from "./EditClimbProfile";
 import ClimbProfileOther from "./ClimbProfileOther";
+import CIcon from "./ClimbIcons";
 import { isAdminEmail } from "@/lib/admin";
-import { GYMS, colorHex, climberTier, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type FacilityBox, type Route } from "@/lib/climb";
+import { GYMS, colorHex, colorText, climberTier, suggestedGrade, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type FacilityBox, type Route } from "@/lib/climb";
 
-const TABS = [{ id: "feed", label: "🏠 Feed" }, { id: "climbs", label: "🧗 Climbs" }, { id: "me", label: "👤 Profile" }];
+const TABS = [{ id: "feed", icon: "home", label: "Feed" }, { id: "climbs", icon: "climbs", label: "Climbs" }, { id: "me", icon: "user", label: "Profile" }];
 
 // Modern animated dropdown (replaces native <select>).
 function Dropdown({ value, options, onChange, minWidth, align = "left" }: {
@@ -66,13 +67,15 @@ function RouteRow({ r, completions, recommend, onOpen, onStart, i }: {
         <img className="thumb" src={r.photoUrl} alt="route" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="vchip" style={{ background: colorHex(r.color) }}>V{r.grade}</span>
+            <span className="vchip" style={{ background: colorHex(r.color), color: colorText(r.color), textShadow: r.color === "white" || r.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{r.grade === 0 ? "Unrated" : `V${r.grade}`}</span>
             <span style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.wall}</span>
           </div>
-          <div className="muted" style={{ fontSize: 12, marginTop: 5 }}>👍 {recommend} · 👤 {completions} completed</div>
+          <div className="muted" style={{ fontSize: 12, marginTop: 5, display: "flex", alignItems: "center", gap: 5 }}>
+            <CIcon name="thumb" size={13} /> {recommend} <span style={{ opacity: .5 }}>·</span> <CIcon name="check" size={13} /> {completions} completed
+          </div>
         </div>
       </div>
-      <button className="startbtn" onClick={onStart}>Start →</button>
+      <button className="startbtn" onClick={onStart} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Start <CIcon name="arrow" size={14} stroke={2.6} /></button>
     </div>
   );
 }
@@ -98,8 +101,9 @@ export default function ClimbApp() {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<ClimbUserLite[]>([]);
   const [viewUser, setViewUser] = useState<ClimbProfile | null>(null);
-  // climbs sort: "new" | "hot" | a V grade number
-  const [sort, setSort] = useState<string>("new");
+  // climbs sort + difficulty filter
+  const [sortMode, setSortMode] = useState<"new" | "hot">("new");
+  const [diffFilter, setDiffFilter] = useState<number[]>([]);
 
   const loadFeed = useCallback(async () => {
     try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
@@ -191,6 +195,12 @@ export default function ClimbApp() {
     setViewRoute(null);
     try { await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
   }
+  async function suggestGrade(routeId: string, grade: number) {
+    try {
+      const d = await fetch("/api/climbing/routes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gym, id: routeId, grade }) }).then((r) => r.json());
+      if (d.route) { setRoutes((prev) => prev.map((r) => r.id === d.route.id ? d.route : r)); setViewRoute((v) => v && v.id === d.route.id ? d.route : v); }
+    } catch { /* */ }
+  }
   async function toggleSetter() {
     const next = { ...me, isSetter: !me.isSetter };
     setProfile(next);
@@ -199,11 +209,11 @@ export default function ClimbApp() {
 
   // Sorted/filtered routes for the Climbs tab.
   const sortedRoutes = (() => {
-    if (sort === "new") return [...routes].sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
-    if (sort === "hot") return [...routes].sort((a, b) => posts.filter((p) => p.routeId === b.id).length - posts.filter((p) => p.routeId === a.id).length);
-    const g = Number(sort);
-    return routes.filter((r) => r.grade === g).sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
+    const filtered = diffFilter.length ? routes.filter((r) => diffFilter.includes(r.grade)) : routes;
+    if (sortMode === "hot") return [...filtered].sort((a, b) => posts.filter((p) => p.routeId === b.id).length - posts.filter((p) => p.routeId === a.id).length);
+    return [...filtered].sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
   })();
+  function toggleDiff(g: number) { setDiffFilter((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]); }
 
   return (
     <div>
@@ -243,16 +253,21 @@ export default function ClimbApp() {
               <div className="display" style={{ fontSize: 26 }}>Climbs</div>
               {me.isSetter && (
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button className="chip" onClick={() => setSettingRoute(true)}>+ Set a route</button>
-                  <button className="chip" onClick={() => setEditMap(true)}>✎ Edit map</button>
+                  <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setSettingRoute(true)}><CIcon name="plus" size={14} /> Set a route</button>
+                  <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setEditMap(true)}><CIcon name="pencil" size={14} /> Edit map</button>
                 </div>
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 2px 14px" }}>
-              <span className="label">Sort</span>
-              <Dropdown value={sort} onChange={setSort} minWidth={130}
-                options={[{ value: "new", label: "🆕 New" }, { value: "hot", label: "🔥 Hot" }, ...[1, 2, 3, 4, 5, 6].map((g) => ({ value: String(g), label: `V${g}` }))]} />
+            <div style={{ display: "flex", gap: 8, margin: "0 2px 12px" }}>
+              <button className={"chip" + (sortMode === "new" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("new")}><CIcon name="spark" size={14} /> New</button>
+              <button className={"chip" + (sortMode === "hot" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("hot")}><CIcon name="flame" size={14} /> Hot</button>
+            </div>
+            <div className="label" style={{ margin: "0 2px 8px" }}>Difficulty</div>
+            <div className="seg" style={{ marginBottom: 16 }}>
+              {[1, 2, 3, 4, 5, 6].map((g) => (
+                <button key={g} className={"chip" + (diffFilter.includes(g) ? " on" : "")} style={{ flex: 1 }} onClick={() => toggleDiff(g)}>V{g}</button>
+              ))}
             </div>
 
             {sortedRoutes.length === 0
@@ -280,17 +295,20 @@ export default function ClimbApp() {
 
       {/* Record FAB */}
       <button onClick={() => { setStartRoute(null); setRecording(true); }} aria-label="Record climb"
-        style={{ position: "fixed", right: 20, bottom: "calc(env(safe-area-inset-bottom) + 78px)", zIndex: 45, width: 58, height: 58, borderRadius: "50%", border: "none", background: "var(--accent)", color: "#fff", fontSize: 24, cursor: "pointer", boxShadow: "0 8px 20px rgba(229,85,43,.4)" }}>
-        ＋
+        style={{ position: "fixed", right: 20, bottom: "calc(env(safe-area-inset-bottom) + 78px)", zIndex: 45, width: 58, height: 58, borderRadius: "50%", border: "none", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 8px 20px rgba(229,85,43,.4)" }}>
+        <CIcon name="plus" size={26} stroke={2.6} />
       </button>
 
-      <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, background: "rgba(255,255,255,.92)", backdropFilter: "blur(14px)", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-around", padding: "10px 4px calc(env(safe-area-inset-bottom) + 10px)" }}>
+      <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, background: "rgba(255,255,255,.92)", backdropFilter: "blur(14px)", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-around", padding: "9px 4px calc(env(safe-area-inset-bottom) + 9px)" }}>
         {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", color: tab === t.id ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: "none", border: "none", color: tab === t.id ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 11, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "color .15s" }}>
+            <CIcon name={t.icon} size={22} stroke={tab === t.id ? 2.4 : 2} />
+            {t.label}
+          </button>
         ))}
       </nav>
 
-      {recording && <ClimbRecord gym={gym} preselected={startRoute} onCancel={() => { setRecording(false); setStartRoute(null); }} onPosted={() => { setRecording(false); setStartRoute(null); loadFeed(); }} onCreateRoute={() => { setRecording(false); setStartRoute(null); setSettingRoute(true); }} />}
+      {recording && <ClimbRecord gym={gym} me={me} preselected={startRoute} onCancel={() => { setRecording(false); setStartRoute(null); }} onPosted={() => { setRecording(false); setStartRoute(null); loadFeed(); }} onCreateRoute={() => { setRecording(false); setStartRoute(null); setSettingRoute(true); }} />}
       {editMap && <FacilityEditor gym={gym} initial={facility} onClose={() => { setEditMap(false); loadFacility(); }} />}
       {settingRoute && <RouteSetter gym={gym} facility={facility} meName={me.name} onClose={() => setSettingRoute(false)} onSaved={() => { setSettingRoute(false); loadRoutes(); }} />}
       {editProfile && <EditClimbProfile profile={me} onClose={() => setEditProfile(false)} onSaved={(p) => { setProfile(p); setEditProfile(false); loadUsers(); loadFeed(); }} />}
@@ -304,9 +322,9 @@ export default function ClimbApp() {
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="grip" />
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span className="chip" style={{ background: colorHex(viewRoute.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{viewRoute.grade}</span>
+              <span className="chip" style={{ background: colorHex(viewRoute.color), color: colorText(viewRoute.color), textShadow: viewRoute.color === "white" || viewRoute.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{viewRoute.grade === 0 ? "Unrated" : `V${viewRoute.grade}`}</span>
               <div className="display" style={{ fontSize: 20, flex: 1 }}>{viewRoute.wall}</div>
-              {(viewRoute.createdBy === me.id || isAdmin) && <button onClick={() => delRoute(viewRoute.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-d)", fontWeight: 800, fontSize: 13 }}>Delete</button>}
+              {(viewRoute.createdBy === me.id || isAdmin) && <button onClick={() => delRoute(viewRoute.id)} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-d)", display: "inline-flex" }}><CIcon name="x" size={18} /></button>}
             </div>
             <p className="muted" style={{ fontSize: 12.5, margin: "0 0 10px" }}>set by {viewRoute.setters.join(", ")}</p>
 
@@ -315,6 +333,20 @@ export default function ClimbApp() {
               <img src={viewRoute.photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
               {viewRoute.holds.map((h, i) => <HoldCallout key={i} hold={h} size="sm" />)}
             </div>
+
+            {viewRoute.grade === 0 && (
+              <div className="card" style={{ padding: 12, marginTop: 12, background: "var(--tint)", border: "none" }}>
+                <div className="label" style={{ marginBottom: 8 }}>
+                  Unrated · suggest a grade{suggestedGrade(viewRoute) ? ` — climbers say ~V${suggestedGrade(viewRoute)}` : ""}
+                </div>
+                <div className="seg">
+                  {[1, 2, 3, 4, 5, 6].map((g) => {
+                    const picked = (viewRoute.suggestions ?? {})[me.id] === g;
+                    return <button key={g} className={"chip" + (picked ? " on" : "")} style={{ flex: 1 }} onClick={() => suggestGrade(viewRoute.id, g)}>V{g}</button>;
+                  })}
+                </div>
+              </div>
+            )}
 
             {holdCounts(viewRoute.holds).length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "12px 0 4px" }}>
@@ -337,7 +369,7 @@ export default function ClimbApp() {
               : posts.filter((p) => p.routeId === viewRoute.id && canSee(p)).map((p) => <ClimbCard key={p.id} post={p} meId={me.id} canDelete={p.userId === me.id || isAdmin} onDelete={() => del(p.id)} onUpdate={updatePost} onOpenUser={openUser} />)}
 
             <div style={{ height: 10 }} />
-            <button className="btn green" onClick={() => { const r = viewRoute; setViewRoute(null); setStartRoute(r); setRecording(true); }}>🧗 Start Climb</button>
+            <button className="btn green" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={() => { const r = viewRoute; setViewRoute(null); setStartRoute(r); setRecording(true); }}><CIcon name="play" size={16} /> Start Climb</button>
             <div style={{ height: 8 }} />
             <button className="btn ghost" onClick={() => setViewRoute(null)}>Close</button>
           </div>
@@ -364,17 +396,18 @@ function ClimbProfileView({ profile, mine, maxGrade, meId, isAdmin, onSave, onSi
       <WallBoard profile={profile} editable onSave={saveWall} />
 
       <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
-        <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
-          <div className="display" style={{ color: "var(--accent)", fontSize: 20 }}>{tier}</div>
-          <div className="label" style={{ marginTop: 3 }}>V{v} climber</div>
+        <div className="card" style={{ flex: 1.4, padding: "16px 8px 14px", textAlign: "center" }}>
+          <div className="display" style={{ color: "var(--accent)", fontSize: 44, lineHeight: 1 }}>V{v}</div>
+          <div style={{ fontWeight: 800, fontSize: 14, marginTop: 6 }}>{tier}</div>
+          <div className="label" style={{ marginTop: 2 }}>Top grade sent</div>
         </div>
-        <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
-          <div className="display" style={{ color: "var(--accent)", fontSize: 26 }}>{mine.length}</div>
-          <div className="label" style={{ marginTop: 3 }}>Climbs</div>
+        <div className="card" style={{ flex: 1, padding: "16px 8px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div className="display" style={{ color: "var(--accent)", fontSize: 30 }}>{mine.length}</div>
+          <div className="label" style={{ marginTop: 4 }}>Climbs</div>
         </div>
       </div>
 
-      <button className="btn ghost" onClick={onEdit}>✎ Edit profile</button>
+      <button className="btn ghost" onClick={onEdit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><CIcon name="pencil" size={16} /> Edit profile</button>
       <div style={{ height: 10 }} />
       <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px" }}>
         <div>

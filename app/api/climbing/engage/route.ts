@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const uid = session.user.id;
   try {
-    const b = (await req.json()) as { postId: string; action: "like" | "super" | "react" | "comment"; emoji?: string; text?: string };
+    const b = (await req.json()) as { postId: string; action: "like" | "super" | "react" | "comment"; emoji?: string; text?: string; parentId?: string };
     const post = await getClimbPost(b.postId);
     if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
         id: `cm${Date.now()}`, userId: uid,
         name: profile?.name ?? session.user.name ?? "Climber",
         avatarUrl: profile?.avatarUrl ?? "",
-        text: b.text.trim().slice(0, 500), createdAt: new Date().toISOString(),
+        text: b.text.trim().slice(0, 500),
+        parentId: b.parentId,
+        createdAt: new Date().toISOString(),
       }];
     }
     await updateClimbPost(post);

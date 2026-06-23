@@ -1,10 +1,13 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
-import { colorHex, type Route } from "@/lib/climb";
+import Avatar from "../Avatar";
+import CIcon from "./ClimbIcons";
+import { colorHex, colorText, type ClimbProfile, type Route } from "@/lib/climb";
 
 interface Props {
   gym: string;
+  me: ClimbProfile;
   onCancel: () => void;
   onPosted: () => void;
   onCreateRoute: () => void;
@@ -12,8 +15,9 @@ interface Props {
 }
 
 type Visibility = "everyone" | "followers" | "me";
+const VIS: [Visibility, string, string][] = [["everyone", "globe", "Everyone"], ["followers", "users", "Followers"], ["me", "lock", "Only me"]];
 
-export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute, preselected }: Props) {
+export default function ClimbRecord({ gym, me, onCancel, onPosted, onCreateRoute, preselected }: Props) {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [q, setQ] = useState("");
   const [route, setRoute] = useState<Route | null>(preselected ?? null);
@@ -58,6 +62,10 @@ export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute, pr
     setBusy(false);
   }
 
+  const chip = (color: Route["color"], grade: number) => (
+    <span className="chip" style={{ background: colorHex(color), color: colorText(color), textShadow: color === "white" || color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{grade === 0 ? "Unrated" : `V${grade}`}</span>
+  );
+
   return (
     <div className="scrim" onClick={onCancel}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
@@ -79,46 +87,63 @@ export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute, pr
                   <div style={{ fontWeight: 800, fontSize: 14 }}>{r.wall}</div>
                   <div className="muted" style={{ fontSize: 12 }}>set by {r.setters.join(", ")}</div>
                 </div>
-                <span className="chip" style={{ background: colorHex(r.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{r.grade}</span>
+                {chip(r.color, r.grade)}
               </button>
             ))}
             <div style={{ height: 6 }} />
-            <button className="btn" onClick={onCreateRoute}>+ Create new route</button>
+            <button className="btn" onClick={onCreateRoute}><CIcon name="plus" size={16} style={{ display: "inline-block", verticalAlign: "-3px", marginRight: 6 }} />Create new route</button>
             <div style={{ height: 8 }} />
             <button className="btn ghost" onClick={onCancel}>Cancel</button>
           </>
         ) : (
           <>
-            <div className="card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, marginBottom: 14 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={route.photoUrl} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-              <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 14 }}>{route.wall}</div></div>
-              <span className="chip" style={{ background: colorHex(route.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{route.grade}</span>
-              <button className="chip" onClick={() => { setRoute(null); setVideoUrl(""); }}>Change</button>
-            </div>
-
-            {!videoUrl ? (
-              <button className="btn" disabled={uploading} onClick={() => fileRef.current?.click()}>🎥 {uploading ? "Uploading…" : "Record / choose video"}</button>
-            ) : (
-              <div>
-                <video ref={vref} className="proof" src={videoUrl} controls playsInline preload="metadata" onLoadedMetadata={(e) => setDur(e.currentTarget.duration || 0)} />
-                <div style={{ marginTop: 10 }}>
-                  <div className="label" style={{ marginBottom: 4 }}>Trim to the start of your send</div>
-                  <input type="range" min={0} max={Math.max(0, Math.floor(dur))} step={1} value={startSec} onChange={(e) => scrub(Number(e.target.value))} style={{ width: "100%" }} />
-                  <div className="muted" style={{ fontSize: 12.5, textAlign: "center" }}>Starts at {Math.round(startSec)}s</div>
+            <div className="label" style={{ marginBottom: 8 }}>Preview · this is how your post will look</div>
+            {/* Live post preview */}
+            <div className="card post" style={{ marginBottom: 14 }}>
+              <div className="ph" style={{ alignItems: "flex-start" }}>
+                <Avatar name={me.name} handle={me.handle} img={me.avatarUrl} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{me.name}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{me.handle}</div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                    <CIcon name="pin" size={12} /> {gym} • {route.wall}
+                  </div>
                 </div>
-                <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => fileRef.current?.click()}>Replace video</button>
+                {chip(route.color, route.grade)}
+                <button className="chip" onClick={() => { setRoute(null); setVideoUrl(""); }}>Change</button>
               </div>
-            )}
+
+              {!videoUrl ? (
+                <button className="btn" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                  <CIcon name="camera" size={17} style={{ display: "inline-block", verticalAlign: "-3px", marginRight: 7 }} />{uploading ? "Uploading…" : "Record / choose video"}
+                </button>
+              ) : (
+                <video ref={vref} className="proof" src={videoUrl} autoPlay muted loop playsInline preload="metadata"
+                  onLoadedMetadata={(e) => { setDur(e.currentTarget.duration || 0); if (startSec) e.currentTarget.currentTime = startSec; }} />
+              )}
+
+              {note.trim() && <div style={{ fontSize: 14, margin: "10px 2px 2px", lineHeight: 1.45 }}><b>{me.name}</b> {note}</div>}
+            </div>
             <input ref={fileRef} type="file" accept="video/*" capture="environment" onChange={pickVideo} className="hide" />
 
-            <div className="label" style={{ margin: "14px 0 6px" }}>Caption (optional)</div>
+            {videoUrl && (
+              <>
+                <div className="label" style={{ marginBottom: 4 }}>Trim to the start of your send</div>
+                <input type="range" min={0} max={Math.max(0, Math.floor(dur))} step={1} value={startSec} onChange={(e) => scrub(Number(e.target.value))} style={{ width: "100%" }} />
+                <div className="muted" style={{ fontSize: 12.5, textAlign: "center" }}>Starts at {Math.round(startSec)}s</div>
+                <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => fileRef.current?.click()}>Replace video</button>
+              </>
+            )}
+
+            <div className="label" style={{ margin: "14px 0 6px" }}>Caption</div>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Beta, how it felt…" />
 
             <div className="label" style={{ margin: "14px 0 6px" }}>Who can see this?</div>
             <div className="seg">
-              {([["everyone", "🌎 Everyone"], ["followers", "👥 Followers Only"], ["me", "🔒 Only Me"]] as [Visibility, string][]).map(([v, lbl]) => (
-                <button key={v} className={"chip" + (visibility === v ? " on" : "")} style={{ flex: 1 }} onClick={() => setVisibility(v)}>{lbl}</button>
+              {VIS.map(([v, icon, lbl]) => (
+                <button key={v} className={"chip" + (visibility === v ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }} onClick={() => setVisibility(v)}>
+                  <CIcon name={icon} size={14} /> {lbl}
+                </button>
               ))}
             </div>
 

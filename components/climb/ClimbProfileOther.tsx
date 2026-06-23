@@ -29,13 +29,14 @@ export default function ClimbProfileOther({ profile, posts, meId, following, onT
         <WallBoard profile={profile} editable={false} onSave={() => {}} />
 
         <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
-          <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
-            <div className="display" style={{ color: "var(--accent)", fontSize: 20 }}>{tier}</div>
-            <div className="label" style={{ marginTop: 3 }}>V{v} climber</div>
+          <div className="card" style={{ flex: 1.4, padding: "16px 8px 14px", textAlign: "center" }}>
+            <div className="display" style={{ color: "var(--accent)", fontSize: 44, lineHeight: 1 }}>V{v}</div>
+            <div style={{ fontWeight: 800, fontSize: 14, marginTop: 6 }}>{tier}</div>
+            <div className="label" style={{ marginTop: 2 }}>Top grade sent</div>
           </div>
-          <div className="card" style={{ flex: 1, padding: "14px 8px", textAlign: "center" }}>
-            <div className="display" style={{ color: "var(--accent)", fontSize: 26 }}>{theirs.length}</div>
-            <div className="label" style={{ marginTop: 3 }}>Climbs</div>
+          <div className="card" style={{ flex: 1, padding: "16px 8px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div className="display" style={{ color: "var(--accent)", fontSize: 30 }}>{theirs.length}</div>
+            <div className="label" style={{ marginTop: 4 }}>Climbs</div>
           </div>
         </div>
 
