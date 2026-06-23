@@ -119,6 +119,28 @@ textarea { resize: none; }
 .hsearch input { border: none; background: none; padding: 11px 0; border-radius: 0; font-size: 14px; }
 .hsearch input:focus { border: none; }
 
+/* ---- Profile wall animated backgrounds ---- */
+.wallbg { background-color: #3a4452; }
+.wd-aurora { background: linear-gradient(125deg, #1b3a4b, #2e6f6a, #6a4f9e, #1b3a4b); background-size: 300% 300%; animation: wdshift 12s ease infinite; }
+.wd-lava { background: linear-gradient(125deg, #3a1208, #a3300f, #e0651c, #3a1208); background-size: 300% 300%; animation: wdshift 10s ease infinite; }
+.wd-ocean { background: linear-gradient(125deg, #06283d, #1363a0, #2a9fd6, #06283d); background-size: 300% 300%; animation: wdshift 13s ease infinite; }
+.wd-sunset { background: linear-gradient(125deg, #2a1a40, #b34068, #f0935a, #ffd089); background-size: 300% 300%; animation: wdshift 12s ease infinite; }
+.wd-forest { background: linear-gradient(125deg, #10261a, #1f6b3b, #5fae54, #10261a); background-size: 300% 300%; animation: wdshift 14s ease infinite; }
+.wd-galaxy { background: radial-gradient(circle at 30% 30%, #3b2a6b, transparent 55%), radial-gradient(circle at 70% 70%, #6a2b6e, transparent 55%), #0c0a1a; position: relative; }
+.wd-galaxy::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(1.5px 1.5px at 20% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 70%, #fff, transparent), radial-gradient(1px 1px at 80% 20%, #fff, transparent), radial-gradient(1px 1px at 40% 80%, #fff, transparent), radial-gradient(1.5px 1.5px at 90% 50%, #fff, transparent); animation: wdtwinkle 3.2s ease-in-out infinite; }
+.wd-neon { background: linear-gradient(125deg, #0a0f1f, #15244a, #0a0f1f); position: relative; overflow: hidden; }
+.wd-neon::after { content: ""; position: absolute; inset: -50%; background: repeating-linear-gradient(0deg, transparent 0 26px, rgba(64,200,255,.16) 26px 27px), repeating-linear-gradient(90deg, transparent 0 26px, rgba(64,200,255,.16) 26px 27px); animation: wdgrid 8s linear infinite; }
+.wd-ember { background: radial-gradient(circle at 50% 120%, #e0651c, #7a1f0a 45%, #2a0d06 75%); }
+.wd-ice { background: linear-gradient(125deg, #cfeefc, #8fc9e8, #5a93c4, #cfeefc); background-size: 300% 300%; animation: wdshift 13s ease infinite; }
+.wd-magma { background: radial-gradient(circle at 30% 70%, #ff7a18, transparent 40%), radial-gradient(circle at 70% 30%, #c81d11, transparent 45%), #1a0a08; background-size: 160% 160%, 160% 160%, 100% 100%; animation: wdmagma 9s ease-in-out infinite; }
+@keyframes wdshift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes wdtwinkle { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes wdgrid { to { transform: translate(27px, 27px); } }
+@keyframes wdmagma { 0%, 100% { background-position: 0% 0%, 100% 100%, 0 0; } 50% { background-position: 20% 30%, 80% 60%, 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .wd-aurora, .wd-lava, .wd-ocean, .wd-sunset, .wd-forest, .wd-ice, .wd-magma, .wd-galaxy::after, .wd-neon::after { animation-duration: .01s !important; }
+}
+
 /* Climbs — single container with separated rows */
 .clist { padding: 2px 4px; overflow: hidden; }
 .crow {

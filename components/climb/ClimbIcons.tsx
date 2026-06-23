@@ -26,6 +26,9 @@ const GLYPHS: Record<string, Glyph> = {
   arrow: { node: <><path d="M5 12h13" /><path d="m13 6 6 6-6 6" /></> },
   x: { node: <><path d="M6 6l12 12" /><path d="M18 6 6 18" /></> },
   star: { solid: true, node: <path d="M12 3.5l2.6 5.6 6.1.6-4.6 4 1.4 6L12 16.9 6.5 19.7l1.4-6-4.6-4 6.1-.6z" /> },
+  heart: { node: <path d="M12 20s-6.4-4.2-8.8-8.3C1.6 8.6 3 5.2 6.4 5.2 8.7 5.2 10.6 7 12 8.6c1.4-1.6 3.3-3.4 5.6-3.4 3.4 0 4.8 3.4 3.2 6.5C18.4 15.8 12 20 12 20z" /> },
+  heartFill: { solid: true, node: <path d="M12 20.5s-6.8-4.5-9.2-8.8C1.2 8.4 2.8 4.7 6.5 4.7 9 4.7 11 6.7 12 8.2c1-1.5 3-3.5 5.5-3.5 3.7 0 5.3 3.7 3.7 7C18.8 16 12 20.5 12 20.5z" /> },
+  share: { node: <><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M12 3v13" /><path d="m8 7 4-4 4 4" /></> },
 };
 
 export default function CIcon({ name, size = 18, stroke = 2, style, className }: {

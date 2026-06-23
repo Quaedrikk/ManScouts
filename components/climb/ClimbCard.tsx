@@ -27,6 +27,18 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
   const [draftVis, setDraftVis] = useState<Vis>(post.visibility ?? "everyone");
   const [savingEdit, setSavingEdit] = useState(false);
   const isMine = post.userId === meId;
+  const likes = post.likes ?? [];
+  const iLike = likes.includes(meId);
+
+  async function share() {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/climbing` : "/climbing";
+    const data = { title: `${post.userName} on the Post Wall`, text: `${post.userName} sent ${post.grade === 0 ? "a route" : "V" + post.grade} at ${post.gym} • ${post.wall}${post.note ? ` — ${post.note}` : ""}`, url };
+    try {
+      if (navigator.share) { await navigator.share(data); return; }
+      await navigator.clipboard.writeText(url);
+      alert("Link copied:\n" + url);
+    } catch { /* cancelled */ }
+  }
 
   async function engage(action: string, extra?: Record<string, unknown>) {
     try {
@@ -125,6 +137,16 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
           </div>
         )
       )}
+
+      {/* Like + Share */}
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={() => engage("like")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, border: "none", borderRadius: 999, padding: "9px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", background: iLike ? "#ffe6dc" : "var(--tint)", color: iLike ? "var(--accent-d)" : "var(--ink)" }}>
+          <CIcon name={iLike ? "heartFill" : "heart"} size={16} /> {iLike ? "Liked" : "Like"}{likes.length ? ` · ${likes.length}` : ""}
+        </button>
+        <button onClick={share} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, border: "none", borderRadius: 999, padding: "9px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", background: "var(--tint)", color: "var(--ink)" }}>
+          <CIcon name="share" size={16} /> Share
+        </button>
+      </div>
 
       {/* Comments — Instagram style, with replies */}
       <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>

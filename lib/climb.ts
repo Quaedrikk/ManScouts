@@ -22,8 +22,23 @@ export const colorText = (c: ClimbColor) => (c === "white" || c === "yellow" ? "
 export const HOLD_SHAPES = ["jug", "crimp", "sloper", "pinch", "pocket"] as const;
 export type HoldShape = (typeof HOLD_SHAPES)[number];
 
-export interface WallHold { x: number; y: number; type: HoldShape; color: string }
+export interface WallHold { x: number; y: number; type: HoldShape; color: string; rot?: number }
 export interface ClimbWall { bg?: string; holds: WallHold[] }
+
+// Animated wall backgrounds for the profile wall (CSS classes: wd-<key>).
+export const WALL_DESIGNS: { key: string; label: string }[] = [
+  { key: "aurora", label: "Aurora" },
+  { key: "lava", label: "Lava" },
+  { key: "ocean", label: "Ocean" },
+  { key: "sunset", label: "Sunset" },
+  { key: "forest", label: "Forest" },
+  { key: "galaxy", label: "Galaxy" },
+  { key: "neon", label: "Neon" },
+  { key: "ember", label: "Ember" },
+  { key: "ice", label: "Glacier" },
+  { key: "magma", label: "Magma" },
+];
+export const isWallDesign = (bg?: string) => !!bg && !bg.startsWith("#");
 
 // Instagram-Highlights-style grouping of a climber's posts.
 export interface ClimbCollection {

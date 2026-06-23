@@ -100,6 +100,7 @@ export default function ClimbApp() {
   // feed
   const [feedMode, setFeedMode] = useState<"gym" | "following">("gym");
   const [search, setSearch] = useState("");
+  const [addFriend, setAddFriend] = useState(false);
   const [users, setUsers] = useState<ClimbUserLite[]>([]);
   const [viewUser, setViewUser] = useState<ClimbProfile | null>(null);
   // climbs sort + difficulty filter
@@ -179,8 +180,17 @@ export default function ClimbApp() {
     const q = search.trim().replace(/^@/, "").toLowerCase();
     if (!q) return;
     const hit = users.find((u) => u.handle.replace(/^@/, "").toLowerCase() === q);
-    if (hit) { openUser(hit.id); setSearch(""); }
+    if (hit) { openUser(hit.id); setSearch(""); setAddFriend(false); }
     else alert("No climber with that exact @handle.");
+  }
+  async function inviteFriends() {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/climbing` : "/climbing";
+    const data = { title: "Post Wall · Climbing", text: "Join me on the Post Wall — log your climbs and follow mine.", url };
+    try {
+      if (navigator.share) { await navigator.share(data); return; }
+      await navigator.clipboard.writeText(url);
+      alert("Invite link copied:\n" + url);
+    } catch { /* cancelled */ }
   }
   async function toggleFollow(targetId: string) {
     try {
@@ -239,6 +249,17 @@ export default function ClimbApp() {
     setOpenColId(null);
   }
 
+  // Featured "Slope of the week" = most-completed route (fallback: newest).
+  const slopeOfWeek = (() => {
+    if (routes.length === 0) return null;
+    const ranked = [...routes].sort((a, b) => {
+      const ca = posts.filter((p) => p.routeId === a.id).length;
+      const cb = posts.filter((p) => p.routeId === b.id).length;
+      return cb - ca || (b.createdAt > a.createdAt ? 1 : -1);
+    });
+    return ranked[0];
+  })();
+
   // Sorted/filtered routes for the Climbs tab.
   const sortedRoutes = (() => {
     const filtered = diffFilter.length ? routes.filter((r) => diffFilter.includes(r.grade)) : routes;
@@ -250,13 +271,11 @@ export default function ClimbApp() {
   return (
     <div>
       <div className="topbar">
-        <div className="row" style={{ width: "100%" }}>
-          <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.03em" }}>Climbing</h1>
-        </div>
-        <div className="row" style={{ marginTop: 10 }}>
-          <div className="hsearch">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a climber by @handle…" onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }} />
+        <div className="row" style={{ width: "100%", justifyContent: "space-between", gap: 8 }}>
+          <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.03em" }}>Post Wall</h1>
+          <div style={{ display: "flex", gap: 7 }}>
+            <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => { setSearch(""); setAddFriend(true); }}><CIcon name="users" size={14} /> Add friend</button>
+            <button className="chip on" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={inviteFriends}><CIcon name="arrow" size={14} /> Invite</button>
           </div>
         </div>
       </div>
@@ -265,9 +284,21 @@ export default function ClimbApp() {
         {tab === "feed" && (
           <div>
             <div style={{ height: 16 }} />
-            <div className="seg" style={{ marginBottom: 14 }}>
-              <button className={"chip" + (feedMode === "gym" ? " on" : "")} style={{ flex: 1 }} onClick={() => setFeedMode("gym")}>Gym</button>
-              <button className={"chip" + (feedMode === "following" ? " on" : "")} style={{ flex: 1 }} onClick={() => setFeedMode("following")}>Following</button>
+            {slopeOfWeek && (
+              <button onClick={() => { setTab("climbs"); setViewRoute(slopeOfWeek); }} className="catscene" style={{ width: "100%", height: 120, border: "none", textAlign: "left", cursor: "pointer", marginBottom: 16, ["--c1" as string]: colorHex(slopeOfWeek.color), ["--c2" as string]: "#1c242b" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={slopeOfWeek.photoUrl} alt="" style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "45%", objectFit: "cover", opacity: .55, maskImage: "linear-gradient(90deg, transparent, #000 60%)", WebkitMaskImage: "linear-gradient(90deg, transparent, #000 60%)" }} />
+                <div className="cap" style={{ position: "relative", zIndex: 2 }}>
+                  <div className="label" style={{ color: "rgba(255,255,255,.85)", marginBottom: 4 }}>★ Slope of the week</div>
+                  <div className="t">{slopeOfWeek.grade === 0 ? "Unrated" : `V${slopeOfWeek.grade}`} · {slopeOfWeek.wall}</div>
+                  <div className="s">{posts.filter((p) => p.routeId === slopeOfWeek.id).length} sends this week · tap to view</div>
+                </div>
+              </button>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <Dropdown value={feedMode} onChange={(v) => setFeedMode(v as "gym" | "following")} align="right" minWidth={140}
+                options={[{ value: "gym", label: "Everyone at gym" }, { value: "following", label: "Following" }]} />
             </div>
 
             {feedPosts.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 24 }}>{feedMode === "following" ? "Follow some climbers to fill this feed." : "No climbs yet. Record the first send."}</p>}
@@ -370,6 +401,24 @@ export default function ClimbApp() {
         <CreateCollectionSheet ownerPosts={mine} meId={me.id}
           onCreate={(c) => { createCollectionFull(c); setCreatingCollection(false); }}
           onClose={() => setCreatingCollection(false)} />
+      )}
+
+      {addFriend && (
+        <div className="scrim" onClick={() => setAddFriend(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="grip" />
+            <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 4px" }}>Add a friend</h2>
+            <p className="muted" style={{ textAlign: "center", fontSize: 13, margin: "0 0 14px" }}>Enter their exact @handle to find them.</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="@handle" onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }} style={{ flex: 1 }} />
+              <button className="btn" style={{ width: "auto", padding: "0 18px" }} onClick={doSearch}>Find</button>
+            </div>
+            <div style={{ height: 10 }} />
+            <button className="btn ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={inviteFriends}><CIcon name="arrow" size={16} /> Invite friends with a link</button>
+            <div style={{ height: 8 }} />
+            <button className="btn ghost" onClick={() => setAddFriend(false)}>Cancel</button>
+          </div>
+        </div>
       )}
 
       {addToColPost && (

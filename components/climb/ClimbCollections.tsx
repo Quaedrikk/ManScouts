@@ -48,23 +48,31 @@ export function CollectionsBar({ collections, posts, isOwner, onOpen, onNew }: {
   );
 }
 
-// A labelled climb row: coloured by climb colour, with VX / Gym / Wall / Day,
-// an Add/Added toggle, and tapping the row previews the post.
-function ClimbPickRow({ p, added, onToggle, onPreview }: { p: ClimbPost; added: boolean; onToggle: () => void; onPreview: () => void }) {
+// A labelled climb tile (2-col grid): coloured by climb colour, "VX - caption…",
+// gym • wall, day; an Add/Added toggle; tapping the tile previews the post.
+function ClimbPickTile({ p, added, onToggle, onPreview }: { p: ClimbPost; added: boolean; onToggle: () => void; onPreview: () => void }) {
   const tc = colorText(p.color);
+  const v = p.grade === 0 ? "Unrated" : `V${p.grade}`;
   return (
-    <div onClick={onPreview}
-      style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 12px", marginBottom: 8, borderRadius: 14, cursor: "pointer", background: colorHex(p.color), color: tc }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 900, fontSize: 16 }}>{p.grade === 0 ? "Unrated" : `V${p.grade}`}</div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, opacity: .9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.gym} • {p.wall}</div>
-        <div style={{ fontSize: 11.5, opacity: .8 }}>{fmtDay(p.createdAt)}</div>
+    <div onClick={onPreview} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 11, borderRadius: 14, cursor: "pointer", background: colorHex(p.color), color: tc, minWidth: 0 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.25, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        <span style={{ fontWeight: 900 }}>{v}</span>{p.note ? ` - ${p.note}` : ""}
       </div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, opacity: .9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.gym} • {p.wall}</div>
+      <div style={{ fontSize: 11, opacity: .8 }}>{fmtDay(p.createdAt)}</div>
       <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        style={{ flexShrink: 0, border: "none", cursor: "pointer", borderRadius: 999, padding: "8px 14px", fontWeight: 800, fontSize: 12.5,
-          background: added ? "rgba(255,255,255,.25)" : "#fff", color: added ? tc : "#1a1813", display: "inline-flex", alignItems: "center", gap: 5 }}>
+        style={{ marginTop: 2, border: "none", cursor: "pointer", borderRadius: 999, padding: "7px 12px", fontWeight: 800, fontSize: 12,
+          background: added ? "rgba(255,255,255,.28)" : "#fff", color: added ? tc : "#1a1813", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
         <CIcon name={added ? "check" : "plus"} size={14} stroke={2.6} /> {added ? "Added" : "Add"}
       </button>
+    </div>
+  );
+}
+
+function PickGrid({ posts, isAdded, onToggle, onPreview }: { posts: ClimbPost[]; isAdded: (id: string) => boolean; onToggle: (id: string) => void; onPreview: (p: ClimbPost) => void }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {posts.map((p) => <ClimbPickTile key={p.id} p={p} added={isAdded(p.id)} onToggle={() => onToggle(p.id)} onPreview={() => onPreview(p)} />)}
     </div>
   );
 }
@@ -119,8 +127,9 @@ export function CreateCollectionSheet({ ownerPosts, meId, onCreate, onClose }: {
         </label>
 
         <div className="label" style={{ margin: "16px 0 8px" }}>Add your climbs</div>
-        {ownerPosts.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 14 }}>You have no climbs yet.</p>}
-        {ownerPosts.map((p) => <ClimbPickRow key={p.id} p={p} added={sel.includes(p.id)} onToggle={() => toggle(p.id)} onPreview={() => setPreview(p)} />)}
+        {ownerPosts.length === 0
+          ? <p className="muted" style={{ textAlign: "center", padding: 14 }}>You have no climbs yet.</p>
+          : <PickGrid posts={ownerPosts} isAdded={(id) => sel.includes(id)} onToggle={toggle} onPreview={setPreview} />}
 
         <div style={{ height: 14 }} />
         <button className="btn" disabled={!name.trim()} onClick={() => onCreate({ name: name.trim(), coverUrl: coverUrl || undefined, postIds: sel })}>
@@ -141,7 +150,7 @@ export function CollectionSheet({ collection, posts, ownerPosts, meId, isOwner, 
   onAdd: (postId: string) => void; onRemove: (postId: string) => void; onRename: (name: string) => void; onSetCover: (url: string) => void; onDelete: () => void;
   onDeletePost: (id: string) => void; onUpdatePost: (p: ClimbPost) => void; onOpenUser: (id: string) => void; onClose: () => void;
 }) {
-  const [renaming, setRenaming] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState(collection.name);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<ClimbPost | null>(null);
@@ -158,57 +167,52 @@ export function CollectionSheet({ collection, posts, ownerPosts, meId, isOwner, 
     <div className="scrim" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="grip" />
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          {renaming ? (
-            <>
-              <input value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
-              <button className="chip on" onClick={() => { onRename(name.trim() || collection.name); setRenaming(false); }}>Save</button>
-            </>
-          ) : (
-            <>
-              <h2 className="display" style={{ fontSize: 22, flex: 1, margin: 0 }}>{collection.name}</h2>
-              {isOwner && <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setRenaming(true)}><CIcon name="pencil" size={13} /> Rename</button>}
-            </>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          {isOwner && (
+            <button className={"chip" + (editMode ? " on" : "")} style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setEditMode((e) => !e)}>
+              <CIcon name={editMode ? "check" : "pencil"} size={13} /> {editMode ? "Done" : "Edit"}
+            </button>
           )}
+          <h2 className="display" style={{ fontSize: 22, flex: 1, margin: 0, textAlign: isOwner ? "center" : "left" }}>{collection.name}</h2>
+          {isOwner && <span style={{ width: 58 }} />}
         </div>
 
-        {isOwner && (
-          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 14, border: "2px dashed var(--line)", ...(collection.coverUrl ? { background: `center/cover url(${collection.coverUrl})`, borderStyle: "solid" } : {}), display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", flexShrink: 0 }}>
-              {!collection.coverUrl && <CIcon name="camera" size={20} />}
+        {editMode ? (
+          <>
+            <div className="label" style={{ marginBottom: 6 }}>Name</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <input value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
+              <button className="chip on" onClick={() => onRename(name.trim() || collection.name)}>Save</button>
             </div>
-            <span className="muted" style={{ fontSize: 13 }}>{uploading ? "Uploading…" : collection.coverUrl ? "Change cover photo" : "Add a cover photo"}</span>
-            <input type="file" accept="image/*" onChange={pickCover} className="hide" />
-          </label>
-        )}
 
-        {isOwner && (
-          <>
-            <div className="label" style={{ margin: "0 2px 8px" }}>Add your climbs</div>
-            {ownerPosts.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 12 }}>You have no climbs yet.</p>}
-            {ownerPosts.map((p) => (
-              <ClimbPickRow key={p.id} p={p} added={collection.postIds.includes(p.id)}
-                onToggle={() => (collection.postIds.includes(p.id) ? onRemove(p.id) : onAdd(p.id))} onPreview={() => setPreview(p)} />
-            ))}
-            <div className="label" style={{ margin: "16px 2px 8px" }}>In this collection</div>
-          </>
-        )}
+            <div className="label" style={{ marginBottom: 6 }}>Cover photo</div>
+            <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", marginBottom: 14 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 14, border: "2px dashed var(--line)", ...(collection.coverUrl ? { background: `center/cover url(${collection.coverUrl})`, borderStyle: "solid" } : {}), display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", flexShrink: 0 }}>
+                {!collection.coverUrl && <CIcon name="camera" size={20} />}
+              </div>
+              <span className="muted" style={{ fontSize: 13 }}>{uploading ? "Uploading…" : collection.coverUrl ? "Change cover photo" : "Add a cover photo"}</span>
+              <input type="file" accept="image/*" onChange={pickCover} className="hide" />
+            </label>
 
-        {inPosts.length === 0
-          ? <p className="muted" style={{ textAlign: "center", padding: 18 }}>No climbs in this collection yet.</p>
-          : inPosts.map((p) => (
-            <ClimbCard key={p.id} post={p} meId={meId} canDelete={p.userId === meId || isAdmin} onDelete={() => onDeletePost(p.id)} onUpdate={onUpdatePost} onOpenUser={onOpenUser} />
-          ))}
+            <div className="label" style={{ margin: "0 2px 8px" }}>Add a climb</div>
+            {ownerPosts.length === 0
+              ? <p className="muted" style={{ textAlign: "center", padding: 12 }}>You have no climbs yet.</p>
+              : <PickGrid posts={ownerPosts} isAdded={(id) => collection.postIds.includes(id)} onToggle={(id) => (collection.postIds.includes(id) ? onRemove(id) : onAdd(id))} onPreview={setPreview} />}
 
-        {isOwner && (
-          <>
-            <div style={{ height: 8 }} />
+            <div style={{ height: 16 }} />
             <button className="btn" style={{ background: "var(--accent-d)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={onDelete}>
               <CIcon name="x" size={16} /> Delete collection
             </button>
           </>
+        ) : (
+          inPosts.length === 0
+            ? <p className="muted" style={{ textAlign: "center", padding: 18 }}>No climbs in this collection yet.{isOwner ? " Tap Edit to add some." : ""}</p>
+            : inPosts.map((p) => (
+              <ClimbCard key={p.id} post={p} meId={meId} canDelete={p.userId === meId || isAdmin} onDelete={() => onDeletePost(p.id)} onUpdate={onUpdatePost} onOpenUser={onOpenUser} />
+            ))
         )}
-        <div style={{ height: 8 }} />
+
+        <div style={{ height: 10 }} />
         <button className="btn ghost" onClick={onClose}>Close</button>
 
         {preview && <PostPreview post={preview} meId={meId} onClose={() => setPreview(null)} />}
