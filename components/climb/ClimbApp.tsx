@@ -5,7 +5,7 @@ import { upload } from "@vercel/blob/client";
 import ClimbCard from "./ClimbCard";
 import ClimbRecord from "./ClimbRecord";
 import WallBoard from "./WallBoard";
-import { FacilityEditor } from "./FacilityMap";
+import { FacilityMap, FacilityEditor } from "./FacilityMap";
 import RouteSetter from "./RouteSetter";
 import { HoldCallout, holdCounts } from "./HoldCallout";
 import EditClimbProfile from "./EditClimbProfile";
@@ -14,6 +14,36 @@ import { isAdminEmail } from "@/lib/admin";
 import { GYMS, colorHex, climberTier, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type FacilityBox, type Route } from "@/lib/climb";
 
 const TABS = [{ id: "feed", label: "🏠 Feed" }, { id: "climbs", label: "🧗 Climbs" }, { id: "me", label: "👤 Profile" }];
+
+// Modern animated dropdown (replaces native <select>).
+function Dropdown({ value, options, onChange, minWidth, align = "left" }: {
+  value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; minWidth?: number; align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: PointerEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
+  }, [open]);
+  const cur = options.find((o) => o.value === value);
+  return (
+    <div ref={ref} style={{ position: "relative", minWidth }}>
+      <button className={"ddbtn" + (open ? " open" : "")} onClick={() => setOpen((o) => !o)}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cur?.label ?? ""}</span>
+        <svg className={"ddchev" + (open ? " open" : "")} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+      {open && (
+        <div className="ddmenu pop" style={align === "right" ? { left: "auto", right: 0, minWidth: 160 } : undefined}>
+          {options.map((o) => (
+            <button key={o.value} className={"ddopt" + (o.value === value ? " on" : "")} onClick={() => { onChange(o.value); setOpen(false); }}>{o.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Unique climbers who recommended (liked/super-liked) any of a route's posts.
 function routeRecommend(routeId: string, posts: ClimbPost[]): number {
@@ -26,23 +56,23 @@ function routeRecommend(routeId: string, posts: ClimbPost[]): number {
   return set.size;
 }
 
-function RouteRow({ r, completions, recommend, onOpen, onStart }: {
-  r: Route; completions: number; recommend: number; onOpen: () => void; onStart: () => void;
+function RouteRow({ r, completions, recommend, onOpen, onStart, i }: {
+  r: Route; completions: number; recommend: number; onOpen: () => void; onStart: () => void; i: number;
 }) {
   return (
-    <div className="card" style={{ padding: 10, marginBottom: 10 }}>
-      <div onClick={onOpen} style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}>
+    <div className="crow" style={{ animationDelay: `${Math.min(i, 8) * 0.04}s` }}>
+      <div onClick={onOpen} style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, cursor: "pointer" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={r.photoUrl} alt="route" style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+        <img className="thumb" src={r.photoUrl} alt="route" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="chip" style={{ background: colorHex(r.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{r.grade}</span>
+            <span className="vchip" style={{ background: colorHex(r.color) }}>V{r.grade}</span>
             <span style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.wall}</span>
           </div>
-          <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>👍 {recommend} recommend · 👤 {completions} completed</div>
+          <div className="muted" style={{ fontSize: 12, marginTop: 5 }}>👍 {recommend} · 👤 {completions} completed</div>
         </div>
       </div>
-      <button className="btn green" style={{ marginTop: 10 }} onClick={onStart}>🧗 Start Climb</button>
+      <button className="startbtn" onClick={onStart}>Start →</button>
     </div>
   );
 }
@@ -180,22 +210,22 @@ export default function ClimbApp() {
       <div className="topbar">
         <div className="row" style={{ justifyContent: "space-between", width: "100%" }}>
           <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.03em" }}>🧗 Climbing</h1>
-          <select value={gym} onChange={(e) => setGym(e.target.value)} style={{ width: "auto", padding: "6px 10px", fontSize: 13, fontWeight: 700, borderRadius: 10 }}>
-            {GYMS.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
+          <Dropdown value={gym} onChange={setGym} align="right" minWidth={130}
+            options={GYMS.map((g) => ({ value: g, label: g }))} />
+        </div>
+        <div className="row" style={{ marginTop: 10 }}>
+          <div className="hsearch">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a climber by @handle…" onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }} />
+          </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: 540, margin: "0 auto", padding: "0 18px 140px" }}>
+      <div key={tab} className="catfade" style={{ maxWidth: 540, margin: "0 auto", padding: "0 18px 140px" }}>
         {tab === "feed" && (
           <div>
             <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>The Wall</div>
             <div className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>{gym}</div>
-
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a climber by @handle…" onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }} style={{ flex: 1 }} />
-              <button className="btn" style={{ width: "auto", padding: "0 16px" }} onClick={doSearch}>Search</button>
-            </div>
 
             <div className="seg" style={{ marginBottom: 14 }}>
               <button className={"chip" + (feedMode === "gym" ? " on" : "")} style={{ flex: 1 }} onClick={() => setFeedMode("gym")}>Gym</button>
@@ -219,23 +249,25 @@ export default function ClimbApp() {
               )}
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 2px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 2px 14px" }}>
               <span className="label">Sort</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: "auto", padding: "6px 10px", fontSize: 13, fontWeight: 700, borderRadius: 10 }}>
-                <option value="new">🆕 New</option>
-                <option value="hot">🔥 Hot</option>
-                {[1, 2, 3, 4, 5, 6].map((g) => <option key={g} value={String(g)}>V{g}</option>)}
-              </select>
+              <Dropdown value={sort} onChange={setSort} minWidth={130}
+                options={[{ value: "new", label: "🆕 New" }, { value: "hot", label: "🔥 Hot" }, ...[1, 2, 3, 4, 5, 6].map((g) => ({ value: String(g), label: `V${g}` }))]} />
             </div>
 
-            {sortedRoutes.length === 0 && <p className="muted" style={{ fontSize: 13, padding: "0 2px 8px" }}>No routes here yet.</p>}
-            {sortedRoutes.map((r) => (
-              <RouteRow key={r.id} r={r}
-                completions={posts.filter((p) => p.routeId === r.id).length}
-                recommend={routeRecommend(r.id, posts)}
-                onOpen={() => setViewRoute(r)}
-                onStart={() => { setStartRoute(r); setRecording(true); }} />
-            ))}
+            {sortedRoutes.length === 0
+              ? <p className="muted" style={{ fontSize: 13, padding: "0 2px 8px" }}>No routes here yet.</p>
+              : (
+                <div className="card clist">
+                  {sortedRoutes.map((r, i) => (
+                    <RouteRow key={r.id} r={r} i={i}
+                      completions={posts.filter((p) => p.routeId === r.id).length}
+                      recommend={routeRecommend(r.id, posts)}
+                      onOpen={() => setViewRoute(r)}
+                      onStart={() => { setStartRoute(r); setRecording(true); }} />
+                  ))}
+                </div>
+              )}
           </div>
         )}
 
@@ -289,6 +321,13 @@ export default function ClimbApp() {
                 {holdCounts(viewRoute.holds).map(({ type, n }) => (
                   <span key={type} className="chip">{n} {type}</span>
                 ))}
+              </div>
+            )}
+
+            {facility.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div className="label" style={{ margin: "0 2px 8px" }}>Where it is · {viewRoute.wall}</div>
+                <FacilityMap boxes={facility} selected={viewRoute.wall} height={120} />
               </div>
             )}
 
