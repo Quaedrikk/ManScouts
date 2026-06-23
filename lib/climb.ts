@@ -29,6 +29,7 @@ export interface ClimbWall { bg?: string; holds: WallHold[] }
 export interface ClimbCollection {
   id: string;
   name: string;
+  coverUrl?: string;
   postIds: string[];
 }
 

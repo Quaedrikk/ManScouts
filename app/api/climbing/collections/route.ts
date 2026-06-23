@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     if (!profile) return NextResponse.json({ error: "No profile" }, { status: 400 });
     const clean: ClimbCollection[] = (Array.isArray(collections) ? collections : []).map((c) => ({
       id: String(c.id), name: String(c.name ?? "").slice(0, 60),
+      coverUrl: c.coverUrl ? String(c.coverUrl) : undefined,
       postIds: Array.isArray(c.postIds) ? c.postIds.map(String) : [],
     }));
     const next = { ...profile, collections: clean };

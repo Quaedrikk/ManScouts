@@ -26,8 +26,6 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
   const [draft, setDraft] = useState(post.note ?? "");
   const [draftVis, setDraftVis] = useState<Vis>(post.visibility ?? "everyone");
   const [savingEdit, setSavingEdit] = useState(false);
-  const likes = post.likes ?? [], supers = post.superLikes ?? [];
-  const iLike = likes.includes(meId), iSuper = supers.includes(meId);
   const isMine = post.userId === meId;
 
   async function engage(action: string, extra?: Record<string, unknown>) {
@@ -50,12 +48,6 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
     } catch { /* */ }
     setSavingEdit(false);
   }
-
-  const pill = (active: boolean, bg: string): React.CSSProperties => ({
-    display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999,
-    fontWeight: 800, fontSize: 12, cursor: "pointer", border: "none",
-    background: active ? bg : "rgba(0,0,0,.55)", color: "#fff",
-  });
 
   const comments = post.comments ?? [];
   const tops = comments.filter((c) => !c.parentId);
@@ -91,14 +83,15 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
           </div>
         </div>
         <span className="chip" style={{ background: colorHex(post.color), color: colorText(post.color), textShadow: post.color === "white" || post.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>V{post.grade}</span>
-        {(isMine || canDelete) && (
+        {(isMine || canDelete || onAddToCollection) && (
           <div style={{ position: "relative" }}>
             <button onClick={() => setMenu((m) => !m)} title="More" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--muted)" }}>
               <CIcon name="dots" size={18} />
             </button>
             {menu && (
-              <div className="ddmenu pop" style={{ left: "auto", right: 0, minWidth: 130 }}>
+              <div className="ddmenu pop" style={{ left: "auto", right: 0, minWidth: 160 }}>
                 {isMine && <button className="ddopt" onClick={() => { setMenu(false); setEditing(true); setDraft(post.note ?? ""); setDraftVis(post.visibility ?? "everyone"); }}><CIcon name="pencil" size={15} style={{ marginRight: 8 }} /> Edit</button>}
+                {onAddToCollection && <button className="ddopt" onClick={() => { setMenu(false); onAddToCollection(); }}><CIcon name="plus" size={15} style={{ marginRight: 8 }} /> Add to collection</button>}
                 {canDelete && <button className="ddopt" onClick={() => { setMenu(false); onDelete(); }} style={{ color: "var(--accent-d)" }}><CIcon name="x" size={15} style={{ marginRight: 8 }} /> Delete</button>}
               </div>
             )}
@@ -108,10 +101,6 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
 
       <div style={{ position: "relative" }}>
         <ClimbVideo url={post.videoUrl} startSec={post.startSec} />
-        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 6 }}>
-          <button onClick={() => engage("super")} style={pill(iSuper, "rgba(229,85,43,.95)")}><CIcon name="flame" size={14} /> Highly Recommended{supers.length ? ` ${supers.length}` : ""}</button>
-          <button onClick={() => engage("like")} style={pill(iLike, "rgba(47,111,224,.95)")}><CIcon name="thumb" size={14} /> Recommended{likes.length ? ` ${likes.length}` : ""}</button>
-        </div>
       </div>
 
       {editing ? (
@@ -131,16 +120,10 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
         </div>
       ) : (
         post.note && (
-          <div style={{ fontSize: 14, margin: "0 2px", padding: "11px 0 2px", borderTop: "1px solid var(--line)", lineHeight: 1.45 }}>
+          <div style={{ fontSize: 14, margin: "16px 2px 0", padding: "14px 0 2px", borderTop: "1px solid var(--line)", lineHeight: 1.45 }}>
             <b>{post.userName}</b> {post.note}
           </div>
         )
-      )}
-
-      {onAddToCollection && (
-        <button onClick={onAddToCollection} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--tint)", border: "none", borderRadius: 999, padding: "8px 14px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", color: "var(--ink)" }}>
-          <CIcon name="plus" size={14} /> Add to collection
-        </button>
       )}
 
       {/* Comments — Instagram style, with replies */}

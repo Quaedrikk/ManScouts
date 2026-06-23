@@ -11,7 +11,7 @@ import { HoldCallout, holdCounts } from "./HoldCallout";
 import EditClimbProfile from "./EditClimbProfile";
 import ClimbProfileOther from "./ClimbProfileOther";
 import CIcon from "./ClimbIcons";
-import { CollectionsBar, CollectionSheet, AddToCollectionSheet } from "./ClimbCollections";
+import { CollectionsBar, CollectionSheet, CreateCollectionSheet, AddToCollectionSheet } from "./ClimbCollections";
 import { isAdminEmail } from "@/lib/admin";
 import { GYMS, colorHex, colorText, climberTier, suggestedGrade, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type ClimbCollection, type FacilityBox, type Route } from "@/lib/climb";
 
@@ -109,6 +109,7 @@ export default function ClimbApp() {
   const [openColId, setOpenColId] = useState<string | null>(null);
   const [addToColPost, setAddToColPost] = useState<ClimbPost | null>(null);
   const [viewCollection, setViewCollection] = useState<ClimbCollection | null>(null);
+  const [creatingCollection, setCreatingCollection] = useState(false);
 
   const loadFeed = useCallback(async () => {
     try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
@@ -218,6 +219,13 @@ export default function ClimbApp() {
     saveCollections([...(me.collections ?? []), col]);
     return col;
   }
+  function createCollectionFull(c: { name: string; coverUrl?: string; postIds: string[] }) {
+    const col: ClimbCollection = { id: `col${Date.now()}`, name: c.name, coverUrl: c.coverUrl, postIds: c.postIds };
+    saveCollections([...(me.collections ?? []), col]);
+  }
+  function setCollectionCover(colId: string, url: string) {
+    saveCollections((me.collections ?? []).map((c) => c.id === colId ? { ...c, coverUrl: url } : c));
+  }
   function toggleInCollection(colId: string, postId: string) {
     saveCollections((me.collections ?? []).map((c) => c.id === colId
       ? { ...c, postIds: c.postIds.includes(postId) ? c.postIds.filter((x) => x !== postId) : [...c.postIds, postId] }
@@ -312,7 +320,7 @@ export default function ClimbApp() {
           <ClimbProfileView profile={me} mine={mine} maxGrade={maxGrade} meId={me.id} isAdmin={isAdmin}
             onSave={setProfile} onSignOut={() => signOut()} onEdit={() => setEditProfile(true)}
             onDeletePost={del} onUpdatePost={updatePost}
-            onOpenCollection={(c) => setOpenColId(c.id)} onNewCollection={() => { const name = prompt("Name your collection"); if (name?.trim()) createCollection(name.trim()); }}
+            onOpenCollection={(c) => setOpenColId(c.id)} onNewCollection={() => setCreatingCollection(true)}
             onAddToCollection={(p) => setAddToColPost(p)} />
         )}
       </div>
@@ -347,15 +355,21 @@ export default function ClimbApp() {
         return (
           <CollectionSheet collection={col} posts={posts} ownerPosts={mine} meId={me.id} isOwner isAdmin={isAdmin}
             onAdd={(pid) => toggleInCollection(col.id, pid)} onRemove={(pid) => toggleInCollection(col.id, pid)}
-            onRename={(name) => renameCollection(col.id, name)} onDelete={() => deleteCollection(col.id)}
+            onRename={(name) => renameCollection(col.id, name)} onSetCover={(url) => setCollectionCover(col.id, url)} onDelete={() => deleteCollection(col.id)}
             onDeletePost={del} onUpdatePost={updatePost} onOpenUser={openUser} onClose={() => setOpenColId(null)} />
         );
       })()}
 
       {viewCollection && (
         <CollectionSheet collection={viewCollection} posts={posts} ownerPosts={[]} meId={me.id} isOwner={false} isAdmin={isAdmin}
-          onAdd={() => {}} onRemove={() => {}} onRename={() => {}} onDelete={() => {}}
+          onAdd={() => {}} onRemove={() => {}} onRename={() => {}} onSetCover={() => {}} onDelete={() => {}}
           onDeletePost={del} onUpdatePost={updatePost} onOpenUser={openUser} onClose={() => setViewCollection(null)} />
+      )}
+
+      {creatingCollection && (
+        <CreateCollectionSheet ownerPosts={mine} meId={me.id}
+          onCreate={(c) => { createCollectionFull(c); setCreatingCollection(false); }}
+          onClose={() => setCreatingCollection(false)} />
       )}
 
       {addToColPost && (
