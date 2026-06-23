@@ -205,13 +205,25 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
             <div className="display" style={{ fontSize: 22, textAlign: "center", marginTop: 2 }}>{cat}</div>
             <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "4px 0 12px" }}>Tap a badge to propose a change · sorted by points</p>
 
-            <div className="hscroll">
+            <div className="grid2">
               {badges.map((b) => (
-                <div key={b.id} className="cell" onClick={() => setEditing(b)}>
-                  <Badge ch={b} size={66} />
-                  <div className="nm">{b.nm}</div>
-                  <div className="display" style={{ color: "var(--accent)", fontSize: 18, marginTop: 4 }}>{b.pts} pts</div>
-                  <div style={{ marginTop: 2 }}><Stars n={chStars(b)} size={11} /></div>
+                <div key={b.id} className="cell" style={{ textAlign: "left", paddingTop: 12 }} onClick={() => setEditing(b)}>
+                  <div style={{ display: "flex", justifyContent: "center" }}><Badge ch={b} size={56} /></div>
+                  <div className="nm" style={{ textAlign: "center" }}>{b.nm}</div>
+                  <div className="display" style={{ color: "var(--accent)", fontSize: 18, textAlign: "center", marginTop: 2 }}>{b.pts} pts</div>
+                  <div style={{ textAlign: "center", margin: "2px 0 8px" }}><Stars n={chStars(b)} size={11} /></div>
+                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 6 }}>
+                    {(b.how ?? []).length === 0 ? (
+                      <div className="muted" style={{ fontSize: 11 }}>One proof of completion.</div>
+                    ) : (b.how ?? []).map((h, k) => (
+                      <div key={k} className="muted" style={{ fontSize: 11, lineHeight: 1.35, display: "flex", gap: 5, marginBottom: 2 }}>
+                        <span style={{ fontWeight: 800, color: "var(--accent)" }}>{k + 1}.</span><span>{h}</span>
+                      </div>
+                    ))}
+                    <div className="muted" style={{ fontSize: 10.5, marginTop: 5, fontWeight: 700 }}>
+                      {b.needsWitness === false ? "No witness" : "Witness needed"}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -229,13 +241,37 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
   );
 }
 
-function Diff({ from, to }: { from: React.ReactNode; to: React.ReactNode }) {
+function CmpCard({ ch, pts, how, needsWitness, label, selected, changed, onClick }: {
+  ch?: Challenge; pts: number; how: string[]; needsWitness: boolean;
+  label: string; selected: boolean; changed: boolean; onClick: () => void;
+}) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-      <span className="muted" style={{ textDecoration: "line-through" }}>{from}</span>
-      <span style={{ color: "var(--muted)" }}>→</span>
-      <span style={{ fontWeight: 800, color: "var(--accent)" }}>{to}</span>
-    </span>
+    <div
+      onClick={onClick}
+      className="cell"
+      style={{ flex: 1, minWidth: 0, textAlign: "left", paddingTop: 12, cursor: "pointer",
+        border: selected ? "2px solid var(--green)" : "1px solid var(--line)",
+        boxShadow: selected ? "0 0 0 2px rgba(31,138,91,.25)" : undefined }}
+    >
+      <div className="label" style={{ textAlign: "center", color: selected ? "var(--green)" : "var(--muted)", marginBottom: 6 }}>
+        {selected ? "✓ " : ""}{label}
+      </div>
+      {ch && <div style={{ display: "flex", justifyContent: "center" }}><Badge ch={ch} size={48} /></div>}
+      <div className="display" style={{ color: changed ? "var(--accent)" : "var(--ink)", fontSize: 18, textAlign: "center", marginTop: 4 }}>{pts} pts</div>
+      <div style={{ textAlign: "center", margin: "2px 0 8px" }}><Stars n={chStars({ pts })} size={11} /></div>
+      <div style={{ borderTop: "1px solid var(--line)", paddingTop: 6 }}>
+        {how.length === 0 ? (
+          <div className="muted" style={{ fontSize: 11 }}>One proof of completion.</div>
+        ) : how.map((h, k) => (
+          <div key={k} className="muted" style={{ fontSize: 11, lineHeight: 1.35, display: "flex", gap: 5, marginBottom: 2 }}>
+            <span style={{ fontWeight: 800, color: "var(--accent)" }}>{k + 1}.</span><span>{h}</span>
+          </div>
+        ))}
+        <div className="muted" style={{ fontSize: 10.5, marginTop: 5, fontWeight: 700 }}>
+          {needsWitness ? "Witness needed" : "No witness"}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -294,24 +330,21 @@ function ReviewVote({ onClose }: { onClose: () => void }) {
           <>
             {shown.map((p) => {
               const orig = byId(p.challengeId);
+              const oPts = orig?.pts ?? 0, oHow = orig?.how ?? [], oWit = orig?.needsWitness !== false;
+              const pPts = p.pts ?? oPts, pHow = p.how ?? oHow, pWit = p.needsWitness ?? oWit;
               return (
                 <div key={p.id} className="card fadeup" style={{ padding: 14, marginBottom: 12 }}>
                   <div style={{ fontWeight: 800, fontSize: 15 }}>{p.challengeName}</div>
-                  <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{catOf(p)} · proposed by {p.userName}</div>
-                  <div style={{ display: "grid", gap: 6, fontSize: 13, marginBottom: 8 }}>
-                    {typeof p.pts === "number" && <div><Diff from={`${orig?.pts ?? "?"} pts`} to={`${p.pts} pts`} /></div>}
-                    {p.needsWitness != null && <div><Diff from={(orig?.needsWitness === false) ? "No witness" : "Witness"} to={p.needsWitness ? "Witness" : "No witness"} /></div>}
-                    {p.how && (
-                      <div>
-                        <div className="muted" style={{ fontWeight: 700, marginBottom: 2 }}>Criteria →</div>
-                        {p.how.map((h, k) => <div key={k} style={{ fontWeight: 700 }}>{k + 1}. {h}</div>)}
-                      </div>
-                    )}
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>{catOf(p)} · proposed by {p.userName}</div>
+                  {p.note && <div style={{ fontSize: 13, fontStyle: "italic", margin: "0 0 8px" }}>&quot;{p.note}&quot;</div>}
+                  <p className="muted" style={{ fontSize: 11.5, textAlign: "center", margin: "4px 0 8px" }}>Tap the version you want</p>
+                  <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                    <CmpCard ch={orig} pts={oPts} how={oHow} needsWitness={oWit} label="Keep original" changed={false} selected={p.myVote === "no"} onClick={() => vote(p.id, "no")} />
+                    <div style={{ alignSelf: "center", color: "var(--muted)", fontWeight: 800, fontSize: 18 }}>→</div>
+                    <CmpCard ch={orig} pts={pPts} how={pHow} needsWitness={pWit} label="Proposed" changed selected={p.myVote === "yes"} onClick={() => vote(p.id, "yes")} />
                   </div>
-                  {p.note && <div style={{ fontSize: 13, fontStyle: "italic", marginBottom: 10 }}>&quot;{p.note}&quot;</div>}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className={"btn" + (p.myVote === "yes" ? " green" : " ghost")} style={{ flex: 1 }} onClick={() => vote(p.id, "yes")}>Yes · {p.votesYes ?? 0}</button>
-                    <button className={"btn ghost"} style={{ flex: 1, ...(p.myVote === "no" ? { background: "var(--accent-d)", color: "#fff", boxShadow: "none" } : {}) }} onClick={() => vote(p.id, "no")}>No · {p.votesNo ?? 0}</button>
+                  <div className="muted" style={{ fontSize: 11.5, textAlign: "center", marginTop: 8 }}>
+                    Keep {p.votesNo ?? 0} · Change {p.votesYes ?? 0}
                   </div>
                 </div>
               );
