@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       bio: (b.bio ?? "").trim(),
       avatarUrl: b.avatarUrl ?? "",
       holdColor: b.holdColor ?? existing?.holdColor ?? "#2f6fe0",
+      wall: b.wall ?? existing?.wall,
     };
     await saveClimbProfile(profile);
     return NextResponse.json({ profile });

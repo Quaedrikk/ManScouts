@@ -83,7 +83,7 @@ export function FacilityEditor({ gym, initial, onClose }: { gym: string; initial
         <h2 className="display" style={{ fontSize: 22, textAlign: "center", margin: "2px 0 4px" }}>Facility map editor</h2>
         <p className="muted" style={{ textAlign: "center", fontSize: 12.5, margin: "0 0 12px" }}>Drag boxes to move · drag the ◢ corner to resize.</p>
 
-        <div ref={ref} onPointerMove={move} onPointerUp={up} onPointerLeave={up} onClick={() => setSelId(null)}
+        <div ref={ref} onPointerMove={move} onPointerUp={up} onPointerLeave={up}
           style={{ position: "relative", width: "100%", height: 240, borderRadius: 16, overflow: "hidden", touchAction: "none",
             background: "repeating-linear-gradient(45deg,#eceadf 0 12px,#e6e3d6 12px 24px)", border: "1px solid var(--line)" }}>
           {boxes.map((b) => {

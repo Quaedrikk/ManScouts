@@ -18,6 +18,9 @@ export const colorHex = (c: ClimbColor) => CLIMB_COLORS.find((x) => x.key === c)
 export const HOLD_SHAPES = ["jug", "crimp", "sloper", "pinch", "pocket"] as const;
 export type HoldShape = (typeof HOLD_SHAPES)[number];
 
+export interface WallHold { x: number; y: number; type: HoldShape; color: string }
+export interface ClimbWall { bg?: string; holds: WallHold[] }
+
 export interface ClimbProfile {
   id: string;
   name: string;
@@ -25,7 +28,10 @@ export interface ClimbProfile {
   bio: string;
   avatarUrl: string;
   holdColor?: string; // color of the rocks in their holds box
+  wall?: ClimbWall;   // customizable info wall (drag-and-drop holds)
 }
+
+export interface ClimbUserLite { id: string; name: string; handle: string; avatarUrl: string }
 
 export const REACTIONS = ["🔥", "💪", "👏", "😮", "🧗", "😂"] as const;
 
@@ -74,6 +80,7 @@ export interface ClimbPost {
   userAvatarUrl: string;
   gym: string;
   wall: string;
+  routeId?: string;
   color: ClimbColor;
   grade: number; // V1–V6
   videoUrl: string;

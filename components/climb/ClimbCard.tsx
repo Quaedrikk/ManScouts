@@ -14,9 +14,9 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
   post: ClimbPost; meId: string; canDelete: boolean; onDelete: () => void; onUpdate: (p: ClimbPost) => void;
 }) {
   const [comment, setComment] = useState("");
-  const [showComments, setShowComments] = useState(false);
   const likes = post.likes ?? [], supers = post.superLikes ?? [];
   const reactions = post.reactions ?? {};
+  const iLike = likes.includes(meId), iSuper = supers.includes(meId);
 
   async function engage(action: string, extra?: Record<string, unknown>) {
     try {
@@ -24,12 +24,13 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
       const d = await res.json(); if (d.post) onUpdate(d.post);
     } catch { /* */ }
   }
-  async function sendComment() {
-    if (!comment.trim()) return;
-    const t = comment.trim(); setComment("");
-    await engage("comment", { text: t });
-    setShowComments(true);
-  }
+  async function sendComment() { if (!comment.trim()) return; const t = comment.trim(); setComment(""); await engage("comment", { text: t }); }
+
+  const pill = (active: boolean, bg: string): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999,
+    fontWeight: 800, fontSize: 12, cursor: "pointer", border: "none",
+    background: active ? bg : "rgba(0,0,0,.55)", color: "#fff",
+  });
 
   return (
     <div className="card post fadeup">
@@ -39,8 +40,7 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
           <div style={{ fontWeight: 800, fontSize: 14.5 }}>{post.userName}</div>
           <div className="muted" style={{ fontSize: 12.5 }}>{post.wall} · {fmtAgo(post.createdAt)}</div>
         </div>
-        <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorHex(post.color), border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)" }} />
-        <span className="chip" style={{ background: "var(--ink)", color: "#fff" }}>V{post.grade}</span>
+        <span className="chip" style={{ background: colorHex(post.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{post.grade}</span>
         {canDelete && (
           <button onClick={onDelete} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b0a99a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7" /></svg>
@@ -50,22 +50,14 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
 
       <div style={{ position: "relative" }}>
         <ClimbVideo url={post.videoUrl} startSec={post.startSec} />
-        {(supers.length > 0 || likes.length > 0) && (
-          <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 6 }}>
-            {supers.length > 0 && <span style={{ background: "rgba(229,85,43,.92)", color: "#fff", fontWeight: 800, fontSize: 12, padding: "3px 8px", borderRadius: 999 }}>⭐ {supers.length}</span>}
-            {likes.length > 0 && <span style={{ background: "rgba(0,0,0,.6)", color: "#fff", fontWeight: 800, fontSize: 12, padding: "3px 8px", borderRadius: 999 }}>👍 {likes.length}</span>}
-          </div>
-        )}
+        {/* Rating control = indicator, top-left */}
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 6 }}>
+          <button onClick={() => engage("super")} style={pill(iSuper, "rgba(229,85,43,.95)")}>⭐ {supers.length}</button>
+          <button onClick={() => engage("like")} style={pill(iLike, "rgba(47,111,224,.95)")}>👍 {likes.length}</button>
+        </div>
       </div>
 
-      {post.note && <div style={{ fontSize: 14, margin: "10px 2px 0", lineHeight: 1.45 }}>{post.note}</div>}
-
-      {/* Like / super like */}
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <button className={"cheer" + (likes.includes(meId) ? " on" : "")} onClick={() => engage("like")}>👍 Like</button>
-        <button className="cheer" style={supers.includes(meId) ? { background: "#ffe6dc", color: "var(--accent-d)" } : undefined} onClick={() => engage("super")}>⭐ Super</button>
-        <button className="cheer" style={{ marginLeft: "auto" }} onClick={() => setShowComments((s) => !s)}>💬 {(post.comments ?? []).length}</button>
-      </div>
+      {post.note && <div style={{ fontSize: 14, margin: "10px 2px 4px", lineHeight: 1.45 }}>{post.note}</div>}
 
       {/* Emoji reactions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -81,23 +73,18 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
         })}
       </div>
 
-      {showComments && (
-        <div style={{ marginTop: 10 }}>
-          {(post.comments ?? []).map((c) => (
-            <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <Avatar name={c.name} handle="" img={c.avatarUrl} size={28} />
-              <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 800, fontSize: 13 }}>{c.name}</span>
-                <span style={{ fontSize: 13.5, marginLeft: 6 }}>{c.text}</span>
-              </div>
-            </div>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add a comment…" onKeyDown={(e) => { if (e.key === "Enter") sendComment(); }} />
-            <button className="btn" style={{ width: "auto", padding: "0 16px" }} onClick={sendComment}>Send</button>
+      {/* Comments — Instagram style, always shown */}
+      <div style={{ marginTop: 10 }}>
+        {(post.comments ?? []).map((c) => (
+          <div key={c.id} style={{ fontSize: 13.5, marginBottom: 5, lineHeight: 1.4 }}>
+            <span style={{ fontWeight: 800 }}>{c.name}</span> {c.text}
           </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add a comment…" onKeyDown={(e) => { if (e.key === "Enter") sendComment(); }} style={{ padding: "10px 12px" }} />
+          {comment.trim() && <button className="btn" style={{ width: "auto", padding: "0 16px" }} onClick={sendComment}>Post</button>}
         </div>
-      )}
+      </div>
     </div>
   );
 }

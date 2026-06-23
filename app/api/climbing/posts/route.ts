@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const profile = await getClimbProfile(session.user.id);
     if (!profile) return NextResponse.json({ error: "Set up your climber profile first" }, { status: 400 });
-    const b = (await req.json()) as Pick<ClimbPost, "gym" | "wall" | "color" | "grade" | "videoUrl" | "startSec" | "note">;
+    const b = (await req.json()) as Pick<ClimbPost, "gym" | "wall" | "routeId" | "color" | "grade" | "videoUrl" | "startSec" | "note">;
     if (!b.videoUrl) return NextResponse.json({ error: "A video is required" }, { status: 400 });
     const post: ClimbPost = {
       id: `c${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       userAvatarUrl: profile.avatarUrl,
       gym: b.gym,
       wall: b.wall,
+      routeId: b.routeId,
       color: b.color,
       grade: b.grade,
       videoUrl: b.videoUrl,

@@ -56,4 +56,12 @@ export async function getClimbProfile(id: string): Promise<ClimbProfile | null> 
 
 export async function saveClimbProfile(p: ClimbProfile): Promise<void> {
   await kv.set(PROFILE(p.id), p);
+  await kv.sadd("cl:users", p.id);
+}
+
+export async function getClimbUsers(): Promise<ClimbProfile[]> {
+  const ids = (await kv.smembers<string[]>("cl:users")) ?? [];
+  if (ids.length === 0) return [];
+  const ps = await Promise.all(ids.map((id) => kv.get<ClimbProfile>(PROFILE(id))));
+  return ps.filter(Boolean) as ClimbProfile[];
 }

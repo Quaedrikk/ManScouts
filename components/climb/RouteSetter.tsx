@@ -1,22 +1,25 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
 import { ColorPolygon } from "./ClimbBits";
 import { FacilityMap } from "./FacilityMap";
-import { WALLS, HOLD_TYPES, type ClimbColor, type FacilityBox, type HoldType, type RouteHold } from "@/lib/climb";
+import { WALLS, HOLD_TYPES, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
 
 export const HOLD_TYPE_COLOR: Record<HoldType, string> = {
   Crimp: "#e0559f", Sloper: "#2f6fe0", Pinch: "#e8b800", Jug: "#2faa50", Pocket: "#7b3fb5",
 };
 
-export default function RouteSetter({ gym, facility, onClose, onSaved }: {
-  gym: string; facility: FacilityBox[]; onClose: () => void; onSaved: () => void;
+export default function RouteSetter({ gym, facility, meName, onClose, onSaved }: {
+  gym: string; facility: FacilityBox[]; meName: string; onClose: () => void; onSaved: () => void;
 }) {
   const [wall, setWall] = useState<string>(facility[0]?.label ?? WALLS[0]);
   const [color, setColor] = useState<ClimbColor | null>(null);
   const [grade, setGrade] = useState(1);
-  const [setters, setSetters] = useState<string[]>([]);
-  const [setterInput, setSetterInput] = useState("");
+  const [setters, setSetters] = useState<string[]>([meName]);
+  const [q, setQ] = useState("");
+  const [users, setUsers] = useState<ClimbUserLite[]>([]);
+  useEffect(() => { fetch("/api/climbing/users").then((r) => r.json()).then((d) => setUsers(d.users ?? [])).catch(() => {}); }, []);
+  const matches = q.trim() ? users.filter((u) => !setters.includes(u.name) && (u.name.toLowerCase().includes(q.toLowerCase()) || u.handle.toLowerCase().includes(q.toLowerCase()))).slice(0, 6) : [];
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [holds, setHolds] = useState<RouteHold[]>([]);
@@ -42,11 +45,6 @@ export default function RouteSetter({ gym, facility, onClose, onSaved }: {
     setHolds((h) => [...h, { ...pending, type }]);
     setPending(null);
   }
-  function addSetter() {
-    const n = setterInput.trim(); if (!n) return;
-    setSetters((s) => [...s, n]); setSetterInput("");
-  }
-
   async function post() {
     if (!photoUrl || !color) return;
     setBusy(true);
@@ -88,12 +86,18 @@ export default function RouteSetter({ gym, facility, onClose, onSaved }: {
         <div className="label" style={{ margin: "0 0 6px" }}>Setters</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
           {setters.map((s, i) => (
-            <span key={i} className="chip" onClick={() => setSetters((p) => p.filter((_, k) => k !== i))} style={{ cursor: "pointer" }}>{s} ✕</span>
+            <span key={i} className="chip" onClick={() => i > 0 && setSetters((p) => p.filter((_, k) => k !== i))} style={{ cursor: i > 0 ? "pointer" : "default" }}>{s}{i === 0 ? " · you" : " ✕"}</span>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <input value={setterInput} onChange={(e) => setSetterInput(e.target.value)} placeholder="Add a setter name" onKeyDown={(e) => { if (e.key === "Enter") addSetter(); }} />
-          <button className="btn" style={{ width: "auto", padding: "0 16px" }} onClick={addSetter}>Add</button>
+        <div style={{ position: "relative", marginBottom: 14, zIndex: 4 }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tag another setter…" />
+          {matches.length > 0 && (
+            <div className="ddmenu">
+              {matches.map((u) => (
+                <button key={u.id} className="ddopt" onClick={() => { setSetters((s) => [...s, u.name]); setQ(""); }}>{u.name} <span className="muted" style={{ marginLeft: 6 }}>{u.handle}</span></button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Photo + holds */}
