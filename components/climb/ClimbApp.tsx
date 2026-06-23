@@ -11,8 +11,9 @@ import { HoldCallout, holdCounts } from "./HoldCallout";
 import EditClimbProfile from "./EditClimbProfile";
 import ClimbProfileOther from "./ClimbProfileOther";
 import CIcon from "./ClimbIcons";
+import { CollectionsBar, CollectionSheet, AddToCollectionSheet } from "./ClimbCollections";
 import { isAdminEmail } from "@/lib/admin";
-import { GYMS, colorHex, colorText, climberTier, suggestedGrade, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type FacilityBox, type Route } from "@/lib/climb";
+import { GYMS, colorHex, colorText, climberTier, suggestedGrade, type ClimbPost, type ClimbProfile, type ClimbWall, type ClimbUserLite, type ClimbCollection, type FacilityBox, type Route } from "@/lib/climb";
 
 const TABS = [{ id: "feed", icon: "home", label: "Feed" }, { id: "climbs", icon: "climbs", label: "Climbs" }, { id: "me", icon: "user", label: "Profile" }];
 
@@ -104,6 +105,10 @@ export default function ClimbApp() {
   // climbs sort + difficulty filter
   const [sortMode, setSortMode] = useState<"new" | "hot">("new");
   const [diffFilter, setDiffFilter] = useState<number[]>([]);
+  // collections
+  const [openColId, setOpenColId] = useState<string | null>(null);
+  const [addToColPost, setAddToColPost] = useState<ClimbPost | null>(null);
+  const [viewCollection, setViewCollection] = useState<ClimbCollection | null>(null);
 
   const loadFeed = useCallback(async () => {
     try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
@@ -201,10 +206,29 @@ export default function ClimbApp() {
       if (d.route) { setRoutes((prev) => prev.map((r) => r.id === d.route.id ? d.route : r)); setViewRoute((v) => v && v.id === d.route.id ? d.route : v); }
     } catch { /* */ }
   }
-  async function toggleSetter() {
-    const next = { ...me, isSetter: !me.isSetter };
-    setProfile(next);
-    try { await fetch("/api/climbing/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) }); } catch { /* */ }
+  async function saveCollections(next: ClimbCollection[]) {
+    setProfile((p) => p ? { ...p, collections: next } : p);
+    try {
+      const d = await fetch("/api/climbing/collections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collections: next }) }).then((r) => r.json());
+      if (d.profile) setProfile(d.profile);
+    } catch { /* */ }
+  }
+  function createCollection(name: string, postId?: string) {
+    const col: ClimbCollection = { id: `col${Date.now()}`, name, postIds: postId ? [postId] : [] };
+    saveCollections([...(me.collections ?? []), col]);
+    return col;
+  }
+  function toggleInCollection(colId: string, postId: string) {
+    saveCollections((me.collections ?? []).map((c) => c.id === colId
+      ? { ...c, postIds: c.postIds.includes(postId) ? c.postIds.filter((x) => x !== postId) : [...c.postIds, postId] }
+      : c));
+  }
+  function renameCollection(colId: string, name: string) {
+    saveCollections((me.collections ?? []).map((c) => c.id === colId ? { ...c, name } : c));
+  }
+  function deleteCollection(colId: string) {
+    saveCollections((me.collections ?? []).filter((c) => c.id !== colId));
+    setOpenColId(null);
   }
 
   // Sorted/filtered routes for the Climbs tab.
@@ -218,10 +242,8 @@ export default function ClimbApp() {
   return (
     <div>
       <div className="topbar">
-        <div className="row" style={{ justifyContent: "space-between", width: "100%" }}>
-          <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.03em" }}>🧗 Climbing</h1>
-          <Dropdown value={gym} onChange={setGym} align="right" minWidth={130}
-            options={GYMS.map((g) => ({ value: g, label: g }))} />
+        <div className="row" style={{ width: "100%" }}>
+          <h1 style={{ margin: 0, fontSize: 19, fontWeight: 800, letterSpacing: "-.03em" }}>Climbing</h1>
         </div>
         <div className="row" style={{ marginTop: 10 }}>
           <div className="hsearch">
@@ -234,9 +256,7 @@ export default function ClimbApp() {
       <div key={tab} className="catfade" style={{ maxWidth: 540, margin: "0 auto", padding: "0 18px 140px" }}>
         {tab === "feed" && (
           <div>
-            <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>The Wall</div>
-            <div className="muted" style={{ fontSize: 13.5, margin: "0 2px 14px" }}>{gym}</div>
-
+            <div style={{ height: 16 }} />
             <div className="seg" style={{ marginBottom: 14 }}>
               <button className={"chip" + (feedMode === "gym" ? " on" : "")} style={{ flex: 1 }} onClick={() => setFeedMode("gym")}>Gym</button>
               <button className={"chip" + (feedMode === "following" ? " on" : "")} style={{ flex: 1 }} onClick={() => setFeedMode("following")}>Following</button>
@@ -249,15 +269,17 @@ export default function ClimbApp() {
 
         {tab === "climbs" && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "18px 2px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "18px 2px 12px" }}>
               <div className="display" style={{ fontSize: 26 }}>Climbs</div>
-              {me.isSetter && (
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setSettingRoute(true)}><CIcon name="plus" size={14} /> Set a route</button>
-                  <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setEditMap(true)}><CIcon name="pencil" size={14} /> Edit map</button>
-                </div>
-              )}
+              <Dropdown value={gym} onChange={setGym} align="right" minWidth={130}
+                options={GYMS.map((g) => ({ value: g, label: g }))} />
             </div>
+            {me.isSetter && (
+              <div style={{ display: "flex", gap: 6, margin: "0 2px 12px" }}>
+                <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setSettingRoute(true)}><CIcon name="plus" size={14} /> Set a route</button>
+                <button className="chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => setEditMap(true)}><CIcon name="pencil" size={14} /> Edit map</button>
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, margin: "0 2px 12px" }}>
               <button className={"chip" + (sortMode === "new" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("new")}><CIcon name="spark" size={14} /> New</button>
@@ -289,7 +311,9 @@ export default function ClimbApp() {
         {tab === "me" && (
           <ClimbProfileView profile={me} mine={mine} maxGrade={maxGrade} meId={me.id} isAdmin={isAdmin}
             onSave={setProfile} onSignOut={() => signOut()} onEdit={() => setEditProfile(true)}
-            onToggleSetter={toggleSetter} onDeletePost={del} onUpdatePost={updatePost} />
+            onDeletePost={del} onUpdatePost={updatePost}
+            onOpenCollection={(c) => setOpenColId(c.id)} onNewCollection={() => { const name = prompt("Name your collection"); if (name?.trim()) createCollection(name.trim()); }}
+            onAddToCollection={(p) => setAddToColPost(p)} />
         )}
       </div>
 
@@ -314,7 +338,31 @@ export default function ClimbApp() {
       {editProfile && <EditClimbProfile profile={me} onClose={() => setEditProfile(false)} onSaved={(p) => { setProfile(p); setEditProfile(false); loadUsers(); loadFeed(); }} />}
       {viewUser && (
         <ClimbProfileOther profile={viewUser} posts={posts} meId={me.id} following={following.includes(viewUser.id)}
-          onToggleFollow={() => toggleFollow(viewUser.id)} onUpdate={updatePost} onClose={() => setViewUser(null)} />
+          onToggleFollow={() => toggleFollow(viewUser.id)} onUpdate={updatePost} onOpenCollection={setViewCollection} onClose={() => setViewUser(null)} />
+      )}
+
+      {openColId && (() => {
+        const col = (me.collections ?? []).find((c) => c.id === openColId);
+        if (!col) return null;
+        return (
+          <CollectionSheet collection={col} posts={posts} ownerPosts={mine} meId={me.id} isOwner isAdmin={isAdmin}
+            onAdd={(pid) => toggleInCollection(col.id, pid)} onRemove={(pid) => toggleInCollection(col.id, pid)}
+            onRename={(name) => renameCollection(col.id, name)} onDelete={() => deleteCollection(col.id)}
+            onDeletePost={del} onUpdatePost={updatePost} onOpenUser={openUser} onClose={() => setOpenColId(null)} />
+        );
+      })()}
+
+      {viewCollection && (
+        <CollectionSheet collection={viewCollection} posts={posts} ownerPosts={[]} meId={me.id} isOwner={false} isAdmin={isAdmin}
+          onAdd={() => {}} onRemove={() => {}} onRename={() => {}} onDelete={() => {}}
+          onDeletePost={del} onUpdatePost={updatePost} onOpenUser={openUser} onClose={() => setViewCollection(null)} />
+      )}
+
+      {addToColPost && (
+        <AddToCollectionSheet post={addToColPost} collections={me.collections ?? []}
+          onToggle={(colId) => toggleInCollection(colId, addToColPost.id)}
+          onCreate={(name) => { createCollection(name, addToColPost.id); setAddToColPost(null); }}
+          onClose={() => setAddToColPost(null)} />
       )}
 
       {viewRoute && (
@@ -379,10 +427,11 @@ export default function ClimbApp() {
   );
 }
 
-function ClimbProfileView({ profile, mine, maxGrade, meId, isAdmin, onSave, onSignOut, onEdit, onToggleSetter, onDeletePost, onUpdatePost }: {
+function ClimbProfileView({ profile, mine, maxGrade, meId, isAdmin, onSave, onSignOut, onEdit, onDeletePost, onUpdatePost, onOpenCollection, onNewCollection, onAddToCollection }: {
   profile: ClimbProfile; mine: ClimbPost[]; maxGrade: number; meId: string; isAdmin: boolean;
-  onSave: (p: ClimbProfile) => void; onSignOut: () => void; onEdit: () => void; onToggleSetter: () => void;
+  onSave: (p: ClimbProfile) => void; onSignOut: () => void; onEdit: () => void;
   onDeletePost: (id: string) => void; onUpdatePost: (p: ClimbPost) => void;
+  onOpenCollection: (c: ClimbCollection) => void; onNewCollection: () => void; onAddToCollection: (p: ClimbPost) => void;
 }) {
   const { tier, v } = climberTier(maxGrade);
   async function saveWall(wall: ClimbWall) {
@@ -393,36 +442,24 @@ function ClimbProfileView({ profile, mine, maxGrade, meId, isAdmin, onSave, onSi
   return (
     <div>
       <div style={{ height: 18 }} />
-      <WallBoard profile={profile} editable onSave={saveWall} />
+      <WallBoard profile={profile} editable onSave={saveWall} onEditProfile={onEdit} />
 
       <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
-        <div className="card" style={{ flex: 1.4, padding: "16px 8px 14px", textAlign: "center" }}>
-          <div className="display" style={{ color: "var(--accent)", fontSize: 44, lineHeight: 1 }}>V{v}</div>
-          <div style={{ fontWeight: 800, fontSize: 14, marginTop: 6 }}>{tier}</div>
-          <div className="label" style={{ marginTop: 2 }}>Top grade sent</div>
+        <div className="card" style={{ flex: 1, padding: "11px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <span className="display" style={{ color: "var(--accent)", fontSize: 22 }}>V{v}</span>
+          <span style={{ fontWeight: 800, fontSize: 14 }}>{tier}</span>
         </div>
-        <div className="card" style={{ flex: 1, padding: "16px 8px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div className="display" style={{ color: "var(--accent)", fontSize: 30 }}>{mine.length}</div>
-          <div className="label" style={{ marginTop: 4 }}>Climbs</div>
+        <div className="card" style={{ flex: 1, padding: "11px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <span className="display" style={{ color: "var(--accent)", fontSize: 22 }}>{mine.length}</span>
+          <span className="label">Climbs</span>
         </div>
       </div>
 
-      <button className="btn ghost" onClick={onEdit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}><CIcon name="pencil" size={16} /> Edit profile</button>
-      <div style={{ height: 10 }} />
-      <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px" }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 14 }}>Route setter</div>
-          <div className="muted" style={{ fontSize: 12.5 }}>Unlock setting routes &amp; editing the map</div>
-        </div>
-        <button onClick={onToggleSetter} aria-label="Toggle route setter"
-          style={{ width: 48, height: 28, borderRadius: 999, border: "none", cursor: "pointer", background: profile.isSetter ? "var(--accent)" : "var(--line)", position: "relative", transition: "background .15s" }}>
-          <span style={{ position: "absolute", top: 3, left: profile.isSetter ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
-        </button>
-      </div>
+      <CollectionsBar collections={profile.collections ?? []} posts={mine} isOwner onOpen={onOpenCollection} onNew={onNewCollection} />
 
       <div className="label" style={{ margin: "22px 2px 10px" }}>Your climbs</div>
       {mine.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 16 }}>No climbs yet.</p>}
-      {mine.map((p) => <ClimbCard key={p.id} post={p} meId={meId} canDelete={p.userId === meId || isAdmin} onDelete={() => onDeletePost(p.id)} onUpdate={onUpdatePost} />)}
+      {mine.map((p) => <ClimbCard key={p.id} post={p} meId={meId} canDelete={p.userId === meId || isAdmin} onDelete={() => onDeletePost(p.id)} onUpdate={onUpdatePost} onAddToCollection={() => onAddToCollection(p)} />)}
 
       <div style={{ height: 16 }} />
       <button className="btn ghost" onClick={onSignOut}>Sign out</button>

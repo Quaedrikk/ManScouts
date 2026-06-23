@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { upload } from "@vercel/blob/client";
+import CIcon from "./ClimbIcons";
 import type { ClimbProfile } from "@/lib/climb";
 
 export default function EditClimbProfile({ profile, onClose, onSaved }: {
@@ -10,6 +11,7 @@ export default function EditClimbProfile({ profile, onClose, onSaved }: {
   const [handle, setHandle] = useState(profile.handle);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
+  const [isSetter, setIsSetter] = useState(!!profile.isSetter);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -27,7 +29,7 @@ export default function EditClimbProfile({ profile, onClose, onSaved }: {
     try {
       const res = await fetch("/api/climbing/profile", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...profile, name, handle, bio, avatarUrl }),
+        body: JSON.stringify({ ...profile, name, handle, bio, avatarUrl, isSetter }),
       });
       const d = await res.json();
       if (res.ok && d.profile) { onSaved(d.profile); return; }
@@ -53,6 +55,21 @@ export default function EditClimbProfile({ profile, onClose, onSaved }: {
         <input value={handle} onChange={(e) => setHandle(e.target.value.replace(/\s/g, ""))} placeholder="@sendit" />
         <div className="label" style={{ margin: "12px 0 6px" }}>Bio</div>
         <textarea rows={2} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Crimps over jugs." />
+
+        <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <CIcon name="climbs" size={20} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Route setter</div>
+              <div className="muted" style={{ fontSize: 12.5 }}>Unlock setting routes &amp; the map</div>
+            </div>
+          </div>
+          <button onClick={() => setIsSetter((s) => !s)} aria-label="Toggle route setter"
+            style={{ width: 48, height: 28, borderRadius: 999, border: "none", cursor: "pointer", background: isSetter ? "var(--accent)" : "var(--line)", position: "relative", transition: "background .15s", flexShrink: 0 }}>
+            <span style={{ position: "absolute", top: 3, left: isSetter ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
+          </button>
+        </div>
+
         {err && <p style={{ color: "var(--accent-d)", fontSize: 13, fontWeight: 700, margin: "10px 2px 0" }}>{err}</p>}
         <div style={{ height: 16 }} />
         <button className="btn" disabled={!name.trim() || !handle.trim() || busy || uploading} onClick={save}>{busy ? "Saving…" : "Save profile"}</button>

@@ -77,6 +77,18 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
             {holds.map((h, i) => (
               <HoldCallout key={i} hold={h} onRemove={() => setHolds((p) => p.filter((_, k) => k !== i))} />
             ))}
+            {pending && (
+              <>
+                <div style={{ position: "absolute", left: `${pending.x * 100}%`, top: `${pending.y * 100}%`, transform: "translate(-50%,-50%)", width: 18, height: 18, borderRadius: "50%", border: "2.5px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,.4)", pointerEvents: "none" }} />
+                <div onClick={(e) => e.stopPropagation()}
+                  style={{ position: "absolute", left: `${Math.min(0.8, Math.max(0.2, pending.x)) * 100}%`, top: `${pending.y * 100}%`, transform: `translate(-50%, ${pending.y > 0.5 ? "calc(-100% - 16px)" : "16px"})`, zIndex: 5, display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", maxWidth: 220, padding: 7, borderRadius: 12, background: "rgba(20,16,12,.82)", backdropFilter: "blur(6px)", boxShadow: "0 6px 18px rgba(0,0,0,.4)" }}>
+                  {HOLD_TYPES.map((t) => (
+                    <button key={t} onClick={() => addHold(t)} style={{ border: "none", cursor: "pointer", color: "#fff", fontWeight: 800, fontSize: 12, padding: "6px 10px", borderRadius: 999, background: HOLD_TYPE_COLOR[t] }}>{t}</button>
+                  ))}
+                  <button onClick={() => setPending(null)} style={{ border: "none", cursor: "pointer", color: "#fff", fontWeight: 800, fontSize: 12, padding: "6px 9px", borderRadius: 999, background: "rgba(255,255,255,.2)", display: "inline-flex", alignItems: "center" }}><CIcon name="x" size={13} /></button>
+                </div>
+              </>
+            )}
           </div>
         )}
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={pickPhoto} className="hide" />
@@ -128,23 +140,6 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
         </button>
         <div style={{ height: 8 }} />
         <button className="btn ghost" onClick={onClose}>Cancel</button>
-
-        {/* Hold-type chooser */}
-        {pending && (
-          <div className="scrim" style={{ alignItems: "center", zIndex: 70 }} onClick={() => setPending(null)}>
-            <div className="sheet" style={{ borderRadius: 24, maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-              <div className="grip" />
-              <div className="label" style={{ textAlign: "center", marginBottom: 10 }}>What kind of hold?</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {HOLD_TYPES.map((t) => (
-                  <button key={t} className="btn" style={{ background: HOLD_TYPE_COLOR[t], boxShadow: "none" }} onClick={() => addHold(t)}>{t}</button>
-                ))}
-              </div>
-              <div style={{ height: 10 }} />
-              <button className="btn ghost" onClick={() => setPending(null)}>Cancel</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

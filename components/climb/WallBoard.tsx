@@ -8,10 +8,11 @@ import { HOLD_SHAPES, CLIMB_COLORS, type ClimbProfile, type ClimbWall, type Wall
 const WALL_BG = ["#3a4452", "#2f5d45", "#6e2b46", "#3a2f6e", "#1f1f24", "#7a4a24"];
 const HSIZE = 34;
 
-export default function WallBoard({ profile, editable, onSave }: {
-  profile: ClimbProfile; editable: boolean; onSave: (wall: ClimbWall) => void;
+export default function WallBoard({ profile, editable, onSave, onEditProfile }: {
+  profile: ClimbProfile; editable: boolean; onSave: (wall: ClimbWall) => void; onEditProfile?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [holds, setHolds] = useState<WallHold[]>(profile.wall?.holds ?? []);
   const [bg, setBg] = useState(profile.wall?.bg ?? "#3a4452");
   const [color, setColor] = useState("#e0559f");
@@ -50,7 +51,17 @@ export default function WallBoard({ profile, editable, onSave }: {
             <div style={{ fontSize: 12.5, opacity: .85 }}>{profile.handle}</div>
             {profile.bio && <div style={{ fontSize: 12.5, opacity: .85, marginTop: 2 }}>{profile.bio}</div>}
           </div>
-          {editable && !editing && <button className="sashbtn" title="Edit wall" onClick={() => setEditing(true)}><CIcon name="pencil" size={15} /></button>}
+          {editable && !editing && (
+            <div style={{ position: "relative" }}>
+              <button className="sashbtn" title="Edit" onClick={() => setMenu((m) => !m)}><CIcon name="pencil" size={15} /></button>
+              {menu && (
+                <div className="ddmenu pop" style={{ left: "auto", right: 0, minWidth: 150 }}>
+                  <button className="ddopt" onClick={() => { setMenu(false); onEditProfile?.(); }}><CIcon name="user" size={15} style={{ marginRight: 8 }} /> Edit profile</button>
+                  <button className="ddopt" onClick={() => { setMenu(false); setEditing(true); }}><CIcon name="climbs" size={15} style={{ marginRight: 8 }} /> Edit wall</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {holds.map((h, i) => (

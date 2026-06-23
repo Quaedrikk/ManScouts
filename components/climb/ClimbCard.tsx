@@ -13,9 +13,11 @@ function fmtAgo(iso: string) {
 
 type Vis = NonNullable<ClimbPost["visibility"]>;
 
-export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, onOpenUser }: {
+const VIS_LABEL: Record<Vis, string> = { everyone: "Everybody", followers: "Followers", me: "Only me" };
+
+export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, onOpenUser, onAddToCollection }: {
   post: ClimbPost; meId: string; canDelete: boolean; onDelete: () => void; onUpdate: (p: ClimbPost) => void;
-  onOpenUser?: (id: string) => void;
+  onOpenUser?: (id: string) => void; onAddToCollection?: () => void;
 }) {
   const [comment, setComment] = useState("");
   const [replyTo, setReplyTo] = useState<ClimbComment | null>(null);
@@ -85,6 +87,7 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
           <div className="muted" style={{ fontSize: 12 }}>{post.userHandle}</div>
           <div className="muted" style={{ fontSize: 12, marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
             <CIcon name="pin" size={12} stroke={2} /> {post.gym} • {post.wall} · {fmtAgo(post.createdAt)}
+            <span style={{ opacity: .45, marginLeft: 4 }}>· {VIS_LABEL[(post.visibility ?? "everyone") as Vis]}</span>
           </div>
         </div>
         <span className="chip" style={{ background: colorHex(post.color), color: colorText(post.color), textShadow: post.color === "white" || post.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>V{post.grade}</span>
@@ -112,12 +115,12 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
       </div>
 
       {editing ? (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 10, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
           <textarea rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Caption…" />
           <div className="seg" style={{ margin: "8px 0" }}>
             {(["everyone", "followers", "me"] as Vis[]).map((v) => (
               <button key={v} className={"chip" + (draftVis === v ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }} onClick={() => setDraftVis(v)}>
-                <CIcon name={visIcon[v]} size={14} /> {v === "everyone" ? "Everyone" : v === "followers" ? "Followers" : "Only me"}
+                <CIcon name={visIcon[v]} size={14} /> {VIS_LABEL[v]}
               </button>
             ))}
           </div>
@@ -128,14 +131,20 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
         </div>
       ) : (
         post.note && (
-          <div style={{ fontSize: 14, margin: "10px 2px 4px", lineHeight: 1.45 }}>
+          <div style={{ fontSize: 14, margin: "0 2px", padding: "11px 0 2px", borderTop: "1px solid var(--line)", lineHeight: 1.45 }}>
             <b>{post.userName}</b> {post.note}
           </div>
         )
       )}
 
+      {onAddToCollection && (
+        <button onClick={onAddToCollection} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--tint)", border: "none", borderRadius: 999, padding: "8px 14px", fontWeight: 800, fontSize: 12.5, cursor: "pointer", color: "var(--ink)" }}>
+          <CIcon name="plus" size={14} /> Add to collection
+        </button>
+      )}
+
       {/* Comments — Instagram style, with replies */}
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
         {tops.map((c) => (
           <div key={c.id}>
             <CommentLine c={c} />

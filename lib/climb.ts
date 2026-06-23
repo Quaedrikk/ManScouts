@@ -25,6 +25,13 @@ export type HoldShape = (typeof HOLD_SHAPES)[number];
 export interface WallHold { x: number; y: number; type: HoldShape; color: string }
 export interface ClimbWall { bg?: string; holds: WallHold[] }
 
+// Instagram-Highlights-style grouping of a climber's posts.
+export interface ClimbCollection {
+  id: string;
+  name: string;
+  postIds: string[];
+}
+
 export interface ClimbProfile {
   id: string;
   name: string;
@@ -35,6 +42,7 @@ export interface ClimbProfile {
   wall?: ClimbWall;   // customizable info wall (drag-and-drop holds)
   isSetter?: boolean; // self-serve route-setter role
   following?: string[]; // ids of climbers this user follows
+  collections?: ClimbCollection[]; // profile highlight collections
 }
 
 export interface ClimbUserLite { id: string; name: string; handle: string; avatarUrl: string }

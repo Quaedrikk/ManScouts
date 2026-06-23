@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       wall: b.wall ?? existing?.wall,
       isSetter: b.isSetter ?? existing?.isSetter ?? false,
       following: existing?.following ?? [],
+      collections: existing?.collections ?? [],
     };
     await saveClimbProfile(profile);
     return NextResponse.json({ profile });

@@ -2,11 +2,12 @@
 import { useState } from "react";
 import ClimbCard from "./ClimbCard";
 import WallBoard from "./WallBoard";
-import { climberTier, type ClimbPost, type ClimbProfile } from "@/lib/climb";
+import { CollectionsBar } from "./ClimbCollections";
+import { climberTier, type ClimbCollection, type ClimbPost, type ClimbProfile } from "@/lib/climb";
 
-export default function ClimbProfileOther({ profile, posts, meId, following, onToggleFollow, onUpdate, onClose }: {
+export default function ClimbProfileOther({ profile, posts, meId, following, onToggleFollow, onUpdate, onOpenCollection, onClose }: {
   profile: ClimbProfile; posts: ClimbPost[]; meId: string; following: boolean;
-  onToggleFollow: () => void; onUpdate: (p: ClimbPost) => void; onClose: () => void;
+  onToggleFollow: () => void; onUpdate: (p: ClimbPost) => void; onOpenCollection: (c: ClimbCollection) => void; onClose: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   // Only posts this viewer is allowed to see.
@@ -29,14 +30,13 @@ export default function ClimbProfileOther({ profile, posts, meId, following, onT
         <WallBoard profile={profile} editable={false} onSave={() => {}} />
 
         <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
-          <div className="card" style={{ flex: 1.4, padding: "16px 8px 14px", textAlign: "center" }}>
-            <div className="display" style={{ color: "var(--accent)", fontSize: 44, lineHeight: 1 }}>V{v}</div>
-            <div style={{ fontWeight: 800, fontSize: 14, marginTop: 6 }}>{tier}</div>
-            <div className="label" style={{ marginTop: 2 }}>Top grade sent</div>
+          <div className="card" style={{ flex: 1, padding: "11px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <span className="display" style={{ color: "var(--accent)", fontSize: 22 }}>V{v}</span>
+            <span style={{ fontWeight: 800, fontSize: 14 }}>{tier}</span>
           </div>
-          <div className="card" style={{ flex: 1, padding: "16px 8px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <div className="display" style={{ color: "var(--accent)", fontSize: 30 }}>{theirs.length}</div>
-            <div className="label" style={{ marginTop: 4 }}>Climbs</div>
+          <div className="card" style={{ flex: 1, padding: "11px 12px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <span className="display" style={{ color: "var(--accent)", fontSize: 22 }}>{theirs.length}</span>
+            <span className="label">Climbs</span>
           </div>
         </div>
 
@@ -45,6 +45,9 @@ export default function ClimbProfileOther({ profile, posts, meId, following, onT
             {following ? "Following ✓" : "Follow"}
           </button>
         )}
+
+        <CollectionsBar collections={profile.collections ?? []} posts={theirs} onOpen={onOpenCollection} />
+
 
         <div className="label" style={{ margin: "22px 2px 10px" }}>{profile.name}&apos;s climbs</div>
         {theirs.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 16 }}>No climbs to show.</p>}
