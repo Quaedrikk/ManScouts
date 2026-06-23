@@ -8,12 +8,16 @@ interface Props {
   onCancel: () => void;
   onPosted: () => void;
   onCreateRoute: () => void;
+  preselected?: Route | null;
 }
 
-export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute }: Props) {
+type Visibility = "everyone" | "followers" | "me";
+
+export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute, preselected }: Props) {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [q, setQ] = useState("");
-  const [route, setRoute] = useState<Route | null>(null);
+  const [route, setRoute] = useState<Route | null>(preselected ?? null);
+  const [visibility, setVisibility] = useState<Visibility>("everyone");
   const [videoUrl, setVideoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dur, setDur] = useState(0);
@@ -46,7 +50,7 @@ export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute }: 
     try {
       const res = await fetch("/api/climbing/posts", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gym, wall: route.wall, routeId: route.id, color: route.color, grade: route.grade, videoUrl, startSec: Math.round(startSec), note: note.trim() }),
+        body: JSON.stringify({ gym, wall: route.wall, routeId: route.id, color: route.color, grade: route.grade, videoUrl, startSec: Math.round(startSec), note: note.trim(), visibility }),
       });
       if (!res.ok) { alert("Couldn't post — try again."); setBusy(false); return; }
       onPosted();
@@ -110,6 +114,13 @@ export default function ClimbRecord({ gym, onCancel, onPosted, onCreateRoute }: 
 
             <div className="label" style={{ margin: "14px 0 6px" }}>Caption (optional)</div>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Beta, how it felt…" />
+
+            <div className="label" style={{ margin: "14px 0 6px" }}>Who can see this?</div>
+            <div className="seg">
+              {([["everyone", "🌎 Everyone"], ["followers", "👥 Followers Only"], ["me", "🔒 Only Me"]] as [Visibility, string][]).map(([v, lbl]) => (
+                <button key={v} className={"chip" + (visibility === v ? " on" : "")} style={{ flex: 1 }} onClick={() => setVisibility(v)}>{lbl}</button>
+              ))}
+            </div>
 
             <div style={{ height: 16 }} />
             <button className="btn green" disabled={!videoUrl || busy} onClick={post}>{busy ? "Posting…" : videoUrl ? "Post climb" : "Add a video"}</button>

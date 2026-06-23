@@ -29,9 +29,18 @@ export interface ClimbProfile {
   avatarUrl: string;
   holdColor?: string; // color of the rocks in their holds box
   wall?: ClimbWall;   // customizable info wall (drag-and-drop holds)
+  isSetter?: boolean; // self-serve route-setter role
+  following?: string[]; // ids of climbers this user follows
 }
 
 export interface ClimbUserLite { id: string; name: string; handle: string; avatarUrl: string }
+
+// Climber tier from the highest V grade they've sent.
+export type ClimbTier = "Starter" | "Experienced";
+export function climberTier(maxGrade: number): { tier: ClimbTier; v: number } {
+  const v = Math.max(0, maxGrade || 0);
+  return { tier: v >= 5 ? "Experienced" : "Starter", v };
+}
 
 export const REACTIONS = ["🔥", "💪", "👏", "😮", "🧗", "😂"] as const;
 
@@ -83,6 +92,7 @@ export interface ClimbPost {
   routeId?: string;
   color: ClimbColor;
   grade: number; // V1–V6
+  visibility?: "everyone" | "followers" | "me"; // default everyone
   videoUrl: string;
   startSec?: number; // trimmed start of the successful climb
   note?: string;

@@ -59,6 +59,17 @@ export async function saveClimbProfile(p: ClimbProfile): Promise<void> {
   await kv.sadd("cl:users", p.id);
 }
 
+export async function setFollow(uid: string, targetId: string, on: boolean): Promise<ClimbProfile | null> {
+  const me = await getClimbProfile(uid);
+  if (!me) return null;
+  const set = new Set(me.following ?? []);
+  if (on) set.add(targetId); else set.delete(targetId);
+  set.delete(uid); // never follow yourself
+  const next = { ...me, following: [...set] };
+  await saveClimbProfile(next);
+  return next;
+}
+
 export async function getClimbUsers(): Promise<ClimbProfile[]> {
   const ids = (await kv.smembers<string[]>("cl:users")) ?? [];
   if (ids.length === 0) return [];

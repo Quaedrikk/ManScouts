@@ -10,8 +10,9 @@ function fmtAgo(iso: string) {
   if (s < 86400) return Math.floor(s / 3600) + "h"; return Math.floor(s / 86400) + "d";
 }
 
-export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }: {
+export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, onOpenUser }: {
   post: ClimbPost; meId: string; canDelete: boolean; onDelete: () => void; onUpdate: (p: ClimbPost) => void;
+  onOpenUser?: (id: string) => void;
 }) {
   const [comment, setComment] = useState("");
   const likes = post.likes ?? [], supers = post.superLikes ?? [];
@@ -35,9 +36,11 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
   return (
     <div className="card post fadeup">
       <div className="ph">
-        <Avatar name={post.userName} handle={post.userHandle} img={post.userAvatarUrl} />
+        <div onClick={onOpenUser ? () => onOpenUser(post.userId) : undefined} style={{ cursor: onOpenUser ? "pointer" : "default" }}>
+          <Avatar name={post.userName} handle={post.userHandle} img={post.userAvatarUrl} />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5 }}>{post.userName}</div>
+          <div onClick={onOpenUser ? () => onOpenUser(post.userId) : undefined} style={{ fontWeight: 800, fontSize: 14.5, cursor: onOpenUser ? "pointer" : "default" }}>{post.userName}</div>
           <div className="muted" style={{ fontSize: 12.5 }}>{post.wall} · {fmtAgo(post.createdAt)}</div>
         </div>
         <span className="chip" style={{ background: colorHex(post.color), color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>V{post.grade}</span>
@@ -50,14 +53,18 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
 
       <div style={{ position: "relative" }}>
         <ClimbVideo url={post.videoUrl} startSec={post.startSec} />
-        {/* Rating control = indicator, top-left */}
+        {/* Recommendation tags = indicator, top-left */}
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 6 }}>
-          <button onClick={() => engage("super")} style={pill(iSuper, "rgba(229,85,43,.95)")}>⭐ {supers.length}</button>
-          <button onClick={() => engage("like")} style={pill(iLike, "rgba(47,111,224,.95)")}>👍 {likes.length}</button>
+          <button onClick={() => engage("super")} style={pill(iSuper, "rgba(229,85,43,.95)")}>🔥 Highly Recommended{supers.length ? ` ${supers.length}` : ""}</button>
+          <button onClick={() => engage("like")} style={pill(iLike, "rgba(47,111,224,.95)")}>👍 Recommended{likes.length ? ` ${likes.length}` : ""}</button>
         </div>
       </div>
 
-      {post.note && <div style={{ fontSize: 14, margin: "10px 2px 4px", lineHeight: 1.45 }}>{post.note}</div>}
+      {post.note && (
+        <div style={{ fontSize: 14, margin: "10px 2px 4px", lineHeight: 1.45 }}>
+          <b>{post.userName}</b> {post.note}
+        </div>
+      )}
 
       {/* Emoji reactions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -76,8 +83,11 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate }:
       {/* Comments — Instagram style, always shown */}
       <div style={{ marginTop: 10 }}>
         {(post.comments ?? []).map((c) => (
-          <div key={c.id} style={{ fontSize: 13.5, marginBottom: 5, lineHeight: 1.4 }}>
-            <span style={{ fontWeight: 800 }}>{c.name}</span> {c.text}
+          <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 7 }}>
+            <Avatar name={c.name} handle={c.name} img={c.avatarUrl} size={26} />
+            <div style={{ fontSize: 13.5, lineHeight: 1.4, paddingTop: 1 }}>
+              <span style={{ fontWeight: 800 }}>{c.name}</span> {c.text}
+            </div>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>

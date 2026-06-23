@@ -3,11 +3,10 @@ import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
 import { ColorPolygon } from "./ClimbBits";
 import { FacilityMap } from "./FacilityMap";
+import { HoldCallout, HOLD_TYPE_COLOR } from "./HoldCallout";
 import { WALLS, HOLD_TYPES, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
 
-export const HOLD_TYPE_COLOR: Record<HoldType, string> = {
-  Crimp: "#e0559f", Sloper: "#2f6fe0", Pinch: "#e8b800", Jug: "#2faa50", Pocket: "#7b3fb5",
-};
+export { HOLD_TYPE_COLOR };
 
 export default function RouteSetter({ gym, facility, meName, onClose, onSaved }: {
   gym: string; facility: FacilityBox[]; meName: string; onClose: () => void; onSaved: () => void;
@@ -109,11 +108,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
             {holds.map((h, i) => (
-              <span key={i} onClick={(e) => { e.stopPropagation(); setHolds((p) => p.filter((_, k) => k !== i)); }}
-                title={h.type}
-                style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, transform: "translate(-50%,-50%)", width: 24, height: 24, borderRadius: "50%", background: HOLD_TYPE_COLOR[h.type], border: "2px solid #fff", color: "#fff", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.4)", cursor: "pointer" }}>
-                {h.type[0]}
-              </span>
+              <HoldCallout key={i} hold={h} onRemove={() => setHolds((p) => p.filter((_, k) => k !== i))} />
             ))}
           </div>
         )}

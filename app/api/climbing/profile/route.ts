@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getClimbProfile, saveClimbProfile } from "@/lib/climbKv";
+import { getClimbProfile, saveClimbProfile, getClimbUsers } from "@/lib/climbKv";
 import type { ClimbProfile } from "@/lib/climb";
 
 export async function GET(req: NextRequest) {
@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
     if (!name || !handle) return NextResponse.json({ error: "Name and handle required" }, { status: 400 });
     if (!handle.startsWith("@")) handle = "@" + handle;
     const existing = await getClimbProfile(session.user.id);
+    // Enforce unique @handle (case-insensitive) across other climbers.
+    const taken = (await getClimbUsers()).some(
+      (u) => u.id !== session.user!.id && u.handle.toLowerCase() === handle.toLowerCase(),
+    );
+    if (taken) return NextResponse.json({ error: "That @handle is already taken" }, { status: 409 });
     const profile: ClimbProfile = {
       id: session.user.id,
       name,
@@ -31,6 +36,8 @@ export async function POST(req: NextRequest) {
       avatarUrl: b.avatarUrl ?? "",
       holdColor: b.holdColor ?? existing?.holdColor ?? "#2f6fe0",
       wall: b.wall ?? existing?.wall,
+      isSetter: b.isSetter ?? existing?.isSetter ?? false,
+      following: existing?.following ?? [],
     };
     await saveClimbProfile(profile);
     return NextResponse.json({ profile });
