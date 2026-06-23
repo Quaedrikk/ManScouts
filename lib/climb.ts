@@ -27,6 +27,45 @@ export interface ClimbProfile {
   holdColor?: string; // color of the rocks in their holds box
 }
 
+export const REACTIONS = ["🔥", "💪", "👏", "😮", "🧗", "😂"] as const;
+
+export interface ClimbComment {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  text: string;
+  createdAt: string;
+}
+
+// A labelled box on the facility map (fractions of the map rectangle, 0..1).
+export interface FacilityBox {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+// Hold markers tapped onto the route photo (fractions of the image, 0..1).
+export const HOLD_TYPES = ["Crimp", "Sloper", "Pinch", "Jug", "Pocket"] as const;
+export type HoldType = (typeof HOLD_TYPES)[number];
+export interface RouteHold { x: number; y: number; type: HoldType }
+
+export interface Route {
+  id: string;
+  gym: string;
+  wall: string;
+  color: ClimbColor;
+  grade: number;
+  setters: string[];      // who set it (can be multiple)
+  photoUrl: string;
+  holds: RouteHold[];
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface ClimbPost {
   id: string;
   userId: string;
@@ -40,6 +79,9 @@ export interface ClimbPost {
   videoUrl: string;
   startSec?: number; // trimmed start of the successful climb
   note?: string;
-  cheerCount?: number;
+  likes?: string[];
+  superLikes?: string[];
+  reactions?: Record<string, string[]>;
+  comments?: ClimbComment[];
   createdAt: string;
 }

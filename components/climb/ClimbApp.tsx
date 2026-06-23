@@ -4,35 +4,29 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
 import { Hold, ClimbVideo } from "./ClimbBits";
+import ClimbCard from "./ClimbCard";
 import ClimbRecord from "./ClimbRecord";
+import { FacilityMap, FacilityEditor } from "./FacilityMap";
+import RouteSetter, { HOLD_TYPE_COLOR } from "./RouteSetter";
 import { isAdminEmail } from "@/lib/admin";
-import { GYMS, WALLS, CLIMB_COLORS, HOLD_SHAPES, colorHex, type ClimbPost, type ClimbProfile } from "@/lib/climb";
+import { GYMS, WALLS, CLIMB_COLORS, HOLD_SHAPES, colorHex, type ClimbPost, type ClimbProfile, type FacilityBox, type Route } from "@/lib/climb";
 
-function fmtAgo(iso: string) {
-  const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return "now"; if (s < 3600) return Math.floor(s / 60) + "m";
-  if (s < 86400) return Math.floor(s / 3600) + "h"; return Math.floor(s / 86400) + "d";
-}
-
-function ClimbCard({ p, canDelete, onDelete }: { p: ClimbPost; canDelete: boolean; onDelete: () => void }) {
+function RouteCard({ r, canDelete, onDelete }: { r: Route; canDelete: boolean; onDelete: () => void }) {
   return (
-    <div className="card post fadeup">
-      <div className="ph">
-        <Avatar name={p.userName} handle={p.userHandle} img={p.userAvatarUrl} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5 }}>{p.userName}</div>
-          <div className="muted" style={{ fontSize: 12.5 }}>{p.wall} · {fmtAgo(p.createdAt)}</div>
-        </div>
-        <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorHex(p.color), border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)" }} />
-        <span className="chip" style={{ background: "var(--ink)", color: "#fff" }}>V{p.grade}</span>
-        {canDelete && (
-          <button onClick={onDelete} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b0a99a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7" /></svg>
-          </button>
-        )}
+    <div className="card" style={{ padding: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ width: 16, height: 16, borderRadius: "50%", background: colorHex(r.color), border: "2px solid #fff", boxShadow: "0 0 0 1px var(--line)" }} />
+        <span className="chip" style={{ background: "var(--ink)", color: "#fff" }}>V{r.grade}</span>
+        <div className="muted" style={{ flex: 1, fontSize: 12.5, minWidth: 0 }}>set by {r.setters.join(", ")}</div>
+        {canDelete && <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-d)", fontWeight: 800, fontSize: 13 }}>Delete</button>}
       </div>
-      <ClimbVideo url={p.videoUrl} startSec={p.startSec} />
-      {p.note && <div style={{ fontSize: 14, margin: "10px 2px 0", lineHeight: 1.45 }}>{p.note}</div>}
+      <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={r.photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
+        {r.holds.map((h, i) => (
+          <span key={i} title={h.type} style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, transform: "translate(-50%,-50%)", width: 22, height: 22, borderRadius: "50%", background: HOLD_TYPE_COLOR[h.type], border: "2px solid #fff", color: "#fff", fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.4)" }}>{h.type[0]}</span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -49,12 +43,24 @@ export default function ClimbApp() {
   const [gym, setGym] = useState<string>(GYMS[0]);
   const [recording, setRecording] = useState(false);
   const [wall, setWall] = useState<string>(WALLS[0]);
+  const [facility, setFacility] = useState<FacilityBox[]>([]);
+  const [editMap, setEditMap] = useState(false);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [settingRoute, setSettingRoute] = useState(false);
 
   const loadFeed = useCallback(async () => {
     try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
   }, []);
+  const loadFacility = useCallback(async () => {
+    try { const d = await fetch(`/api/climbing/facility?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setFacility(d.boxes ?? []); } catch { /* */ }
+  }, [gym]);
+  const loadRoutes = useCallback(async () => {
+    try { const d = await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setRoutes(d.routes ?? []); } catch { /* */ }
+  }, [gym]);
 
   useEffect(() => { loadFeed(); }, [loadFeed]);
+  useEffect(() => { loadFacility(); }, [loadFacility]);
+  useEffect(() => { loadRoutes(); }, [loadRoutes]);
   useEffect(() => {
     if (status !== "authenticated") { if (status === "unauthenticated") setLoaded(true); return; }
     let active = true;
@@ -84,6 +90,12 @@ export default function ClimbApp() {
     setPosts((prev) => prev.filter((p) => p.id !== id));
     try { await fetch(`/api/climbing/posts?id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
   }
+  function updatePost(p: ClimbPost) { setPosts((prev) => prev.map((x) => x.id === p.id ? p : x)); }
+  async function delRoute(id: string) {
+    if (!confirm("Delete this route?")) return;
+    setRoutes((prev) => prev.filter((r) => r.id !== id));
+    try { await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
+  }
 
   return (
     <div>
@@ -102,23 +114,38 @@ export default function ClimbApp() {
             <div className="display" style={{ fontSize: 26, margin: "18px 2px 4px" }}>The Wall</div>
             <div className="muted" style={{ fontSize: 13.5, margin: "0 2px 16px" }}>{gym}</div>
             {posts.length === 0 && <p className="muted" style={{ textAlign: "center", padding: 24 }}>No climbs yet. Record the first send.</p>}
-            {posts.map((p) => <ClimbCard key={p.id} p={p} canDelete={p.userId === profile.id || isAdmin} onDelete={() => del(p.id)} />)}
+            {posts.map((p) => <ClimbCard key={p.id} post={p} meId={profile.id} canDelete={p.userId === profile.id || isAdmin} onDelete={() => del(p.id)} onUpdate={updatePost} />)}
           </div>
         )}
 
         {tab === "climbs" && (
           <div>
-            <div className="display" style={{ fontSize: 26, margin: "18px 2px 10px" }}>Climbs</div>
-            <div className="seg" style={{ marginBottom: 16 }}>
-              {WALLS.map((w) => <button key={w} className={"chip" + (wall === w ? " on" : "")} onClick={() => setWall(w)}>{w}</button>)}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "18px 2px 10px" }}>
+              <div className="display" style={{ fontSize: 26 }}>Climbs</div>
+              {isAdmin && <button className="chip" onClick={() => setEditMap(true)}>✎ Edit map</button>}
             </div>
-            <div className="card" style={{ padding: 16, marginBottom: 14, background: "linear-gradient(160deg,#2f3a44,#1c242b)", color: "#fff" }}>
+            <div className="label" style={{ margin: "0 2px 8px" }}>{gym} · tap a wall</div>
+            {facility.length > 0 ? (
+              <FacilityMap boxes={facility} selected={wall} onSelect={setWall} />
+            ) : (
+              <div className="seg">{WALLS.map((w) => <button key={w} className={"chip" + (wall === w ? " on" : "")} onClick={() => setWall(w)}>{w}</button>)}</div>
+            )}
+            <div className="card" style={{ padding: 16, margin: "14px 0", background: "linear-gradient(160deg,#2f3a44,#1c242b)", color: "#fff" }}>
               <div className="label" style={{ color: "rgba(255,255,255,.7)" }}>{gym}</div>
               <div className="display" style={{ fontSize: 22 }}>{wall}</div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,.8)", marginTop: 2 }}>{posts.filter((p) => p.wall === wall).length} climbs logged</div>
             </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 2px 8px" }}>
+              <div className="label">Routes on {wall}</div>
+              <button className="chip" onClick={() => setSettingRoute(true)}>+ Set a route</button>
+            </div>
+            {routes.filter((r) => r.wall === wall).length === 0 && <p className="muted" style={{ fontSize: 13, padding: "0 2px 8px" }}>No routes set on this wall yet.</p>}
+            {routes.filter((r) => r.wall === wall).map((r) => <RouteCard key={r.id} r={r} canDelete={r.createdBy === profile.id || isAdmin} onDelete={() => delRoute(r.id)} />)}
+
+            <div className="label" style={{ margin: "16px 2px 8px" }}>Logged climbs</div>
             {posts.filter((p) => p.wall === wall).length === 0 && <p className="muted" style={{ textAlign: "center", padding: 16 }}>No climbs on this wall yet.</p>}
-            {posts.filter((p) => p.wall === wall).map((p) => <ClimbCard key={p.id} p={p} canDelete={p.userId === profile.id || isAdmin} onDelete={() => del(p.id)} />)}
+            {posts.filter((p) => p.wall === wall).map((p) => <ClimbCard key={p.id} post={p} meId={profile.id} canDelete={p.userId === profile.id || isAdmin} onDelete={() => del(p.id)} onUpdate={updatePost} />)}
           </div>
         )}
 
@@ -139,7 +166,9 @@ export default function ClimbApp() {
         ))}
       </nav>
 
-      {recording && <ClimbRecord gym={gym} onCancel={() => setRecording(false)} onPosted={() => { setRecording(false); loadFeed(); }} />}
+      {recording && <ClimbRecord gym={gym} facility={facility} onCancel={() => setRecording(false)} onPosted={() => { setRecording(false); loadFeed(); }} />}
+      {editMap && <FacilityEditor gym={gym} initial={facility} onClose={() => { setEditMap(false); loadFacility(); }} />}
+      {settingRoute && <RouteSetter gym={gym} facility={facility} onClose={() => setSettingRoute(false)} onSaved={() => { setSettingRoute(false); loadRoutes(); }} />}
     </div>
   );
 }

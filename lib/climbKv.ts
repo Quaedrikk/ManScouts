@@ -1,9 +1,33 @@
 import { kv } from "@vercel/kv";
-import type { ClimbPost, ClimbProfile } from "./climb";
+import type { ClimbPost, ClimbProfile, FacilityBox, Route } from "./climb";
 
 const FEED = "cl:feed";
 const POST = (id: string) => `cl:post:${id}`;
 const PROFILE = (id: string) => `cl:user:${id}`;
+const FACILITY = (gym: string) => `cl:facility:${gym}`;
+const ROUTES = (gym: string) => `cl:routes:${gym}`;
+
+export async function getRoutes(gym: string): Promise<Route[]> {
+  return (await kv.get<Route[]>(ROUTES(gym))) ?? [];
+}
+export async function addRoute(r: Route): Promise<void> {
+  const list = await getRoutes(r.gym);
+  await kv.set(ROUTES(r.gym), [r, ...list]);
+}
+export async function deleteRoute(gym: string, id: string): Promise<void> {
+  const list = await getRoutes(gym);
+  await kv.set(ROUTES(gym), list.filter((r) => r.id !== id));
+}
+
+export async function getFacility(gym: string): Promise<FacilityBox[]> {
+  return (await kv.get<FacilityBox[]>(FACILITY(gym))) ?? [];
+}
+export async function saveFacility(gym: string, boxes: FacilityBox[]): Promise<void> {
+  await kv.set(FACILITY(gym), boxes);
+}
+export async function updateClimbPost(p: ClimbPost): Promise<void> {
+  await kv.set(POST(p.id), p);
+}
 
 export async function getClimbFeed(limit = 80): Promise<ClimbPost[]> {
   const ids = await kv.lrange<string>(FEED, 0, limit - 1);

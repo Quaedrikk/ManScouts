@@ -34,7 +34,6 @@ export async function POST(req: NextRequest) {
       videoUrl: b.videoUrl,
       startSec: b.startSec,
       note: b.note,
-      cheerCount: 0,
       createdAt: new Date().toISOString(),
     };
     await createClimbPost(post);
