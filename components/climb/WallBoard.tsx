@@ -1,9 +1,12 @@
 "use client";
 import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
 import { Hold } from "./ClimbBits";
 import CIcon from "./ClimbIcons";
 import { HOLD_SHAPES, CLIMB_COLORS, WALL_DESIGNS, isWallDesign, type ClimbProfile, type ClimbWall, type WallHold, type HoldShape } from "@/lib/climb";
+
+const isWallImage = (bg?: string) => !!bg && /^https?:/.test(bg);
 
 const WALL_BG = ["#5a5048", "#3a4452", "#2f5d45", "#6e2b46", "#3a2f6e", "#1f1f24", "#7a4a24"];
 const HSIZE = 34;
@@ -32,8 +35,17 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
   const [bg, setBg] = useState(profile.wall?.bg ?? "#3a4452");
   const [color, setColor] = useState("#e0559f");
   const [sel, setSel] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const drag = useRef<{ i: number; mode: "move" | "resize" | "rotate" } | null>(null);
+
+  async function pickCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+    setUploading(true);
+    try { const blob = await upload(`walls/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setBg(blob.url); } catch { /* */ }
+    setUploading(false);
+  }
 
   function addHold(shape: HoldShape) { setHolds((h) => { setSel(h.length); return [...h, { x: 0.5, y: 0.4, type: shape, color, rot: 0, size: HSIZE }]; }); }
 
@@ -69,8 +81,11 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
   function removeSel() { if (sel === null) return; setHolds((h) => h.filter((_, k) => k !== sel)); setSel(null); }
   function save() { onSave({ bg, holds }); setEditing(false); setSel(null); }
 
-  const design = isWallDesign(bg);
-  const boardStyle: React.CSSProperties = design ? {} : rockTexture(bg);
+  const image = isWallImage(bg);
+  const design = !image && isWallDesign(bg);
+  const boardStyle: React.CSSProperties = image
+    ? { backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }
+    : design ? {} : rockTexture(bg);
 
   return (
     <div>
@@ -110,6 +125,11 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
           return (
             <div style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, width: s, height: s, transform: `translate(-50%,-50%) rotate(${h.rot ?? 0}deg)`, pointerEvents: "none", zIndex: 6 }}>
               <div style={{ position: "absolute", inset: 0, border: "1.5px solid #fff", borderRadius: 6, boxShadow: "0 0 0 1px rgba(0,0,0,.35)" }} />
+              {/* delete handle (top-left corner) */}
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); removeSel(); }} title="Delete hold"
+                style={{ position: "absolute", left: -9, top: -9, width: 18, height: 18, borderRadius: "50%", border: "none", background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", pointerEvents: "auto", boxShadow: "0 1px 4px rgba(0,0,0,.4)" }}>
+                <CIcon name="x" size={11} stroke={3} />
+              </button>
               {/* rotate handle */}
               <div style={{ position: "absolute", left: "50%", top: -24, width: 1.5, height: 24, background: "#fff", transform: "translateX(-50%)" }} />
               <div onPointerDown={(e) => startDrag(e, sel, "rotate")} title="Rotate"
@@ -166,6 +186,17 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
             {WALL_BG.map((b) => (
               <button key={b} onClick={() => setBg(b)} style={{ width: 34, height: 28, borderRadius: 6, cursor: "pointer", border: bg === b ? "3px solid var(--ink)" : "1px solid var(--line)", ...rockTexture(b) }} />
             ))}
+          </div>
+
+          <div className="label" style={{ marginBottom: 6 }}>Cover photo</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              className={image ? "wallbg" : undefined}
+              style={{ width: 46, height: 34, borderRadius: 8, cursor: "pointer", border: image ? "3px solid var(--ink)" : "2px dashed var(--line)", display: "flex", alignItems: "center", justifyContent: "center", color: image ? "#fff" : "var(--muted)", ...(image ? { backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: "var(--tint)" }) }}>
+              {!image && <CIcon name="camera" size={18} />}
+            </button>
+            <span className="muted" style={{ fontSize: 13 }}>{uploading ? "Uploading…" : image ? "Change cover photo" : "Upload your own background"}</span>
+            <input ref={fileRef} type="file" accept="image/*" onChange={pickCover} className="hide" />
           </div>
 
           <button className="btn" onClick={save}>Save wall</button>
