@@ -206,10 +206,13 @@ export default function ClimbApp() {
   }
   function updatePost(p: ClimbPost) { setPosts((prev) => prev.map((x) => x.id === p.id ? p : x)); }
   async function delRoute(id: string) {
-    if (!confirm("Delete this route?")) return;
-    setRoutes((prev) => prev.filter((r) => r.id !== id));
+    if (!confirm("Delete this route? This can't be undone.")) return;
     setViewRoute(null);
-    try { await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
+    try {
+      const res = await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!res.ok) { alert("Couldn't delete this route."); return; }
+      setRoutes((prev) => prev.filter((r) => r.id !== id));
+    } catch { alert("Couldn't delete this route."); }
   }
   async function suggestGrade(routeId: string, grade: number) {
     try {
@@ -435,7 +438,6 @@ export default function ClimbApp() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span className="chip" style={{ background: colorHex(viewRoute.color), color: colorText(viewRoute.color), textShadow: viewRoute.color === "white" || viewRoute.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{viewRoute.grade === 0 ? "Unrated" : `V${viewRoute.grade}`}</span>
               <div className="display" style={{ fontSize: 20, flex: 1 }}>{viewRoute.wall}</div>
-              {(viewRoute.createdBy === me.id || isAdmin) && <button onClick={() => delRoute(viewRoute.id)} title="Delete" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--accent-d)", display: "inline-flex" }}><CIcon name="x" size={18} /></button>}
             </div>
             <p className="muted" style={{ fontSize: 12.5, margin: "0 0 10px" }}>set by {viewRoute.setters.join(", ")}</p>
 
@@ -481,6 +483,12 @@ export default function ClimbApp() {
 
             <div style={{ height: 10 }} />
             <button className="btn green" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={() => { const r = viewRoute; setViewRoute(null); setStartRoute(r); setRecording(true); }}><CIcon name="play" size={16} /> Start Climb</button>
+            {(viewRoute.createdBy === me.id || isAdmin) && (
+              <>
+                <div style={{ height: 8 }} />
+                <button className="btn" style={{ background: "var(--accent-d)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={() => delRoute(viewRoute.id)}><CIcon name="x" size={16} /> Delete route</button>
+              </>
+            )}
             <div style={{ height: 8 }} />
             <button className="btn ghost" onClick={() => setViewRoute(null)}>Close</button>
           </div>

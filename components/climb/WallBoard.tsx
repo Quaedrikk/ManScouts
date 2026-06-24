@@ -33,28 +33,39 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
   const [color, setColor] = useState("#e0559f");
   const [sel, setSel] = useState<number | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ i: number; moved: boolean } | null>(null);
+  const drag = useRef<{ i: number; mode: "move" | "resize" | "rotate" } | null>(null);
 
-  function addHold(shape: HoldShape) { setHolds((h) => { setSel(h.length); return [...h, { x: 0.5, y: 0.4, type: shape, color, rot: 0 }]; }); }
-  function onDown(e: React.PointerEvent, i: number) {
+  function addHold(shape: HoldShape) { setHolds((h) => { setSel(h.length); return [...h, { x: 0.5, y: 0.4, type: shape, color, rot: 0, size: HSIZE }]; }); }
+
+  function startDrag(e: React.PointerEvent, i: number, mode: "move" | "resize" | "rotate") {
     if (!editing) return;
+    e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { i, moved: false };
+    setSel(i);
+    drag.current = { i, mode };
   }
   function onMove(e: React.PointerEvent) {
     if (!editing || !drag.current || !boxRef.current) return;
     const r = boxRef.current.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-    const y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    drag.current.moved = true;
-    const i = drag.current.i;
-    setHolds((h) => h.map((hd, k) => k === i ? { ...hd, x, y } : hd));
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    const { i, mode } = drag.current;
+    if (mode === "move") {
+      const x = Math.min(1, Math.max(0, px / r.width));
+      const y = Math.min(1, Math.max(0, py / r.height));
+      setHolds((h) => h.map((hd, k) => k === i ? { ...hd, x, y } : hd));
+      return;
+    }
+    setHolds((h) => h.map((hd, k) => {
+      if (k !== i) return hd;
+      const cx = hd.x * r.width, cy = hd.y * r.height;
+      const dist = Math.hypot(px - cx, py - cy);
+      if (mode === "resize") return { ...hd, size: Math.round(Math.max(18, Math.min(120, dist * 1.414))) };
+      let deg = Math.atan2(py - cy, px - cx) * 180 / Math.PI + 90;
+      deg = Math.round(((deg % 360) + 360) % 360);
+      return { ...hd, rot: deg };
+    }));
   }
-  function onUp(i: number) {
-    const d = drag.current; drag.current = null;
-    if (d && !d.moved && editing) setSel(i); // tap selects (for rotate / remove)
-  }
-  function rotateSel(deg: number) { if (sel === null) return; setHolds((h) => h.map((hd, k) => k === sel ? { ...hd, rot: deg } : hd)); }
+  function onUp() { drag.current = null; }
   function removeSel() { if (sel === null) return; setHolds((h) => h.filter((_, k) => k !== sel)); setSel(null); }
   function save() { onSave({ bg, holds }); setEditing(false); setSel(null); }
 
@@ -63,7 +74,7 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
 
   return (
     <div>
-      <div ref={boxRef} onPointerMove={onMove}
+      <div ref={boxRef} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}
         className={"wallbg" + (design ? ` wd-${bg}` : "")}
         style={{ position: "relative", width: "100%", height: 240, borderRadius: 20, overflow: "hidden", color: "#fff", touchAction: "none", boxShadow: "inset 0 2px 18px rgba(0,0,0,.35)", ...boardStyle }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", gap: 12, padding: 14, background: "linear-gradient(180deg,rgba(0,0,0,.34),transparent)", zIndex: 3 }}>
@@ -87,11 +98,28 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
         </div>
 
         {holds.map((h, i) => (
-          <div key={i} onPointerDown={(e) => onDown(e, i)} onPointerUp={() => onUp(i)}
-            style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, transform: `translate(-50%,-50%) rotate(${h.rot ?? 0}deg)`, cursor: editing ? "grab" : "default", outline: editing && sel === i ? "2px dashed rgba(255,255,255,.9)" : "none", outlineOffset: 3, borderRadius: 6 }}>
-            <Hold shape={h.type} color={h.color} size={HSIZE} />
+          <div key={i} onPointerDown={(e) => startDrag(e, i, "move")}
+            style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, transform: `translate(-50%,-50%) rotate(${h.rot ?? 0}deg)`, cursor: editing ? "grab" : "default", touchAction: "none" }}>
+            <Hold shape={h.type} color={h.color} size={h.size ?? HSIZE} />
           </div>
         ))}
+
+        {/* Transform box around the selected hold (move / resize / rotate) */}
+        {editing && sel !== null && holds[sel] && (() => {
+          const h = holds[sel]; const s = (h.size ?? HSIZE) + 16;
+          return (
+            <div style={{ position: "absolute", left: `${h.x * 100}%`, top: `${h.y * 100}%`, width: s, height: s, transform: `translate(-50%,-50%) rotate(${h.rot ?? 0}deg)`, pointerEvents: "none", zIndex: 6 }}>
+              <div style={{ position: "absolute", inset: 0, border: "1.5px solid #fff", borderRadius: 6, boxShadow: "0 0 0 1px rgba(0,0,0,.35)" }} />
+              {/* rotate handle */}
+              <div style={{ position: "absolute", left: "50%", top: -24, width: 1.5, height: 24, background: "#fff", transform: "translateX(-50%)" }} />
+              <div onPointerDown={(e) => startDrag(e, sel, "rotate")} title="Rotate"
+                style={{ position: "absolute", left: "50%", top: -32, width: 16, height: 16, marginLeft: -8, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.4)", cursor: "grab", pointerEvents: "auto", touchAction: "none" }} />
+              {/* resize handle (bottom-right corner) */}
+              <div onPointerDown={(e) => startDrag(e, sel, "resize")} title="Resize"
+                style={{ position: "absolute", right: -8, bottom: -8, width: 16, height: 16, borderRadius: 4, background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.4)", cursor: "nwse-resize", pointerEvents: "auto", touchAction: "none" }} />
+            </div>
+          );
+        })()}
 
         {holds.length === 0 && !editing && (
           <div style={{ position: "absolute", inset: 0, top: 60, display: "flex", alignItems: "center", justifyContent: "center", opacity: .7, fontSize: 13 }}>
@@ -103,13 +131,9 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
       {editing && (
         <div className="card" style={{ padding: 12, marginTop: 10 }}>
           {sel !== null && holds[sel] && (
-            <div className="card" style={{ padding: 12, marginBottom: 12, background: "var(--tint)", border: "none" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div className="label">Selected hold · rotate</div>
-                <button className="chip" style={{ color: "var(--accent-d)", display: "inline-flex", alignItems: "center", gap: 5 }} onClick={removeSel}><CIcon name="x" size={13} /> Remove</button>
-              </div>
-              <input type="range" min={0} max={360} step={5} value={holds[sel].rot ?? 0} onChange={(e) => rotateSel(Number(e.target.value))} style={{ width: "100%" }} />
-              <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>{holds[sel].rot ?? 0}°</div>
+            <div className="card" style={{ padding: 12, marginBottom: 12, background: "var(--tint)", border: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div className="muted" style={{ fontSize: 12.5 }}>Drag the <b>corner</b> to resize · the <b>top dot</b> to rotate</div>
+              <button className="chip" style={{ color: "var(--accent-d)", display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0 }} onClick={removeSel}><CIcon name="x" size={13} /> Remove</button>
             </div>
           )}
 

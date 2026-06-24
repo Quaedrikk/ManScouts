@@ -22,7 +22,7 @@ export const colorText = (c: ClimbColor) => (c === "white" || c === "yellow" ? "
 export const HOLD_SHAPES = ["jug", "crimp", "sloper", "pinch", "pocket"] as const;
 export type HoldShape = (typeof HOLD_SHAPES)[number];
 
-export interface WallHold { x: number; y: number; type: HoldShape; color: string; rot?: number }
+export interface WallHold { x: number; y: number; type: HoldShape; color: string; rot?: number; size?: number }
 export interface ClimbWall { bg?: string; holds: WallHold[] }
 
 // Animated wall backgrounds for the profile wall (CSS classes: wd-<key>).
