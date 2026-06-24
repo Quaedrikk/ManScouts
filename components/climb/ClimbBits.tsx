@@ -47,7 +47,7 @@ export function ClimbVideo({ url, startSec }: { url: string; startSec?: number }
   const ref = useRef<HTMLVideoElement>(null);
   return (
     <video
-      ref={ref} className="proof" src={url} controls playsInline preload="metadata"
+      ref={ref} className="climbvid" src={url} controls playsInline preload="metadata"
       onLoadedMetadata={(e) => { if (startSec) e.currentTarget.currentTime = startSec; }}
       onPlay={(e) => { if (startSec && e.currentTarget.currentTime < startSec) e.currentTarget.currentTime = startSec; }}
     />

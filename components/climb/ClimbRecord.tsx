@@ -118,7 +118,7 @@ export default function ClimbRecord({ gym, me, onCancel, onPosted, onCreateRoute
                   <CIcon name="camera" size={17} style={{ display: "inline-block", verticalAlign: "-3px", marginRight: 7 }} />{uploading ? "Uploading…" : "Record / choose video"}
                 </button>
               ) : (
-                <video ref={vref} className="proof" src={videoUrl} autoPlay muted loop playsInline preload="metadata"
+                <video ref={vref} className="climbvid" src={videoUrl} autoPlay muted loop playsInline preload="metadata"
                   onLoadedMetadata={(e) => { setDur(e.currentTarget.duration || 0); if (startSec) e.currentTarget.currentTime = startSec; }} />
               )}
 
