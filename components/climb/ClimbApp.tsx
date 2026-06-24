@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { upload } from "@vercel/blob/client";
+import Avatar from "../Avatar";
 import ClimbCard from "./ClimbCard";
 import ClimbRecord from "./ClimbRecord";
 import WallBoard from "./WallBoard";
@@ -105,7 +106,7 @@ export default function ClimbApp() {
   const [users, setUsers] = useState<ClimbUserLite[]>([]);
   const [viewUser, setViewUser] = useState<ClimbProfile | null>(null);
   // climbs sort + difficulty filter
-  const [sortMode, setSortMode] = useState<"new" | "hot">("new");
+  const [sortMode, setSortMode] = useState<"new" | "hot" | "grade">("grade");
   const [diffFilter, setDiffFilter] = useState<number[]>([]);
   // collections
   const [openColId, setOpenColId] = useState<string | null>(null);
@@ -270,6 +271,7 @@ export default function ClimbApp() {
   const sortedRoutes = (() => {
     const filtered = diffFilter.length ? routes.filter((r) => diffFilter.includes(r.grade)) : routes;
     if (sortMode === "hot") return [...filtered].sort((a, b) => posts.filter((p) => p.routeId === b.id).length - posts.filter((p) => p.routeId === a.id).length);
+    if (sortMode === "grade") return [...filtered].sort((a, b) => (a.grade === 0 ? 99 : a.grade) - (b.grade === 0 ? 99 : b.grade));
     return [...filtered].sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
   })();
   function toggleDiff(g: number) { setDiffFilter((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]); }
@@ -327,6 +329,7 @@ export default function ClimbApp() {
             )}
 
             <div style={{ display: "flex", gap: 8, margin: "0 2px 12px" }}>
+              <button className={"chip" + (sortMode === "grade" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("grade")}><CIcon name="climbs" size={14} /> Easiest</button>
               <button className={"chip" + (sortMode === "new" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("new")}><CIcon name="spark" size={14} /> New</button>
               <button className={"chip" + (sortMode === "hot" ? " on" : "")} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setSortMode("hot")}><CIcon name="flame" size={14} /> Hot</button>
             </div>
@@ -419,7 +422,28 @@ export default function ClimbApp() {
               <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="@handle" onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }} style={{ flex: 1 }} />
               <button className="btn" style={{ width: "auto", padding: "0 18px" }} onClick={doSearch}>Find</button>
             </div>
-            <div style={{ height: 10 }} />
+
+            <div className="label" style={{ margin: "16px 2px 8px" }}>Climbers on the wall</div>
+            {users.filter((u) => u.id !== me.id).length === 0 && <p className="muted" style={{ textAlign: "center", fontSize: 13, padding: 10 }}>No one else here yet.</p>}
+            {users.filter((u) => u.id !== me.id).map((u) => {
+              const f = following.includes(u.id);
+              return (
+                <div key={u.id} className="card" style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, marginBottom: 8, border: "1px solid var(--line)" }}>
+                  <div onClick={() => { setAddFriend(false); openUser(u.id); }} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, cursor: "pointer" }}>
+                    <Avatar name={u.name} handle={u.handle} img={u.avatarUrl} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</div>
+                      <div className="muted" style={{ fontSize: 12.5 }}>{u.handle}</div>
+                    </div>
+                  </div>
+                  <button className={"chip" + (f ? "" : " on")} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5 }} onClick={() => toggleFollow(u.id)}>
+                    <CIcon name={f ? "check" : "plus"} size={13} /> {f ? "Following" : "Add"}
+                  </button>
+                </div>
+              );
+            })}
+
+            <div style={{ height: 6 }} />
             <button className="btn ghost" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={inviteFriends}><CIcon name="arrow" size={16} /> Invite friends with a link</button>
             <div style={{ height: 8 }} />
             <button className="btn ghost" onClick={() => setAddFriend(false)}>Cancel</button>

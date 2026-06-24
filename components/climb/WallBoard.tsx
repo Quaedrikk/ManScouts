@@ -4,7 +4,7 @@ import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
 import { Hold } from "./ClimbBits";
 import CIcon from "./ClimbIcons";
-import { HOLD_SHAPES, CLIMB_COLORS, WALL_DESIGNS, isWallDesign, type ClimbProfile, type ClimbWall, type WallHold, type HoldShape } from "@/lib/climb";
+import { HOLD_SHAPES, CLIMB_COLORS, WALL_DESIGNS, isWallDesign, fmtActive, type ClimbProfile, type ClimbWall, type WallHold, type HoldShape } from "@/lib/climb";
 
 const isWallImage = (bg?: string) => !!bg && /^https?:/.test(bg);
 
@@ -98,6 +98,7 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
             <div className="display" style={{ fontSize: 19 }}>{profile.name}</div>
             <div style={{ fontSize: 12.5, opacity: .85 }}>{profile.handle}</div>
             {profile.bio && <div style={{ fontSize: 12.5, opacity: .85, marginTop: 2 }}>{profile.bio}</div>}
+            {fmtActive(profile.lastSeen) && <div style={{ fontSize: 11.5, opacity: .7, marginTop: 2 }}>{fmtActive(profile.lastSeen)}</div>}
           </div>
           {editable && !editing && (
             <div style={{ position: "relative" }}>

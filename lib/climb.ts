@@ -59,6 +59,16 @@ export interface ClimbProfile {
   isSetter?: boolean; // self-serve route-setter role
   following?: string[]; // ids of climbers this user follows
   collections?: ClimbCollection[]; // profile highlight collections
+  lastSeen?: string; // ISO of most recent app load
+}
+
+// "Active today" / "Active 3 days ago" from a last-seen timestamp.
+export function fmtActive(iso?: string): string | null {
+  if (!iso) return null;
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days <= 0) return "Active today";
+  if (days === 1) return "Active 1 day ago";
+  return `Active ${days} days ago`;
 }
 
 export interface ClimbUserLite { id: string; name: string; handle: string; avatarUrl: string }

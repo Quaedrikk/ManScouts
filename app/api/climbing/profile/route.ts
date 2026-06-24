@@ -10,7 +10,12 @@ export async function GET(req: NextRequest) {
   }
   const session = await auth();
   if (!session?.user) return NextResponse.json({ profile: null });
-  return NextResponse.json({ profile: await getClimbProfile(session.user.id) });
+  const profile = await getClimbProfile(session.user.id);
+  if (profile) {
+    profile.lastSeen = new Date().toISOString();
+    await saveClimbProfile(profile);
+  }
+  return NextResponse.json({ profile });
 }
 
 export async function POST(req: NextRequest) {
@@ -39,6 +44,7 @@ export async function POST(req: NextRequest) {
       isSetter: b.isSetter ?? existing?.isSetter ?? false,
       following: existing?.following ?? [],
       collections: existing?.collections ?? [],
+      lastSeen: existing?.lastSeen,
     };
     await saveClimbProfile(profile);
     return NextResponse.json({ profile });
