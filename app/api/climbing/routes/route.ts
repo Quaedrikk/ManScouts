@@ -7,7 +7,14 @@ import { nextRouteCode, type Route } from "@/lib/climb";
 export async function GET(req: NextRequest) {
   const gym = new URL(req.url).searchParams.get("gym") ?? "";
   try {
-    return NextResponse.json({ routes: await getRoutes(gym) });
+    const routes = await getRoutes(gym);
+    // Backfill unique codes for any legacy routes missing one (oldest first).
+    if (routes.some((r) => !r.code)) {
+      const missing = routes.filter((r) => !r.code).sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
+      for (const r of missing) r.code = nextRouteCode(gym, routes);
+      await saveRoutes(gym, routes);
+    }
+    return NextResponse.json({ routes });
   } catch (err) {
     console.error("GET /api/climbing/routes", err);
     return NextResponse.json({ routes: [] });
