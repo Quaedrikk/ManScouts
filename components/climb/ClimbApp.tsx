@@ -7,7 +7,7 @@ import ClimbRecord from "./ClimbRecord";
 import WallBoard from "./WallBoard";
 import { FacilityMap, FacilityEditor } from "./FacilityMap";
 import RouteSetter from "./RouteSetter";
-import { HoldCallout, holdCounts } from "./HoldCallout";
+import { RouteHoldsLayer, holdCounts } from "./HoldCallout";
 import EditClimbProfile from "./EditClimbProfile";
 import ClimbProfileOther from "./ClimbProfileOther";
 import CIcon from "./ClimbIcons";
@@ -70,6 +70,7 @@ function RouteRow({ r, completions, recommend, onOpen, onStart, i }: {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span className="vchip" style={{ background: colorHex(r.color), color: colorText(r.color), textShadow: r.color === "white" || r.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{r.grade === 0 ? "Unrated" : `V${r.grade}`}</span>
             <span style={{ fontWeight: 800, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.wall}</span>
+            {r.code && <span className="label" style={{ letterSpacing: ".08em", flexShrink: 0 }}>{r.code.toUpperCase()}</span>}
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: 5, display: "flex", alignItems: "center", gap: 5 }}>
             <CIcon name="thumb" size={13} /> {recommend} <span style={{ opacity: .5 }}>·</span> <CIcon name="check" size={13} /> {completions} completed
@@ -111,6 +112,8 @@ export default function ClimbApp() {
   const [addToColPost, setAddToColPost] = useState<ClimbPost | null>(null);
   const [viewCollection, setViewCollection] = useState<ClimbCollection | null>(null);
   const [creatingCollection, setCreatingCollection] = useState(false);
+  const [routeText, setRouteText] = useState(true);
+  const viewImgRef = useRef<HTMLDivElement>(null);
 
   const loadFeed = useCallback(async () => {
     try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
@@ -435,16 +438,32 @@ export default function ClimbApp() {
         <div className="scrim" onClick={() => setViewRoute(null)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <div className="grip" />
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span className="chip" style={{ background: colorHex(viewRoute.color), color: colorText(viewRoute.color), textShadow: viewRoute.color === "white" || viewRoute.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{viewRoute.grade === 0 ? "Unrated" : `V${viewRoute.grade}`}</span>
-              <div className="display" style={{ fontSize: 20, flex: 1 }}>{viewRoute.wall}</div>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="chip" style={{ background: colorHex(viewRoute.color), color: colorText(viewRoute.color), textShadow: viewRoute.color === "white" || viewRoute.color === "yellow" ? "none" : "0 1px 2px rgba(0,0,0,.4)" }}>{viewRoute.grade === 0 ? "Unrated" : `V${viewRoute.grade}`}</span>
+                  {viewRoute.code && <span className="label" style={{ letterSpacing: ".1em" }}>{viewRoute.code.toUpperCase()}</span>}
+                </div>
+                <div className="display" style={{ fontSize: 20, marginTop: 6 }}>{viewRoute.wall}</div>
+                <p className="muted" style={{ fontSize: 12.5, margin: "2px 0 10px" }}>set by {viewRoute.setters.join(", ")}</p>
+                <button className="btn green" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, width: "auto", padding: "11px 18px" }} onClick={() => { const r = viewRoute; setViewRoute(null); setStartRoute(r); setRecording(true); }}><CIcon name="play" size={16} /> Start Climb</button>
+              </div>
+              {facility.length > 0 && (
+                <div style={{ width: 124, flexShrink: 0 }}>
+                  <div className="label" style={{ margin: "0 0 5px", textAlign: "center" }}>Where it is</div>
+                  <FacilityMap boxes={facility} selected={viewRoute.wall} height={86} />
+                </div>
+              )}
             </div>
-            <p className="muted" style={{ fontSize: 12.5, margin: "0 0 10px" }}>set by {viewRoute.setters.join(", ")}</p>
 
-            <div style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
+            <div ref={viewImgRef} style={{ position: "relative", borderRadius: 14, overflow: "hidden" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={viewRoute.photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
-              {viewRoute.holds.map((h, i) => <HoldCallout key={i} hold={h} size="sm" />)}
+              <button onClick={() => setRouteText((s) => !s)}
+                style={{ position: "absolute", top: 8, right: 8, zIndex: 6, border: "none", cursor: "pointer", borderRadius: 999, padding: "6px 11px", fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(20,16,12,.7)", backdropFilter: "blur(4px)" }}>
+                {routeText ? "Hide holds text" : "Show holds text"}
+              </button>
+              <RouteHoldsLayer containerRef={viewImgRef} holds={viewRoute.holds} color={colorHex(viewRoute.color)} showText={routeText} size="sm" />
             </div>
 
             {viewRoute.grade === 0 && (
@@ -469,27 +488,18 @@ export default function ClimbApp() {
               </div>
             )}
 
-            {facility.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div className="label" style={{ margin: "0 2px 8px" }}>Where it is · {viewRoute.wall}</div>
-                <FacilityMap boxes={facility} selected={viewRoute.wall} height={120} />
-              </div>
-            )}
-
             <div className="label" style={{ margin: "16px 2px 8px" }}>Completed this route</div>
             {posts.filter((p) => p.routeId === viewRoute.id && canSee(p)).length === 0
               ? <p className="muted" style={{ textAlign: "center", padding: 14 }}>No one yet — be the first.</p>
               : posts.filter((p) => p.routeId === viewRoute.id && canSee(p)).map((p) => <ClimbCard key={p.id} post={p} meId={me.id} canDelete={p.userId === me.id || isAdmin} onDelete={() => del(p.id)} onUpdate={updatePost} onOpenUser={openUser} />)}
 
             <div style={{ height: 10 }} />
-            <button className="btn green" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={() => { const r = viewRoute; setViewRoute(null); setStartRoute(r); setRecording(true); }}><CIcon name="play" size={16} /> Start Climb</button>
             {(viewRoute.createdBy === me.id || isAdmin) && (
               <>
-                <div style={{ height: 8 }} />
                 <button className="btn" style={{ background: "var(--accent-d)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }} onClick={() => delRoute(viewRoute.id)}><CIcon name="x" size={16} /> Delete route</button>
+                <div style={{ height: 8 }} />
               </>
             )}
-            <div style={{ height: 8 }} />
             <button className="btn ghost" onClick={() => setViewRoute(null)}>Close</button>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isAdmin } from "@/lib/admin";
 import { getRoutes, addRoute, deleteRoute, getClimbProfile, saveRoutes } from "@/lib/climbKv";
-import type { Route } from "@/lib/climb";
+import { nextRouteCode, type Route } from "@/lib/climb";
 
 export async function GET(req: NextRequest) {
   const gym = new URL(req.url).searchParams.get("gym") ?? "";
@@ -21,9 +21,10 @@ export async function POST(req: NextRequest) {
     const profile = await getClimbProfile(session.user.id);
     const b = (await req.json()) as Pick<Route, "gym" | "wall" | "color" | "grade" | "setters" | "photoUrl" | "holds">;
     if (!b.photoUrl) return NextResponse.json({ error: "A route photo is required" }, { status: 400 });
+    const existing = await getRoutes(b.gym);
     const route: Route = {
       id: `r${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      gym: b.gym, wall: b.wall, color: b.color, grade: b.grade,
+      gym: b.gym, code: nextRouteCode(b.gym, existing), wall: b.wall, color: b.color, grade: b.grade,
       setters: Array.isArray(b.setters) && b.setters.length ? b.setters : [profile?.name ?? session.user.name ?? "Setter"],
       photoUrl: b.photoUrl, holds: Array.isArray(b.holds) ? b.holds : [],
       createdBy: session.user.id, createdAt: new Date().toISOString(),

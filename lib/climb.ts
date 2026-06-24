@@ -95,11 +95,13 @@ export interface FacilityBox {
 // Hold markers tapped onto the route photo (fractions of the image, 0..1).
 export const HOLD_TYPES = ["Crimp", "Sloper", "Pinch", "Jug", "Pocket"] as const;
 export type HoldType = (typeof HOLD_TYPES)[number];
-export interface RouteHold { x: number; y: number; type: HoldType }
+// x,y = hold point; lx,ly = label position (both fractions 0..1). Label defaults above the hold.
+export interface RouteHold { x: number; y: number; type: HoldType; lx?: number; ly?: number }
 
 export interface Route {
   id: string;
   gym: string;
+  code?: string;          // unique signifier, e.g. "va001"
   wall: string;
   color: ClimbColor;
   grade: number;          // 0 = Unrated
@@ -109,6 +111,19 @@ export interface Route {
   holds: RouteHold[];
   createdBy: string;
   createdAt: string;
+}
+
+// Unique per-gym route code, e.g. "va001" for Vertical Adventures.
+export function nextRouteCode(gym: string, existing: Route[]): string {
+  const prefix = (gym.split(/\s+/).map((w) => w[0]).join("").toLowerCase().slice(0, 3)) || "rt";
+  let max = 0;
+  for (const r of existing) {
+    if (r.code && r.code.startsWith(prefix)) {
+      const n = parseInt(r.code.slice(prefix.length), 10);
+      if (!Number.isNaN(n) && n > max) max = n;
+    }
+  }
+  return prefix + String(max + 1).padStart(3, "0");
 }
 
 // Average suggested grade for an Unrated route, rounded; null if none.

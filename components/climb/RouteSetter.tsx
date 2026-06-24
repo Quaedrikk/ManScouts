@@ -2,9 +2,9 @@
 import { useState, useRef, useEffect } from "react";
 import { upload } from "@vercel/blob/client";
 import { FacilityMap } from "./FacilityMap";
-import { HoldCallout, HOLD_TYPE_COLOR } from "./HoldCallout";
+import { RouteHoldsLayer, HOLD_TYPE_COLOR } from "./HoldCallout";
 import CIcon from "./ClimbIcons";
-import { WALLS, HOLD_TYPES, CLIMB_COLORS, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
+import { WALLS, HOLD_TYPES, CLIMB_COLORS, colorHex, type ClimbColor, type FacilityBox, type HoldType, type RouteHold, type ClimbUserLite } from "@/lib/climb";
 
 export { HOLD_TYPE_COLOR };
 
@@ -22,6 +22,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [holds, setHolds] = useState<RouteHold[]>([]);
+  const [showText, setShowText] = useState(true);
   const [pending, setPending] = useState<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -74,9 +75,13 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
           <div ref={imgRef} onClick={tapImage} style={{ position: "relative", width: "100%", borderRadius: 16, overflow: "hidden", cursor: "crosshair" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl} alt="route" style={{ width: "100%", display: "block" }} />
-            {holds.map((h, i) => (
-              <HoldCallout key={i} hold={h} onRemove={() => setHolds((p) => p.filter((_, k) => k !== i))} />
-            ))}
+            <button onClick={(e) => { e.stopPropagation(); setShowText((s) => !s); }}
+              style={{ position: "absolute", top: 8, right: 8, zIndex: 6, border: "none", cursor: "pointer", borderRadius: 999, padding: "6px 11px", fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(20,16,12,.7)", backdropFilter: "blur(4px)" }}>
+              {showText ? "Hide holds text" : "Show holds text"}
+            </button>
+            <RouteHoldsLayer containerRef={imgRef} holds={holds} color={color ? colorHex(color) : "#888"} showText={showText}
+              onMoveLabel={(i, lx, ly) => setHolds((p) => p.map((h, k) => k === i ? { ...h, lx, ly } : h))}
+              onRemove={(i) => setHolds((p) => p.filter((_, k) => k !== i))} />
             {pending && (
               <>
                 <div style={{ position: "absolute", left: `${pending.x * 100}%`, top: `${pending.y * 100}%`, transform: "translate(-50%,-50%)", width: 18, height: 18, borderRadius: "50%", border: "2.5px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,.4)", pointerEvents: "none" }} />
