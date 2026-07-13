@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import Ico from "./Ico";
 import Badge from "./Badge";
@@ -114,7 +115,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     let ok = 0;
     for (const b of arr) {
       try {
-        const res = await fetch("/api/challenges", {
+        const res = await fetch(`${BASE_PATH}/api/challenges`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...b, color: b.color ?? catColor(b.cat ?? "Real Passages") }),
         });
@@ -157,7 +158,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!f) return;
     setUploading(true);
     try {
-      const blob = await upload(`badges/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" });
+      const blob = await upload(`badges/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` });
       setImageUrl(blob.url);
     } catch { alert("Upload failed — try again."); }
     setUploading(false);
@@ -167,7 +168,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!nm.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/challenges", {
+      const res = await fetch(`${BASE_PATH}/api/challenges`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -192,7 +193,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!toDelete || confirmText.trim() !== REVOKE_PHRASE) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/challenges?id=${encodeURIComponent(toDelete.id)}`, { method: "DELETE" });
+      const res = await fetch(`${BASE_PATH}/api/challenges?id=${encodeURIComponent(toDelete.id)}`, { method: "DELETE" });
       if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
       await refresh();
       setToDelete(null); setConfirmText("");
@@ -204,7 +205,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!confirm(`Delete ALL ${customBadges.length} custom Rights of Passage? Built-in ones stay. This can't be undone.`)) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/challenges?all=1", { method: "DELETE" });
+      const res = await fetch(`${BASE_PATH}/api/challenges?all=1`, { method: "DELETE" });
       if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
       await refresh();
       alert("All custom passages deleted.");
@@ -216,7 +217,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!confirm(`Remove the built-in passage "${c.nm}"? You can restore built-ins later.`)) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/challenges?id=${encodeURIComponent(c.id)}`, { method: "DELETE" });
+      const res = await fetch(`${BASE_PATH}/api/challenges?id=${encodeURIComponent(c.id)}`, { method: "DELETE" });
       if (!res.ok) { alert("Couldn't remove — admin only."); setSaving(false); return; }
       await refresh();
     } catch { alert("Couldn't remove — try again."); }
@@ -226,7 +227,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   async function restoreBuiltins() {
     setSaving(true);
     try {
-      await fetch("/api/challenges?restore=1", { method: "DELETE" });
+      await fetch(`${BASE_PATH}/api/challenges?restore=1`, { method: "DELETE" });
       await refresh();
     } catch { /* ignore */ }
     setSaving(false);
@@ -235,7 +236,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   async function restoreBuiltinCats() {
     setSaving(true);
     try {
-      await fetch("/api/categories?restore=1", { method: "DELETE" });
+      await fetch(`${BASE_PATH}/api/categories?restore=1`, { method: "DELETE" });
       await refresh();
     } catch { /* ignore */ }
     setSaving(false);
@@ -245,7 +246,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/categories", {
+      const res = await fetch(`${BASE_PATH}/api/categories`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), color }),
       });
@@ -260,7 +261,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (!confirm(`Delete the "${name}" category? Badges keep their tag but the category disappears from the list.`)) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/categories?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+      const res = await fetch(`${BASE_PATH}/api/categories?name=${encodeURIComponent(name)}`, { method: "DELETE" });
       if (!res.ok) { alert("Couldn't delete — admin only."); setSaving(false); return; }
       await refresh();
     } catch { alert("Couldn't delete — try again."); }

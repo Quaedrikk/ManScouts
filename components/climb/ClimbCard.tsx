@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Avatar from "../Avatar";
 import { ClimbVideo } from "./ClimbBits";
 import CIcon from "./ClimbIcons";
@@ -31,7 +32,7 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
   const iLike = likes.includes(meId);
 
   async function share() {
-    const url = typeof window !== "undefined" ? `${window.location.origin}/climbing` : "/climbing";
+    const url = typeof window !== "undefined" ? `${window.location.origin}${BASE_PATH}/climbing` : `${BASE_PATH}/climbing`;
     const data = { title: `${post.userName} on the Post Wall`, text: `${post.userName} sent ${post.grade === 0 ? "a route" : "V" + post.grade} at ${post.gym} • ${post.wall}${post.note ? ` — ${post.note}` : ""}`, url };
     try {
       if (navigator.share) { await navigator.share(data); return; }
@@ -42,7 +43,7 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
 
   async function engage(action: string, extra?: Record<string, unknown>) {
     try {
-      const res = await fetch("/api/climbing/engage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId: post.id, action, ...extra }) });
+      const res = await fetch(`${BASE_PATH}/api/climbing/engage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId: post.id, action, ...extra }) });
       const d = await res.json(); if (d.post) onUpdate(d.post);
     } catch { /* */ }
   }
@@ -54,7 +55,7 @@ export default function ClimbCard({ post, meId, canDelete, onDelete, onUpdate, o
   async function saveEdit() {
     setSavingEdit(true);
     try {
-      const res = await fetch("/api/climbing/posts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: post.id, note: draft, visibility: draftVis }) });
+      const res = await fetch(`${BASE_PATH}/api/climbing/posts`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: post.id, note: draft, visibility: draftVis }) });
       const d = await res.json(); if (d.post) onUpdate(d.post);
       setEditing(false);
     } catch { /* */ }

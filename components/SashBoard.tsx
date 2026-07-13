@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Badge from "./Badge";
 import Avatar from "./Avatar";
 import CoatOfArms from "./CoatOfArms";
@@ -76,7 +77,7 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile, read
       return;
     }
     let active = true;
-    fetch("/api/sash").then((r) => r.json()).then((d) => {
+    fetch(`${BASE_PATH}/api/sash`).then((r) => r.json()).then((d) => {
       if (!active) return;
       setLayout(d.layout ?? {}); layoutRef.current = d.layout ?? {};
       setStyle(d.style ?? "forest"); styleRef.current = d.style ?? "forest";
@@ -86,7 +87,7 @@ export default function SashBoard({ profile, earned, onPick, onEditProfile, read
 
   const save = useCallback(() => {
     if (readOnly) return;
-    fetch("/api/sash", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ layout: layoutRef.current, style: styleRef.current }) }).catch(() => {});
+    fetch(`${BASE_PATH}/api/sash`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ layout: layoutRef.current, style: styleRef.current }) }).catch(() => {});
   }, [readOnly]);
 
   function chooseTheme(key: string, t: SashTheme) {

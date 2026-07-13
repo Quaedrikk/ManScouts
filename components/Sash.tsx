@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Badge from "./Badge";
 import SashBoard from "./SashBoard";
 import SquadPanel from "./SquadPanel";
@@ -40,7 +41,7 @@ export default function Sash({ profile, posts, totalPts, onEdit, onPick, onDelet
   useEffect(() => {
     if (!profile.squadId) { setSquad(null); return; }
     let active = true;
-    fetch(`/api/squads?id=${encodeURIComponent(profile.squadId)}`).then((r) => r.json())
+    fetch(`${BASE_PATH}/api/squads?id=${encodeURIComponent(profile.squadId)}`).then((r) => r.json())
       .then((d) => { if (active && d.squad) setSquad({ id: d.squad.id, name: d.squad.name, coat: d.squad.coat }); })
       .catch(() => {});
     return () => { active = false; };

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
 import CIcon from "./ClimbIcons";
@@ -31,7 +32,7 @@ export default function ClimbRecord({ gym, me, onCancel, onPosted, onCreateRoute
   const vref = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}`).then((r) => r.json()).then((d) => setRoutes(d.routes ?? [])).catch(() => {}); }, [gym]);
+  useEffect(() => { fetch(`${BASE_PATH}/api/climbing/routes?gym=${encodeURIComponent(gym)}`).then((r) => r.json()).then((d) => setRoutes(d.routes ?? [])).catch(() => {}); }, [gym]);
 
   const matches = routes.filter((r) => {
     const s = `${r.color} v${r.grade} ${r.wall}`.toLowerCase();
@@ -42,7 +43,7 @@ export default function ClimbRecord({ gym, me, onCancel, onPosted, onCreateRoute
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     if (!f.type.startsWith("video")) { alert("Record or pick a video."); return; }
     setUploading(true);
-    try { const blob = await upload(`climbs/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setVideoUrl(blob.url); }
+    try { const blob = await upload(`climbs/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setVideoUrl(blob.url); }
     catch { alert("Upload failed — try again."); }
     setUploading(false);
   }
@@ -52,7 +53,7 @@ export default function ClimbRecord({ gym, me, onCancel, onPosted, onCreateRoute
     if (!route || !videoUrl) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/climbing/posts", {
+      const res = await fetch(`${BASE_PATH}/api/climbing/posts`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gym, wall: route.wall, routeId: route.id, color: route.color, grade: route.grade, videoUrl, startSec: Math.round(startSec), note: note.trim(), visibility }),
       });

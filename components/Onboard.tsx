@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import type { UserProfile } from "@/lib/types";
 
@@ -25,7 +26,7 @@ export default function Onboard({ onDone, initial, defaults, onCancel }: Props) 
     try {
       const blob = await upload(`avatars/${f.name}`, f, {
         access: "public",
-        handleUploadUrl: "/api/upload",
+        handleUploadUrl: `${BASE_PATH}/api/upload`,
       });
       setAvatarUrl(blob.url);
     } catch {

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Badge from "./Badge";
 import Stars from "./Stars";
 import WitnessPhoto from "./WitnessPhoto";
@@ -37,7 +38,7 @@ export default function Detail({ ch, earned, post, onClose, onStart }: Props) {
   async function saveEdit() {
     setSaving(true);
     try {
-      const res = await fetch("/api/overrides", {
+      const res = await fetch(`${BASE_PATH}/api/overrides`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           challengeId: ch.id,

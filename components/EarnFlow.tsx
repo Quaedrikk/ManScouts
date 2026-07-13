@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import QRCode from "qrcode";
 import Badge from "./Badge";
@@ -48,7 +49,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
   // friends can scan it from the top-left before the challenge even starts.
   const startWitness = useCallback(async () => {
     try {
-      const res = await fetch("/api/witness/start", {
+      const res = await fetch(`${BASE_PATH}/api/witness/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ challengeId: ch.id, challengeName: ch.nm }),
@@ -56,7 +57,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
       const data = await res.json();
       if (data.token) {
         setToken(data.token);
-        const link = `${window.location.origin}/witness/${data.token}`;
+        const link = `${window.location.origin}${BASE_PATH}/witness/${data.token}`;
         setQrUrl(await QRCode.toDataURL(link, { width: 320, margin: 1 }));
       }
     } catch { /* ignore */ }
@@ -69,7 +70,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     if (!token) return;
     const iv = setInterval(async () => {
       try {
-        const res = await fetch(`/api/witness/status?token=${token}`);
+        const res = await fetch(`${BASE_PATH}/api/witness/status?token=${token}`);
         const d = await res.json();
         if (Array.isArray(d.witnesses)) setWitnesses(d.witnesses);
       } catch { /* ignore */ }
@@ -86,7 +87,7 @@ export default function EarnFlow({ ch, onCancel, onCommit }: Props) {
     if (media === "video" && !isVideo) { alert("This step needs a video."); return; }
     setUploadingIdx(idx);
     try {
-      const blob = await upload(`proofs/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" });
+      const blob = await upload(`proofs/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` });
       setProofs((prev) => prev.map((p, i) => (i === idx ? { url: blob.url, type: isVideo ? "video" : "photo", step: steps[idx] } : p)));
     } catch {
       alert("Upload failed — try again.");

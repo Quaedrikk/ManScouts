@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Badge from "./Badge";
 import Stars from "./Stars";
 import { chStars } from "@/lib/challenges";
@@ -15,7 +16,7 @@ export default function BadgeVoting() {
   const [phase, setPhase] = useState<SeasonPhase>("off");
   const [overlay, setOverlay] = useState<null | "intro" | "propose" | "review">(null);
 
-  const loadSeason = () => fetch("/api/season").then((r) => r.json()).then((d) => setPhase(d.season?.phase ?? "off")).catch(() => {});
+  const loadSeason = () => fetch(`${BASE_PATH}/api/season`).then((r) => r.json()).then((d) => setPhase(d.season?.phase ?? "off")).catch(() => {});
   useEffect(() => { loadSeason(); }, []);
 
   function openFlow() {
@@ -29,7 +30,7 @@ export default function BadgeVoting() {
   }
 
   async function adminPost(body: object) {
-    await fetch("/api/season", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    await fetch(`${BASE_PATH}/api/season`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     await loadSeason();
     await refresh();
   }
@@ -144,7 +145,7 @@ function Proposer({ challenges, onClose }: { challenges: Challenge[]; onClose: (
     if (note.trim()) changed.note = note.trim();
     const hasChange = "pts" in changed || "how" in changed || "needsWitness" in changed;
     if (hasChange) {
-      try { await fetch("/api/proposals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) }); setSubmitted((s) => s + 1); } catch { /* ignore */ }
+      try { await fetch(`${BASE_PATH}/api/proposals`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(changed) }); setSubmitted((s) => s + 1); } catch { /* ignore */ }
     }
     setBusy(false);
     setEditing(null);
@@ -281,7 +282,7 @@ function ReviewVote({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [picked, setPicked] = useState<Set<string> | null>(null); // null = all
   const [started, setStarted] = useState(false);
-  const load = () => fetch("/api/proposals").then((r) => r.json()).then((d) => setProposals(d.proposals ?? [])).catch(() => {}).finally(() => setLoading(false));
+  const load = () => fetch(`${BASE_PATH}/api/proposals`).then((r) => r.json()).then((d) => setProposals(d.proposals ?? [])).catch(() => {}).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const catOf = (p: Proposal) => byId(p.challengeId)?.cat ?? "Other";
@@ -296,7 +297,7 @@ function ReviewVote({ onClose }: { onClose: () => void }) {
 
   async function vote(id: string, v: "yes" | "no") {
     setProposals((prev) => prev.map((p) => p.id === id ? { ...p, myVote: v, votesYes: (p.votesYes ?? 0) + (v === "yes" && p.myVote !== "yes" ? 1 : 0) - (p.myVote === "yes" && v !== "yes" ? 1 : 0), votesNo: (p.votesNo ?? 0) + (v === "no" && p.myVote !== "no" ? 1 : 0) - (p.myVote === "no" && v !== "no" ? 1 : 0) } : p));
-    try { await fetch("/api/proposals/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proposalId: id, vote: v }) }); } catch { /* ignore */ }
+    try { await fetch(`${BASE_PATH}/api/proposals/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ proposalId: id, vote: v }) }); } catch { /* ignore */ }
   }
 
   return (

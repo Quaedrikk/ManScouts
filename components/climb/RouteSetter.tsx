@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import { FacilityMap } from "./FacilityMap";
 import { RouteHoldsLayer, HOLD_TYPE_COLOR } from "./HoldCallout";
@@ -17,7 +18,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
   const [setters, setSetters] = useState<string[]>([meName]);
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<ClimbUserLite[]>([]);
-  useEffect(() => { fetch("/api/climbing/users").then((r) => r.json()).then((d) => setUsers(d.users ?? [])).catch(() => {}); }, []);
+  useEffect(() => { fetch(`${BASE_PATH}/api/climbing/users`).then((r) => r.json()).then((d) => setUsers(d.users ?? [])).catch(() => {}); }, []);
   const matches = q.trim() ? users.filter((u) => !setters.includes(u.name) && (u.name.toLowerCase().includes(q.toLowerCase()) || u.handle.toLowerCase().includes(q.toLowerCase()))).slice(0, 6) : [];
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -31,7 +32,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
   async function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`routes/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setPhotoUrl(blob.url); }
+    try { const blob = await upload(`routes/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setPhotoUrl(blob.url); }
     catch { alert("Upload failed — try again."); }
     setUploading(false);
   }
@@ -49,7 +50,7 @@ export default function RouteSetter({ gym, facility, meName, onClose, onSaved }:
     if (!photoUrl || !color) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/climbing/routes", {
+      const res = await fetch(`${BASE_PATH}/api/climbing/routes`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gym, wall, color, grade, setters, photoUrl, holds }),
       });

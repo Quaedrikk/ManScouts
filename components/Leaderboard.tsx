@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Avatar from "./Avatar";
 import Badge from "./Badge";
 import SeasonIntro from "./SeasonIntro";
@@ -220,7 +221,7 @@ export default function Leaderboard({ posts, profile, onOpenProfile, onOpenPost,
     if (ids.length === 0) return;
     let active = true;
     Promise.all(ids.map((id) =>
-      fetch(`/api/users/${encodeURIComponent(id)}`).then((r) => r.json()).then((d) => [id, d.profile?.featured ?? []] as [string, string[]]).catch(() => [id, []] as [string, string[]])
+      fetch(`${BASE_PATH}/api/users/${encodeURIComponent(id)}`).then((r) => r.json()).then((d) => [id, d.profile?.featured ?? []] as [string, string[]]).catch(() => [id, []] as [string, string[]])
     )).then((entries) => { if (active) setFeatured(Object.fromEntries(entries)); });
     return () => { active = false; };
   }, [rankIds]);

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Ico from "./Ico";
 import Board from "./Board";
@@ -44,7 +45,7 @@ export default function AppShell() {
 
   const loadFeed = useCallback(async () => {
     try {
-      const res = await fetch("/api/posts");
+      const res = await fetch(`${BASE_PATH}/api/posts`);
       if (!res.ok) return;
       const data = await res.json();
       setPosts(data.posts ?? []);
@@ -68,7 +69,7 @@ export default function AppShell() {
     let active = true;
     (async () => {
       try {
-        const res = await fetch("/api/profile");
+        const res = await fetch(`${BASE_PATH}/api/profile`);
         if (res.ok) {
           const data = await res.json();
           if (active) setProfile(data.profile ?? null);
@@ -89,7 +90,7 @@ export default function AppShell() {
 
   async function saveProfile(pf: UserProfile) {
     try {
-      const res = await fetch("/api/profile", {
+      const res = await fetch(`${BASE_PATH}/api/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(pf),
@@ -104,7 +105,7 @@ export default function AppShell() {
 
   async function reloadProfile() {
     try {
-      const res = await fetch("/api/profile");
+      const res = await fetch(`${BASE_PATH}/api/profile`);
       if (res.ok) { const data = await res.json(); setProfile(data.profile ?? null); }
     } catch { /* ignore */ }
   }
@@ -113,7 +114,7 @@ export default function AppShell() {
     if (!confirm("Delete this post? This can't be undone.")) return;
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     try {
-      await fetch(`/api/posts?id=${encodeURIComponent(postId)}`, { method: "DELETE" });
+      await fetch(`${BASE_PATH}/api/posts?id=${encodeURIComponent(postId)}`, { method: "DELETE" });
     } catch { /* ignore; already removed locally */ }
   }
 
@@ -123,7 +124,7 @@ export default function AppShell() {
     setCheers(next);
     localStorage.setItem("ms:cheers", JSON.stringify(next));
     try {
-      const res = await fetch(`/api/cheers/${postId}`, { method: "POST" });
+      const res = await fetch(`${BASE_PATH}/api/cheers/${postId}`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setCheerCounts((prev) => ({ ...prev, [postId]: data.count }));
@@ -143,7 +144,7 @@ export default function AppShell() {
   ) {
     if (!profile) return;
     try {
-      const res = await fetch("/api/posts", {
+      const res = await fetch(`${BASE_PATH}/api/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

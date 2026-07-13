@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Badge from "./Badge";
 import Stars from "./Stars";
 import SashBoard from "./SashBoard";
@@ -37,13 +38,13 @@ export default function ProfileView({ userId, posts, onClose, onPick, onOpenSqua
     let active = true;
     setLoading(true);
     setSquad(null);
-    fetch(`/api/users/${encodeURIComponent(userId)}`)
+    fetch(`${BASE_PATH}/api/users/${encodeURIComponent(userId)}`)
       .then((r) => r.json())
       .then((d) => {
         if (!active) return;
         setProfile(d.profile); setSash(d.sash ?? { layout: {}, style: "forest" });
         if (d.profile?.squadId) {
-          fetch(`/api/squads?id=${encodeURIComponent(d.profile.squadId)}`).then((r) => r.json()).then((s) => { if (active) setSquad(s.squad ?? null); }).catch(() => {});
+          fetch(`${BASE_PATH}/api/squads?id=${encodeURIComponent(d.profile.squadId)}`).then((r) => r.json()).then((s) => { if (active) setSquad(s.squad ?? null); }).catch(() => {});
         }
       })
       .catch(() => {})

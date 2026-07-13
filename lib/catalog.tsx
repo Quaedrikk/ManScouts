@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { useSession } from "next-auth/react";
 import { CHALLENGES, CATS } from "./challenges";
 import { GENERATED } from "./generated";
@@ -39,8 +40,8 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const [c, k] = await Promise.all([
-        fetch("/api/challenges").then((r) => r.json()),
-        fetch("/api/categories").then((r) => r.json()),
+        fetch(`${BASE_PATH}/api/challenges`).then((r) => r.json()),
+        fetch(`${BASE_PATH}/api/categories`).then((r) => r.json()),
       ]);
       setCustom(c.challenges ?? []);
       setHiddenCh(c.hidden ?? []);
@@ -55,7 +56,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   // Load this user's favourites once signed in.
   useEffect(() => {
     if (status !== "authenticated") return;
-    fetch("/api/favourites").then((r) => r.json())
+    fetch(`${BASE_PATH}/api/favourites`).then((r) => r.json())
       .then((d) => setFavourites(new Set(d.ids ?? [])))
       .catch(() => {});
   }, [status]);
@@ -66,7 +67,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-    fetch("/api/favourites", {
+    fetch(`${BASE_PATH}/api/favourites`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ challengeId: id }),

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
@@ -117,16 +118,16 @@ export default function ClimbApp() {
   const viewImgRef = useRef<HTMLDivElement>(null);
 
   const loadFeed = useCallback(async () => {
-    try { const d = await fetch("/api/climbing/posts").then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
+    try { const d = await fetch(`${BASE_PATH}/api/climbing/posts`).then((r) => r.json()); setPosts(d.posts ?? []); } catch { /* */ }
   }, []);
   const loadFacility = useCallback(async () => {
-    try { const d = await fetch(`/api/climbing/facility?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setFacility(d.boxes ?? []); } catch { /* */ }
+    try { const d = await fetch(`${BASE_PATH}/api/climbing/facility?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setFacility(d.boxes ?? []); } catch { /* */ }
   }, [gym]);
   const loadRoutes = useCallback(async () => {
-    try { const d = await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setRoutes(d.routes ?? []); } catch { /* */ }
+    try { const d = await fetch(`${BASE_PATH}/api/climbing/routes?gym=${encodeURIComponent(gym)}`).then((r) => r.json()); setRoutes(d.routes ?? []); } catch { /* */ }
   }, [gym]);
   const loadUsers = useCallback(async () => {
-    try { const d = await fetch("/api/climbing/users").then((r) => r.json()); setUsers(d.users ?? []); } catch { /* */ }
+    try { const d = await fetch(`${BASE_PATH}/api/climbing/users`).then((r) => r.json()); setUsers(d.users ?? []); } catch { /* */ }
   }, []);
 
   useEffect(() => { loadFeed(); }, [loadFeed]);
@@ -136,7 +137,7 @@ export default function ClimbApp() {
   useEffect(() => {
     if (status !== "authenticated") { if (status === "unauthenticated") setLoaded(true); return; }
     let active = true;
-    fetch("/api/climbing/profile").then((r) => r.json()).then((d) => { if (active) setProfile(d.profile ?? null); }).finally(() => { if (active) setLoaded(true); });
+    fetch(`${BASE_PATH}/api/climbing/profile`).then((r) => r.json()).then((d) => { if (active) setProfile(d.profile ?? null); }).finally(() => { if (active) setLoaded(true); });
     return () => { active = false; };
   }, [status]);
 
@@ -176,7 +177,7 @@ export default function ClimbApp() {
   async function openUser(id: string) {
     if (id === me.id) { setTab("me"); return; }
     try {
-      const d = await fetch(`/api/climbing/profile?id=${encodeURIComponent(id)}`).then((r) => r.json());
+      const d = await fetch(`${BASE_PATH}/api/climbing/profile?id=${encodeURIComponent(id)}`).then((r) => r.json());
       if (d.profile) setViewUser(d.profile);
     } catch { /* */ }
   }
@@ -198,7 +199,7 @@ export default function ClimbApp() {
   }
   async function toggleFollow(targetId: string) {
     try {
-      const d = await fetch("/api/climbing/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId }) }).then((r) => r.json());
+      const d = await fetch(`${BASE_PATH}/api/climbing/follow`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId }) }).then((r) => r.json());
       if (d.profile) setProfile(d.profile);
     } catch { /* */ }
   }
@@ -206,28 +207,28 @@ export default function ClimbApp() {
   async function del(id: string) {
     if (!confirm("Delete this climb?")) return;
     setPosts((prev) => prev.filter((p) => p.id !== id));
-    try { await fetch(`/api/climbing/posts?id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
+    try { await fetch(`${BASE_PATH}/api/climbing/posts?id=${encodeURIComponent(id)}`, { method: "DELETE" }); } catch { /* */ }
   }
   function updatePost(p: ClimbPost) { setPosts((prev) => prev.map((x) => x.id === p.id ? p : x)); }
   async function delRoute(id: string) {
     if (!confirm("Delete this route? This can't be undone.")) return;
     setViewRoute(null);
     try {
-      const res = await fetch(`/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await fetch(`${BASE_PATH}/api/climbing/routes?gym=${encodeURIComponent(gym)}&id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!res.ok) { alert("Couldn't delete this route."); return; }
       setRoutes((prev) => prev.filter((r) => r.id !== id));
     } catch { alert("Couldn't delete this route."); }
   }
   async function suggestGrade(routeId: string, grade: number) {
     try {
-      const d = await fetch("/api/climbing/routes", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gym, id: routeId, grade }) }).then((r) => r.json());
+      const d = await fetch(`${BASE_PATH}/api/climbing/routes`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gym, id: routeId, grade }) }).then((r) => r.json());
       if (d.route) { setRoutes((prev) => prev.map((r) => r.id === d.route.id ? d.route : r)); setViewRoute((v) => v && v.id === d.route.id ? d.route : v); }
     } catch { /* */ }
   }
   async function saveCollections(next: ClimbCollection[]) {
     setProfile((p) => p ? { ...p, collections: next } : p);
     try {
-      const d = await fetch("/api/climbing/collections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collections: next }) }).then((r) => r.json());
+      const d = await fetch(`${BASE_PATH}/api/climbing/collections`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collections: next }) }).then((r) => r.json());
       if (d.profile) setProfile(d.profile);
     } catch { /* */ }
   }
@@ -542,7 +543,7 @@ function ClimbProfileView({ profile, mine, maxGrade, meId, isAdmin, onSave, onSi
   async function saveWall(wall: ClimbWall) {
     const next = { ...profile, wall };
     onSave(next);
-    try { await fetch("/api/climbing/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) }); } catch { /* */ }
+    try { await fetch(`${BASE_PATH}/api/climbing/profile`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) }); } catch { /* */ }
   }
   return (
     <div>
@@ -585,14 +586,14 @@ function ClimbOnboard({ session, onDone }: { session: ReturnType<typeof useSessi
   async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`avatars/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setAvatarUrl(blob.url); } catch { /* */ }
+    try { const blob = await upload(`avatars/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setAvatarUrl(blob.url); } catch { /* */ }
     setUploading(false);
   }
   async function save() {
     if (!name.trim() || !handle.trim()) return;
     setBusy(true); setErr("");
     try {
-      const res = await fetch("/api/climbing/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, handle, bio, avatarUrl }) });
+      const res = await fetch(`${BASE_PATH}/api/climbing/profile`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, handle, bio, avatarUrl }) });
       const d = await res.json();
       if (res.ok && d.profile) onDone(d.profile); else setErr(d.error ?? "Couldn't save.");
     } catch { setErr("Couldn't save."); }

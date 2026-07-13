@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import Avatar from "../Avatar";
 import { Hold } from "./ClimbBits";
@@ -43,7 +44,7 @@ export default function WallBoard({ profile, editable, onSave, onEditProfile }: 
   async function pickCover(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`walls/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setBg(blob.url); } catch { /* */ }
+    try { const blob = await upload(`walls/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setBg(blob.url); } catch { /* */ }
     setUploading(false);
   }
 

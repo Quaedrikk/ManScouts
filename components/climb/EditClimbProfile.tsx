@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import CIcon from "./ClimbIcons";
 import type { ClimbProfile } from "@/lib/climb";
@@ -20,14 +21,14 @@ export default function EditClimbProfile({ profile, onClose, onSaved }: {
   async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`avatars/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setAvatarUrl(blob.url); } catch { /* */ }
+    try { const blob = await upload(`avatars/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setAvatarUrl(blob.url); } catch { /* */ }
     setUploading(false);
   }
   async function save() {
     if (!name.trim() || !handle.trim()) return;
     setBusy(true); setErr("");
     try {
-      const res = await fetch("/api/climbing/profile", {
+      const res = await fetch(`${BASE_PATH}/api/climbing/profile`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...profile, name, handle, bio, avatarUrl, isSetter }),
       });

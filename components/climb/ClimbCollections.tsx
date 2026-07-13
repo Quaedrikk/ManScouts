@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { upload } from "@vercel/blob/client";
 import ClimbCard from "./ClimbCard";
 import CIcon from "./ClimbIcons";
@@ -103,7 +104,7 @@ export function CreateCollectionSheet({ ownerPosts, meId, onCreate, onClose }: {
   async function pickCover(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`covers/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); setCoverUrl(blob.url); } catch { /* */ }
+    try { const blob = await upload(`covers/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); setCoverUrl(blob.url); } catch { /* */ }
     setUploading(false);
   }
   function toggle(id: string) { setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]); }
@@ -159,7 +160,7 @@ export function CollectionSheet({ collection, posts, ownerPosts, meId, isOwner, 
   async function pickCover(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
     setUploading(true);
-    try { const blob = await upload(`covers/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" }); onSetCover(blob.url); } catch { /* */ }
+    try { const blob = await upload(`covers/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` }); onSetCover(blob.url); } catch { /* */ }
     setUploading(false);
   }
 

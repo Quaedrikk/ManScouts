@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import { useSession, signIn } from "next-auth/react";
 import { upload } from "@vercel/blob/client";
 
@@ -24,14 +25,14 @@ export default function WitnessConfirm({ token }: { token: string }) {
     if (!f) return;
     setUploading(true);
     try {
-      const blob = await upload(`witness/${f.name}`, f, { access: "public", handleUploadUrl: "/api/upload" });
+      const blob = await upload(`witness/${f.name}`, f, { access: "public", handleUploadUrl: `${BASE_PATH}/api/upload` });
       setPhotoUrl(blob.url);
     } catch { setError("Photo upload failed — try again."); }
     setUploading(false);
   }
 
   useEffect(() => {
-    fetch(`/api/witness/status?token=${token}`)
+    fetch(`${BASE_PATH}/api/witness/status?token=${token}`)
       .then((r) => r.json())
       .then((d) => setInfo(d))
       .catch(() => setInfo({ found: false }));
@@ -41,7 +42,7 @@ export default function WitnessConfirm({ token }: { token: string }) {
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/witness/confirm", {
+      const res = await fetch(`${BASE_PATH}/api/witness/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, witnessPhotoUrl: photoUrl }),
@@ -122,7 +123,7 @@ export default function WitnessConfirm({ token }: { token: string }) {
       ) : (
         <>
           <p className="muted" style={{ marginBottom: 12, fontSize: 14 }}>Sign in to vouch as yourself.</p>
-          <button className="btn" style={{ maxWidth: 320 }} onClick={() => signIn("google", { callbackUrl: `/witness/${token}` })}>
+          <button className="btn" style={{ maxWidth: 320 }} onClick={() => signIn("google", { callbackUrl: `${BASE_PATH}/witness/${token}` })}>
             Continue with Google
           </button>
         </>

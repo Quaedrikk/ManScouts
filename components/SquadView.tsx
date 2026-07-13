@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import Avatar from "./Avatar";
 import CoatOfArms from "./CoatOfArms";
 import type { Squad, UserProfile } from "@/lib/types";
@@ -20,7 +21,7 @@ export default function SquadView({ squadId, currentUserId, onClose, onOpenProfi
   async function leave() {
     if (!confirm("Leave this squad?")) return;
     try {
-      await fetch("/api/squads/leave", { method: "POST" });
+      await fetch(`${BASE_PATH}/api/squads/leave`, { method: "POST" });
       onReloadProfile?.();
       onClose();
     } catch { /* ignore */ }
@@ -28,7 +29,7 @@ export default function SquadView({ squadId, currentUserId, onClose, onOpenProfi
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/squads?id=${encodeURIComponent(squadId)}`)
+    fetch(`${BASE_PATH}/api/squads?id=${encodeURIComponent(squadId)}`)
       .then((r) => r.json())
       .then((d) => { if (active) { setSquad(d.squad); setMembers(d.members ?? []); } })
       .catch(() => {})

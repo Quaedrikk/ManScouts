@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import CoatOfArms from "./CoatOfArms";
 import Ico from "./Ico";
 import type { CoatOfArms as Coat } from "@/lib/types";
@@ -54,7 +55,7 @@ export default function SquadPanel({ onClose, onReloadProfile }: Props) {
     if (!nm.trim() || !stakes.trim()) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/squads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nm.trim(), stakes: stakes.trim(), coat }) });
+      const res = await fetch(`${BASE_PATH}/api/squads`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nm.trim(), stakes: stakes.trim(), coat }) });
       if (!res.ok) { alert("Couldn't create squad."); setBusy(false); return; }
       onReloadProfile(); onClose();
     } catch { alert("Couldn't create — try again."); }
@@ -65,7 +66,7 @@ export default function SquadPanel({ onClose, onReloadProfile }: Props) {
     if (!pledged) { alert("You must pledge to the stakes."); return; }
     setBusy(true);
     try {
-      const res = await fetch("/api/squads/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, pledged }) });
+      const res = await fetch(`${BASE_PATH}/api/squads/join`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, pledged }) });
       const d = await res.json();
       if (!res.ok) { alert(d.error ?? "Couldn't join."); setBusy(false); return; }
       onReloadProfile(); onClose();

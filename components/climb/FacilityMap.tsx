@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { BASE_PATH } from "@/lib/basePath";
 import type { FacilityBox } from "@/lib/climb";
 
 // Read-only / selectable facility map.
@@ -72,7 +73,7 @@ export function FacilityEditor({ gym, initial, onClose }: { gym: string; initial
   }
   async function save() {
     setSaving(true);
-    try { await fetch("/api/climbing/facility", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gym, boxes }) }); onClose(); }
+    try { await fetch(`${BASE_PATH}/api/climbing/facility`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ gym, boxes }) }); onClose(); }
     catch { alert("Couldn't save."); setSaving(false); }
   }
 

@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import { BASE_PATH } from "@/lib/basePath";
 
 export const metadata: Metadata = {
   title: "ManScouts",
   description: "Earn badges. Do real things. Prove it.",
-  manifest: "/manifest.json",
+  manifest: `${BASE_PATH}/manifest.json`,
 };
 
 export const viewport: Viewport = {
